@@ -105,6 +105,21 @@
     vim
     curl
     btrfs-progs
+    # 联网必需（迁移后第一件事：查资料）
+    firefox
+    chromium
+    wget
+    # 网络诊断
+    dnsutils
+    traceroute
+    openssh
+    # 桌面必需二进制（NixOS 无 pacman，HM 只管配置，二进制这里补）
+    kitty
+    hyprlock
+    grim
+    slurp
+    wl-clipboard
+    mpv
   ];
 
   # ============ Nix：国内镜像 + daemon 调优 ============
