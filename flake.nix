@@ -12,8 +12,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # 现有 Home Manager 配置仓库（单一起源，装机时靠 bind-mount 解析）
-    hm-ran.url = "path:/home/ran/.config/home-manager";
+    # 用户级配置仓库（GitHub 自包含，任意机器可拉取）
+    # 本地开发时也可改回 path:/home/ran/.config/home-manager
+    hm-ran.url = "github:jackockzuo/home-manager-ran";
+    hm-ran.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, home-manager, hm-ran, ... }:

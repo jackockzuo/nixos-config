@@ -3,17 +3,22 @@
     "hm-ran": {
       "inputs": {
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1786696178,
-        "narHash": "sha256-cdhcMl3JfHSzLbBbGqkuVEnCPPCfllE7moNQa5QJUlo=",
-        "path": "/home/ran/.config/home-manager",
-        "type": "path"
+        "lastModified": 1786696173,
+        "narHash": "sha256-OIETfQmHOHGcGu4fGWsvH3UhUlKQt8FASHaJam5F7v0=",
+        "owner": "jackockzuo",
+        "repo": "home-manager-ran",
+        "rev": "cce4d6f64f8a9e883c060d9b0af364f7d7dfcca3",
+        "type": "github"
       },
       "original": {
-        "path": "/home/ran/.config/home-manager",
-        "type": "path"
+        "owner": "jackockzuo",
+        "repo": "home-manager-ran",
+        "type": "github"
       }
     },
     "home-manager": {
@@ -59,22 +64,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1785967620,
-        "narHash": "sha256-IItrdb7Puk05RqOBWZYFC5X6Wl1sJmCfh5MWVHw5iMM=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "b7c2ada94fe99c15b0dbcf4d11fd7850b957a436",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1786599213,
         "narHash": "sha256-yNJd40f11EzXBjSByCB7IPpeFFAdeoSKKM67dGkfFoU=",
         "owner": "NixOS",
@@ -93,7 +82,7 @@
       "inputs": {
         "hm-ran": "hm-ran",
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     }
   },
