@@ -27,10 +27,12 @@
     auto-optimise-store = true;
     # 🔴 GitHub token 不在本文件：由 flake.nix 的 secrets path 输入注入 access-tokens
   };
-  # 系统级自动 GC（保留 14 天）
+  # 系统级自动 GC（保留 7 天）
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 14d";
+    options = "--delete-older-than 7d";
   };
+  # 允许所有用户使用nixpkgs的unfree包
+  nixpkgs.config.allowUnfree = true;
 }

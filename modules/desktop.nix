@@ -77,10 +77,23 @@
   };
 
   # ============ portal（桌面集成）============
+  # 🔴 只保留 gnome + gtk：niri 26.04+ 对 gnome portal 的录屏支持已完善，
+  # wlr 与 gnome 混用会导致 OBS 等录屏软件识别不到屏幕（社区公认问题）。
+  # gnome portal 经 dbus 自动拉起，无需显式启用其服务。
   xdg.portal = {
     enable = true;
-    wlr.enable = true; # niri 屏幕共享/portal
+    # wlr.enable = true; # ❌ 已移除：与 gnome portal 冲突
     extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
     config.common.default = "*";
   };
+
+  # ============ dconf / GSettings（系统代理等桌面集成依赖）============
+  # 说明：fcclient 等代理客户端通过 gsettings (org.gnome.system.proxy) 设置系统代理，
+  # 但 niri/DMS 不依赖 GNOME 模块，gsettings-desktop-schemas 不会自动进系统环境，
+  # 导致浏览器（Chrome/Firefox）读系统代理时提示"没有安装架构"而无法走代理。
+  # 这里显式启用 dconf 并把 gsettings-desktop-schemas 的 schema 目录暴露给会话。
+  programs.dconf.enable = true;
+  environment.systemPackages = [ pkgs.gsettings-desktop-schemas ];
+  environment.sessionVariables.GSETTINGS_SCHEMA_DIR =
+    "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/gsettings-desktop-schemas-${pkgs.gsettings-desktop-schemas.version}/glib-2.0/schemas";
 }

@@ -1,21 +1,25 @@
 # NixOS 配置 —— HP OMEN 16-wf0xxx (ran)
 
-> 双仓库架构：
-> - **本仓库**（nixos-config）：系统级配置（驱动/引导/服务/桌面二进制）
-> - **[home-manager-ran](https://github.com/jackockzuo/home-manager-ran)**：用户级配置（niri/kitty/fcitx5 等全部 `~/.config` + 工具链）
+> 单仓库架构（2026-08 合并）：
+> - **本仓库**（nixos-config）：系统级配置 + 用户级配置（home/ 目录）一体化
+> - 用户级配置原独立仓库 [home-manager-ran](https://github.com/jackockzuo/home-manager-ran) 已并入 `home/` 子目录
 
 ## 一、架构说明
 
 ```
-nixos-config（系统层）
-├── flake.nix              # omen 配置：导入 configuration + hardware + hm-ran
+nixos-config（单仓库）
+├── flake.nix              # omen 配置：导入 modules/ + home/ + hardware + secrets
 ├── configuration.nix      # 系统：GRUB双系统/NVIDIA/音频/输入法/greetd/联网工具
 ├── hardware-configuration.nix  # @home 保留（零备份迁移）
-└── migrate.md             # 迁移详细指南
-
-home-manager-ran（用户层，被 flake 引用）
-└── home.nix + modules/    # niri/kitty/fcitx5/neovim/工具链配置（自动生效）
+├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
+└── home/                  # 用户级配置（home-manager）
+    ├── home.nix           # HM 入口（被 flake.nix 的 users.ran.imports 引用）
+    ├── modules/           # 用户级模块（desktop/tools/network/...）
+    └── source/            # 配置源文件（niri/dms/beautify）
 ```
+
+> 注意：`secrets`（GitHub token）与 `fcclientPkg`（肥猫云客户端）仍在仓库外，
+> 通过 `path:` 输入引用（保持本仓库纯净，.deb/token 不进 git）。
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）
 
@@ -42,10 +46,9 @@ mount -o subvol=@nix,compress=zstd:3,noatime /dev/nvme1n1p2 /mnt/nix
 mount -o subvol=@home,compress=zstd:3,noatime /dev/nvme1n1p2 /mnt/home
 mount /dev/nvme1n1p1 /mnt/boot
 
-# 3. 生成硬件配置（真实 UUID）+ 拉取配置
+# 3. 生成硬件配置（真实 UUID）+ 拉取配置（单仓库，只需克隆一次）
 nixos-generate-config --root /mnt
 git clone https://github.com/jackockzuo/nixos-config.git /mnt/dotfiles
-git clone https://github.com/jackockzuo/home-manager-ran.git /mnt/home/ran/.config/home-manager 2>/dev/null || true
 cp /mnt/etc/nixos/hardware-configuration.nix /mnt/dotfiles/
 
 # 4. 安装
@@ -57,23 +60,22 @@ nixos-install --flake .#omen
 
 | 类别 | 内容 | 来源 |
 |---|---|---|
-| 桌面 | niri（greetd 直启）+ kitty + hyprlock | nixos-config + HM |
-| 输入法 | fcitx5-rime（雾凇）+ catppuccin 主题 | 系统层 + HM |
-| 联网 | firefox/chromium + wget + 网络诊断 | nixos-config |
-| 工具链 | fastfetch/btop/yazi/neovim 等（HM home.packages） | home-manager-ran |
-| 配置 | niri/kitty/fcitx5 全套 `~/.config` | home-manager-ran |
-| 双系统 | GRUB + os-prober（Windows 自动识别） | nixos-config |
+| 桌面 | niri（greetd 直启）+ kitty + hyprlock | modules/desktop.nix + home/ |
+| 输入法 | fcitx5-rime（雾凇）+ catppuccin 主题 | 系统层 + home/ |
+| 联网 | firefox/chromium + wget + 网络诊断 | modules/packages.nix |
+| 工具链 | fastfetch/btop/yazi/neovim 等（home.packages） | home/modules/ |
+| 配置 | niri/kitty/fcitx5 全套 `~/.config` | home/source/ |
+| 双系统 | GRUB + os-prober（Windows 自动识别） | modules/boot.nix |
 
 ## 四、安装后必做
 
 ```bash
 # 1. 首次登录（初始密码 ran）立即改密码
 passwd
-# 然后删掉 configuration.nix 的 initialPassword 行再 rebuild
+# 然后删掉 users.nix 的 initialPassword 行再 rebuild
 
-# 2. 更新配置（HM 在 @home 里，直接可更新）
+# 2. 更新配置（单仓库一次搞定）
 cd ~/nixos-config && git pull && sudo nixos-rebuild switch --flake .#omen
-cd ~/.config/home-manager && git pull && nixos-rebuild switch --flake ~/nixos-config#omen
 
 # 3. 验证
 echo $XDG_CURRENT_DESKTOP   # Niri
@@ -88,3 +90,4 @@ nmcli device                # 网络
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim
 - ✅ fcitx5 i18n 块 + rime-ice override（系统层接管，HM 只管配置）
+- ✅ 单仓库合并：home-manager 已并入 home/ 目录，消除跨仓库 path 引用

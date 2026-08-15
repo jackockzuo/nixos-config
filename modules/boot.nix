@@ -21,6 +21,9 @@
       # 🔴 跨盘发现 Windows：Windows 在另一块盘 (nvme1n1)，os-prober 扫描所有磁盘
       # 的 EFI 系统分区，在 GRUB 菜单添加 Windows Boot Manager 条目
       useOSProber = true;
+      # 🎨 GRUB 主题：catppuccin-mocha 风格 + NixOS 雪花 logo（logo 已替换，
+      # 主题文件在仓库 assets/grub-theme/，由 NixOS 声明式管理，不再手装）
+      theme = ../assets/grub-theme;
     };
   };
 

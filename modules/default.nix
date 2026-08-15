@@ -27,6 +27,6 @@
     # ./media-server.nix # 媒体服务（Jellyfin/Plex）
     # ./syncthing.nix # 文件同步（Syncthing）
     # ./printing.nix # 打印扫描（CUPS/SANE）
-    # ./security.nix # 系统安全（fail2ban/auditd）
+    ./security.nix # 系统安全（fail2ban/auditd/sudo 代理环境保留）
   ];
 }
