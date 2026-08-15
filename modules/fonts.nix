@@ -7,11 +7,13 @@
 { pkgs, ... }:
 
 {
-  # ============ 字体（kitty/fcitx5 的 Maple Mono NF CN + 中文字体）============
+  # ============ 字体（终端 Maple Mono + UI 默认中文字体）============
   fonts.packages = with pkgs; [
-    maple-mono.NF-CN # "Maple Mono NF CN"（kitty + fcitx5 classicui 指定）
-    nerd-fonts.jetbrains-mono
-    noto-fonts-cjk-sans # 中文回退
+    maple-mono.NF-CN # "Maple Mono NF CN"（仅终端 kitty 使用）
+    nerd-fonts.jetbrains-mono # 浏览器/等宽代码块（fontconfig monospace 首选）
+    noto-fonts-cjk-sans # 中文默认（浏览器/UI/输入法候选框）
     noto-fonts
+    inter # DMS UI 字体（Inter Variable，桌面壳运行时使用）
+    fira-code # DMS 等宽字体（Fira Code，桌面壳 mono 使用）
   ];
 }

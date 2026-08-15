@@ -12,6 +12,9 @@
     open = true;
     modesetting.enable = true;
     nvidiaPersistenced = true;
+    # 🔴 电源管理：DPMS/运行时电源控制，解决 Wayland 下休眠唤醒后合成器崩溃
+    #（nvidia 官方推荐配置；配合 nvidia-drm.modeset=1 使用）
+    powerManagement.enable = true;
     prime = {
       # 混合显卡：默认 offload（按需调用独显）
       offload.enable = true;

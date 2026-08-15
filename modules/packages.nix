@@ -6,6 +6,23 @@
 # ============================================================
 { pkgs, ... }:
 
+let
+  # Firefox 单独走 Wayland text-input 协议
+  # 🔴 原因：Firefox 原生 Wayland 运行（MOZ_ENABLE_WAYLAND=1），全局 GTK_IM_MODULE=fcitx
+  #    会强制它额外加载 fcitx5-gtk 的 dbus 通道 → 双通道冲突 → 候选框（皮肤）不显示。
+  #    见 fcitx5 官方 FAQ：Wayland 原生 GTK 应用应走 text-input 协议。
+  #    这里只对 firefox 覆盖为 wayland，XWayland 应用（QQ 等）仍用全局 fcitx。
+  firefox = pkgs.symlinkJoin {
+    name = "firefox-wayland-im";
+    paths = [ pkgs.firefox ];
+    buildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/firefox \
+        --set GTK_IM_MODULE wayland
+    '';
+  };
+in
+
 {
   environment.systemPackages = with pkgs; [
     # ---- 登录 shell（users.nix 指定，必须在系统包）----
@@ -27,8 +44,7 @@
     appimage-run # AppImage 运行器
 
     # ---- 联网工具（迁移后第一件事：查资料）----
-    firefox
-    chromium
+    firefox 
     google-chrome
     wget
     git
@@ -51,10 +67,10 @@
     swaynotificationcenter # swaync（niri spawn-at-startup）
     satty # 截图标注（niri 绑定调用）
     brightnessctl # 亮度调节（niri 绑定）
+    playerctl # 全局媒体控制（可绑定 niri 多媒体键：暂停/下一首）
 
-    # ---- 文件管理（mimeapps 默认应用 + Thunar 右键动作）----
+    # ---- 文件管理（mimeapps 默认应用）----
     nautilus
-    thunar
     imv
 
     # ---- 工具脚本与右键动作依赖 ----
@@ -64,6 +80,7 @@
 
     # ---- 系统工具 ----
     btrfs-progs
+    btrfs-assistant # snapper 快照 GUI 管理（rule.kdl 已有其浮动窗口规则）
     vim
   ];
 }

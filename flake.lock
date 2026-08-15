@@ -25,8 +25,8 @@
     "fcclientPkg": {
       "flake": false,
       "locked": {
-        "lastModified": 1786772870,
-        "narHash": "sha256-C8cqEFjel6p/YkjkjhkPbXr+OBHi1AxE6KiNSTO0lMM=",
+        "lastModified": 1786789114,
+        "narHash": "sha256-9OppzmpgicZwaMH7EmbyadpElo7G7rGDIYGpwCOt1BY=",
         "path": "/home/ran/Documents/nix-packaging/fcclient",
         "type": "path"
       },
@@ -51,57 +51,18 @@
         "type": "github"
       }
     },
-    "hm-ran": {
-      "inputs": {
-        "home-manager": "home-manager",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786734545,
-        "narHash": "sha256-brlwQKwyZexOO7kI8DEhUB0xiDc8T3LAEGo/S/eX3ik=",
-        "path": "/home/ran/.config/home-manager",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/ran/.config/home-manager",
-        "type": "path"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
-          "hm-ran",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1786031233,
-        "narHash": "sha256-TIDlLTLI1/pB7IqgjzcKQjpODQsZE2oII4XGG9B6KjI=",
+        "lastModified": 1786719456,
+        "narHash": "sha256-B74DLQs/VjlqyhnnX3tguWwghqJHWSJX30TKZuAljIg=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "7834e82588860aaf780cec1366524456a70898d7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
-    "home-manager_2": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786656209,
-        "narHash": "sha256-ybGtuwGKTUCefKYsplzvw4xcCqznto0c7BaiQhgILtA=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "c554d3441f725537854e877519f01cbd60680174",
+        "rev": "83b7606dcf44abe3a94b86e8bb2b3355d22e8797",
         "type": "github"
       },
       "original": {
@@ -130,8 +91,7 @@
       "inputs": {
         "dms": "dms",
         "fcclientPkg": "fcclientPkg",
-        "hm-ran": "hm-ran",
-        "home-manager": "home-manager_2",
+        "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "secrets": "secrets"
       }

@@ -15,10 +15,7 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # 用户级配置仓库（GitHub 自包含，任意机器可拉取）
-    # 本地开发时也可改回 path:/home/ran/.config/home-manager
-    hm-ran.url = "path:/home/ran/.config/home-manager";
-    hm-ran.inputs.nixpkgs.follows = "nixpkgs";
+    # 用户级配置已并入本仓库（home/ 目录），不再单独引用外部仓库
     # 肥猫云_Lite 打包目录（仓库外 ~/Documents/nix-packaging/，保持本仓库纯净）
     # path 输入不受"纯求值禁止仓库外绝对路径"限制，flake.lock 会记录路径
     fcclientPkg = {
@@ -39,7 +36,6 @@
       self,
       nixpkgs,
       home-manager,
-      hm-ran,
       dms,
       fcclientPkg,
       secrets,
@@ -83,6 +79,15 @@
           # 自动接管 services.greetd 的 default_session.command）
           dms.nixosModules.greeter
 
+          # ---- Nix 客户端与 flake 锁定版本对齐 ----
+          # `nix shell nixpkgs#...` / `nix develop` 默认会拉一个新的 nixpkgs，
+          # 与系统 flake 锁定版本不一致（多下载一份、行为可能漂移）。
+          # 把 registry 的 nixpkgs 指向本 flake 锁定的 nixpkgs，两者永远一致。
+          {
+            nix.registry.nixpkgs.flake = nixpkgs;
+            # nixPath 保留默认（channel 方式），只覆盖 registry 不影响系统内建查找
+          }
+
           # ---- 复用现有 Home Manager 配置（用户级全部继承）----
           home-manager.nixosModules.home-manager
           {
@@ -102,8 +107,8 @@
               # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
               startAsUserService = true;
               users.ran = {
-                # 导入 HM 仓库的 home.nix（它的相对 imports 自动解析）
-                imports = [ "${hm-ran}/home.nix" ];
+                # 用户级配置已并入本仓库 home/ 目录（home.nix 的相对 imports 自动解析）
+                imports = [ ./home/home.nix ];
               };
             };
           }
