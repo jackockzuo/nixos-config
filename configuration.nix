@@ -30,11 +30,21 @@
   # GitHub access token（提升 api.github.com 速率限制；注意：仓库若是 public 切勿提交此 token）
   # nixpkgs 26.11 的 nix.settings.access-tokens 类型为字符串（空格分隔多组 "host=token"）
   nix.settings.access-tokens = "github=***REMOVED***";
-  # ============ 引导：GRUB + 保留 Windows 双系统 ============
+  # ============ 引导：GRUB（实际引导链是 GRUB，从 Arch 时代继承）============
+  # 🔴 实际排查：固件从 /boot/EFI/NixOS-boot/grubx64.efi (GRUB) 引导，加载 /boot/grub/grub.cfg。
+  # NixOS 的 systemd-boot 条目从不被使用 → 每次 switch 只更新 systemd-boot 条目，
+  # GRUB 菜单仍指向旧代 → 重启后加载旧系统。
+  # 改为 NixOS 管理 GRUB：switch 时自动更新 grub.cfg 指向最新代。
   boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
-    # systemd-boot 会自动识别 /boot 下的 EFI 目录，无需额外配置
+    grub = {
+      enable = true;
+      device = "nodev";        # EFI 模式
+      efiSupport = true;
+      efiInstallAsRemovable = true;  # 安装为 removable 路径，确保固件能找到
+      # 🔴 跨盘发现 Windows：Windows 在另一块盘 (nvme1n1)，os-prober 扫描所有磁盘
+      # 的 EFI 系统分区，在 GRUB 菜单添加 Windows Boot Manager 条目
+      useOSProber = true;
+    };
   };
 
   # ============ 内核：最新（≈ 现在的 7.1.x）============
