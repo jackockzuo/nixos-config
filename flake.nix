@@ -19,6 +19,19 @@
     # 本地开发时也可改回 path:/home/ran/.config/home-manager
     hm-ran.url = "path:/home/ran/.config/home-manager";
     hm-ran.inputs.nixpkgs.follows = "nixpkgs";
+    # 肥猫云_Lite 打包目录（仓库外 ~/Documents/nix-packaging/，保持本仓库纯净）
+    # path 输入不受"纯求值禁止仓库外绝对路径"限制，flake.lock 会记录路径
+    fcclientPkg = {
+      url = "path:/home/ran/Documents/nix-packaging/fcclient";
+      flake = false; # 纯源文件目录（default.nix + .deb），不当作独立 flake
+    };
+    # 🔴 私有配置目录（仓库外，git 不追踪 → token 永不泄露）
+    # 与 fcclientPkg 同理：path 输入在纯求值下允许，flake.lock 记录路径。
+    # 目录里放 github-token 文件（一行 token 文本），经下方 access-tokens 注入。
+    secrets = {
+      url = "path:/home/ran/Documents/nix-secrets";
+      flake = false;
+    };
   };
 
   outputs =
@@ -28,17 +41,41 @@
       home-manager,
       hm-ran,
       dms,
+      fcclientPkg,
+      secrets,
       ...
     }:
     let
       system = "x86_64-linux";
+      lib = nixpkgs.lib;
+      pkgs = nixpkgs.legacyPackages.${system};
+      # 独立构建包时用的 pkgs（允许 unfree，否则 nix build .#fcclient 会拒绝）
+      # 注意：不能直接用上面的 pkgs，它不带 allowUnfree 配置
+      packagePkgs = import nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+        };
+      };
     in
     {
+      # 按需运行的包：nix run .#fcclient（不装进系统，不进 systemPackages）
+      # 包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
+      packages.${system}.fcclient = packagePkgs.callPackage fcclientPkg { };
+
       nixosConfigurations.omen = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          ./configuration.nix
+          ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
           ./hardware-configuration.nix
+
+          # ---- 私有配置注入：GitHub token（仓库外 secrets 输入，不进 git）----
+          # token 存在才设置（新机器无 token 也能构建，只是 api.github.com 限速）
+          {
+            nix.settings.access-tokens = lib.mkIf (builtins.pathExists "${secrets}/github-token") (
+              "github=${builtins.readFile "${secrets}/github-token"}"
+            );
+          }
 
           # ---- DMS (DankMaterialShell) 桌面壳模块（提供 programs.dank-material-shell 选项）----
           dms.nixosModules.default

@@ -22,6 +22,19 @@
         "type": "github"
       }
     },
+    "fcclientPkg": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786772870,
+        "narHash": "sha256-C8cqEFjel6p/YkjkjhkPbXr+OBHi1AxE6KiNSTO0lMM=",
+        "path": "/home/ran/Documents/nix-packaging/fcclient",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/ran/Documents/nix-packaging/fcclient",
+        "type": "path"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -116,9 +129,24 @@
     "root": {
       "inputs": {
         "dms": "dms",
+        "fcclientPkg": "fcclientPkg",
         "hm-ran": "hm-ran",
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "secrets": "secrets"
+      }
+    },
+    "secrets": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786775775,
+        "narHash": "sha256-qmzUpvDHzr3GUVPiw2XgSSKDszR55n7w7hXtteNK1ug=",
+        "path": "/home/ran/Documents/nix-secrets",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/ran/Documents/nix-secrets",
+        "type": "path"
       }
     }
   },
