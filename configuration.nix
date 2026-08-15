@@ -15,28 +15,32 @@
   # ============ 用户 ============
   users.users.ran = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
+    # input: DMS evdev 手势需要；podman: distrobox 容器
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "podman"
+      "input"
+    ];
     # 临时初始密码：登录后立即 `passwd` 修改，然后删掉这行再 rebuild
     initialPassword = "ran";
   };
+  users.users.root.initialPassword = "rootpassword";
   users.mutableUsers = false;
-
+  # GitHub access token（提升 api.github.com 速率限制；注意：仓库若是 public 切勿提交此 token）
+  # nixpkgs 26.11 的 nix.settings.access-tokens 类型为字符串（空格分隔多组 "host=token"）
+  nix.settings.access-tokens = "github=***REMOVED***";
   # ============ 引导：GRUB + 保留 Windows 双系统 ============
   boot.loader = {
+    systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
-    efi.efiSysMountPoint = "/boot";
-    grub = {
-      enable = true;
-      device = "nodev";          # EFI 模式
-      efiSupport = true;
-      useOSProber = true;        # 自动检测 Windows
-    };
+    # systemd-boot 会自动识别 /boot 下的 EFI 目录，无需额外配置
   };
 
   # ============ 内核：最新（≈ 现在的 7.1.x）============
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    "ibt=off"                    # nvidia 兼容（和 Arch 时一致）
+    "ibt=off" # nvidia 兼容（KVM 直通/嵌套虚拟化需要）
     "nvidia-drm.modeset=1"
   ];
 
@@ -56,7 +60,7 @@
   hardware.graphics.enable = true;
   services.xserver.videoDrivers = [ "nvidia" ];
 
-  # ============ 交换：zram（和 Arch 时一致）============
+  # ============ 交换：zram ============
   zramSwap.enable = true;
   zramSwap.memoryPercent = 50;
 
@@ -68,39 +72,95 @@
     pulse.enable = true;
   };
 
-  # ============ 输入法：fcitx5（系统级，比 Arch 上更顺）============
+  # ============ 输入法：fcitx5（系统级）============
+  # 注意：.enable/.type 是新式写法（旧 .enabled 已弃用）
   i18n.inputMethod = {
-    enabled = "fcitx5";
+    enable = true;
+    type = "fcitx5";
     fcitx5.addons = with pkgs; [
-      fcitx5-rime
+      # 🔴 必须 override fcitx5-rime 的 rimeDataPkgs 加入 rime-ice！
+      # nixpkgs 默认 rimeDataPkgs 只有 [ rime-data ]（基础包，不含 rime_ice schema），
+      # 导致 fcitx5-rime 的共享数据目录 share/rime-data 里没有 rime_ice.schema.yaml，
+      # rime 引擎启动部署时报 "missing input schema: rime_ice" → 输入法失效。
+      # 之前 HM 用 xdg.dataFile 往用户目录塞 symlink 是错误方案：
+      # rime 的 SyncUserData 部署任务会把共享目录里不存在的文件从用户目录删除。
+      (fcitx5-rime.override {
+        rimeDataPkgs = [
+          pkgs.rime-data
+          pkgs.rime-ice
+        ];
+      })
       rime-ice
       catppuccin-fcitx5
       fcitx5-gtk
       qt6Packages.fcitx5-chinese-addons
     ];
   };
+  environment.sessionVariables = {
+    GTK_IM_MODULE = "fcitx";
+    QT_IM_MODULE = "fcitx";
+    XMODIFIERS = "@im=fcitx";
+    # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
+    GLFW_IM_MODULE = "fcitx";
+  };
 
-  # ============ 桌面：greetd 直接拉起 niri 会话（配置由 HM 提供）============
-  # 说明：默认会话直接以 ran 启动 niri（免登录）；想要登录界面时改 command 为 tuigreet
+  # ============ 桌面：greetd + DMS Greeter 登录界面 ============
+  # 说明：DMS greeter 模块（dms.nixosModules.greeter）会接管 default_session.command，
+  # 启动 DMS 登录界面；登录后由 greeter 内部拉起 niri 会话。
+  # 🔴 注意：这里不能显式设置 command！greeter 模块用 lib.mkDefault 设置 command，
+  # 显式赋值优先级更高会覆盖掉 greeter → 登录界面不生效。command 交给 greeter 模块。
+  programs.niri.enable = true; # 合成器必须由 NixOS 安装（不能只靠 HM），greeter 才能列出
+
+  # 独立 greeter 系统用户（greetd 标准做法）：登录界面以最小权限运行，
+  # 用户认证通过后才以目标用户（ran）启动桌面会话。
+  # 参考 DMS greeter 模块测试（distro/nix/tests/greeter-niri-module.nix）
+  users.groups.greeter = { };
+  users.users.greeter = {
+    isSystemUser = true;
+    group = "greeter";
+  };
+
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${pkgs.niri}/bin/niri-session";
-      user = "ran";
+      # command 由 DMS greeter 模块提供（lib.mkDefault），此处不设置
+      user = "greeter";
     };
   };
-
+  # 🔴 关键修复：DMS Greeter 需要 XDG_DATA_DIRS 才能发现 niri 会话（.desktop 文件）。
+  # 官方 displayManager 模块会自动注入 `${sessionData.desktops}/share`，但纯 greetd 不走该模块，
+  # 必须手动给 greetd 服务加上，否则 greeter 的会话列表为空 → 登录后无法启动 niri。
+  systemd.services.greetd.environment.XDG_DATA_DIRS =
+    "${config.services.displayManager.sessionData.desktops}/share";
+  # 开机弹性：慢启动（user 管理器/dbus 未就绪）时别让 greetd 5 次/10s 就 start-limit-hit，
+  # 放宽到 30 次/5 分钟，给系统时间自己稳定下来
+  systemd.services.greetd.serviceConfig = {
+    StartLimitIntervalSec = "300";
+    StartLimitBurst = 30;
+  };
+  # ============ 蓝牙（DMS bluez 面板 + 笔记本日常）============
+  hardware.bluetooth.enable = true;
   # ============ 基础服务 ============
-  services.udisks2.enable = true;      # U 盘自动挂载（udiskie）
+  services.udisks2.enable = true; # U 盘自动挂载（udiskie）
   services.gvfs.enable = true;
   xdg.portal = {
     enable = true;
-    wlr.enable = true;                 # niri 屏幕共享/portal
+    wlr.enable = true; # niri 屏幕共享/portal
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    config.common.default = "*";
   };
-  programs.fuse.userAllowOther = true; # 肥猫云 AppImage 需要
 
+  programs.fuse.userAllowOther = true; # 肥猫云 AppImage 需要
   # ============ 基础工具（应用用户自行重装）============
   environment.systemPackages = with pkgs; [
+    xwayland-satellite
+    xorg.xhost
+    polkit_gnome
+    wlsunset
+    distrobox
+    podman # 容器运行时
+    fuse-overlayfs # 可选，提升容器内 FUSE 性能
+    appimage-run
     git
     vim
     curl
@@ -113,13 +173,43 @@
     dnsutils
     traceroute
     openssh
-    # 桌面必需二进制（NixOS 无 pacman，HM 只管配置，二进制这里补）
+    # 桌面必需二进制（NixOS 系统层安装，HM 只管配置）
     kitty
     hyprlock
     grim
     slurp
     wl-clipboard
     mpv
+    # 通知/截图标注/亮度（niri spawn + HM 配置引用）
+    swaynotificationcenter # swaync（niri spawn-at-startup）
+    satty # 截图标注（niri 绑定调用）
+    brightnessctl # 亮度调节（niri 绑定）
+    # 文件管理（mimeapps 默认应用 + Thunar 右键动作）
+    nautilus
+    thunar
+    imv
+    # 浏览器（mimeapps 默认应用）
+    google-chrome
+    # X11 兼容（niri 26.04 经 xwayland-satellite 提供 X11 应用支持）
+    xwayland-satellite
+    xorg.xhost # 允许 root 经用户 xwayland 开窗
+    # 护眼 / 闲置锁屏（niri 脚本依赖）
+    wlsunset
+    swayidle
+    # 工具脚本与右键动作依赖
+    libnotify # notify-send
+    python3
+    mediainfo
+    # 认证代理（niri spawn-at-startup）
+    polkit_gnome
+  ];
+
+  # ============ 字体（kitty/fcitx5 的 Maple Mono NF CN + 中文字体）============
+  fonts.packages = with pkgs; [
+    maple-mono.NF-CN # "Maple Mono NF CN"（kitty + fcitx5 classicui 指定）
+    nerd-fonts.jetbrains-mono
+    noto-fonts-cjk-sans # 中文回退
+    noto-fonts
   ];
 
   # ============ Nix：国内镜像 + daemon 调优 ============
@@ -131,8 +221,14 @@
       "https://cache.nixos.org"
     ];
     trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
-    trusted-users = [ "root" "@wheel" ];
-    experimental-features = [ "nix-command" "flakes" ];
+    trusted-users = [
+      "root"
+      "@wheel"
+    ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     auto-optimise-store = true;
   };
   # 系统级自动 GC（保留 14 天）
@@ -140,5 +236,52 @@
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 14d";
+  };
+  # use appimage on nixos
+
+  programs.appimage = {
+    enable = true;
+    binfmt = true; # 允许直接执行
+  };
+
+  #dms (DankMaterialShell, 模块来自 dms flake input: dms.nixosModules.default)
+
+  programs.dank-material-shell = {
+    enable = true;
+
+    systemd = {
+      enable = true; # Systemd service for auto-start
+      restartIfChanged = true; # Auto-restart dms.service when dms-shell changes
+    };
+
+    # Core features
+    enableSystemMonitoring = true; # System monitoring widgets (dgop)
+    enableVPN = true; # VPN management widget
+    enableDynamicTheming = true; # Wallpaper-based theming (matugen)
+    enableAudioWavelength = true; # Audio visualizer (cava)
+    enableCalendarEvents = true; # Calendar integration (khal)
+
+  };
+
+  # DMS Greeter 登录界面（模块来自 dms flake input: dms.nixosModules.greeter）
+  # 自动接管 services.greetd 的 default_session.command，开机显示 DMS 登录界面
+  programs.dank-material-shell.greeter = {
+    enable = true;
+    compositor.name = "niri"; # 用 niri 跑 greeter 界面（必须 NixOS 安装）
+    # 同步用户 DMS 主题/壁纸/配色到 greeter（settings.json/session.json/dms-colors.json）
+    configHome = "/home/ran";
+    # 保存 greeter 日志方便排查
+    logs = {
+      save = true;
+      path = "/tmp/dms-greeter.log";
+    };
+  };
+
+  #distrobox（依赖 rootless podman；NixOS 正确姿势是 virtualisation.podman，
+  #手写 systemd.services.podman 会与 podman 自带单元冲突变成 bad-setting）
+  virtualisation.podman = {
+    enable = true;
+    # 让普通用户无需 root 就能跑容器（distrobox 依赖）
+    dockerSocket.enable = true;
   };
 }

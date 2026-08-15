@@ -1,5 +1,43 @@
 {
   "nodes": {
+    "dms": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785111455,
+        "narHash": "sha256-aTNuC9NDBnYAeEtFsleeUwmGX3AZlKOutbl+LQRPkmQ=",
+        "owner": "AvengeMedia",
+        "repo": "DankMaterialShell",
+        "rev": "069ddab041c738236a8910e4c39b65d9628d3018",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AvengeMedia",
+        "ref": "stable",
+        "repo": "DankMaterialShell",
+        "type": "github"
+      }
+    },
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767039857,
+        "narHash": "sha256-vNpUSpF5Nuw8xvDLj2KCwwksIbjua2LZCqhV1LNRDns=",
+        "owner": "NixOS",
+        "repo": "flake-compat",
+        "rev": "5edf11c44bc78a0d334f6334cdaf7d60d732daab",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
     "hm-ran": {
       "inputs": {
         "home-manager": "home-manager",
@@ -8,17 +46,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1786696173,
-        "narHash": "sha256-OIETfQmHOHGcGu4fGWsvH3UhUlKQt8FASHaJam5F7v0=",
-        "owner": "jackockzuo",
-        "repo": "home-manager-ran",
-        "rev": "cce4d6f64f8a9e883c060d9b0af364f7d7dfcca3",
-        "type": "github"
+        "lastModified": 1786734545,
+        "narHash": "sha256-brlwQKwyZexOO7kI8DEhUB0xiDc8T3LAEGo/S/eX3ik=",
+        "path": "/home/ran/.config/home-manager",
+        "type": "path"
       },
       "original": {
-        "owner": "jackockzuo",
-        "repo": "home-manager-ran",
-        "type": "github"
+        "path": "/home/ran/.config/home-manager",
+        "type": "path"
       }
     },
     "home-manager": {
@@ -80,6 +115,7 @@
     },
     "root": {
       "inputs": {
+        "dms": "dms",
         "hm-ran": "hm-ran",
         "home-manager": "home-manager_2",
         "nixpkgs": "nixpkgs"

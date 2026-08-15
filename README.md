@@ -19,33 +19,7 @@ home-manager-ran（用户层，被 flake 引用）
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）
 
-### 场景 A：从 Arch 迁移（@home 保留，零备份）
-
-详细步骤见 [migrate.md](migrate.md)。核心：
-
-```bash
-# 1. Live CD 挂载 + 删旧 @ + 建新 @/@nix（保留 @home）
-mount /dev/nvme1n1p2 /mnt
-btrfs subvolume delete /mnt/@   # 【千万不要删 @home】
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@nix
-umount /mnt
-
-# 2. 挂载（@home 原样挂回）
-mount -o subvol=@,compress=zstd:3,noatime /dev/nvme1n1p2 /mnt
-mkdir -p /mnt/nix /mnt/home /mnt/boot
-mount -o subvol=@nix,compress=zstd:3,noatime /dev/nvme1n1p2 /mnt/nix
-mount -o subvol=@home,compress=zstd:3,noatime /dev/nvme1n1p2 /mnt/home
-mount /dev/nvme1n1p1 /mnt/boot
-
-# 3. bind-mount @home 到 Live 的 /home（让 flake 和 HM 路径可解析）
-mkdir -p /home && mount --bind /mnt/home /home
-
-# 4. 安装（配置就在 @home 里，自动找到）
-nixos-install --flake /home/ran/nixos-config#omen
-```
-
-### 场景 B：全新安装（无旧系统）
+### 全新安装（无旧系统）
 
 ```bash
 # 1. 分区 nvme1n1：EFI 1G + btrfs 剩余
@@ -113,4 +87,4 @@ nmcli device                # 网络
 - ✅ `nix flake check` 通过
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim
-- ✅ NixOS 兼容性：fcitx5 i18n 块 + nix-gc 用 useGlobalPkgs 条件化（Arch/NixOS 双兼容）
+- ✅ fcitx5 i18n 块 + rime-ice override（系统层接管，HM 只管配置）
