@@ -144,7 +144,9 @@
     "${config.services.displayManager.sessionData.desktops}/share";
   # 开机弹性：慢启动（user 管理器/dbus 未就绪）时别让 greetd 5 次/10s 就 start-limit-hit，
   # 放宽到 30 次/5 分钟，给系统时间自己稳定下来
-  systemd.services.greetd.serviceConfig = {
+  # 注意：StartLimit* 属于 [Unit] 段（unitConfig），放 serviceConfig 会报
+  # "Unknown key 'StartLimitIntervalSec' in section [Service]"
+  systemd.services.greetd.unitConfig = {
     StartLimitIntervalSec = "300";
     StartLimitBurst = 30;
   };
