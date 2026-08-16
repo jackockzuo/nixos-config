@@ -17,6 +17,10 @@
     git-hooks.url = "github:cachix/git-hooks.nix"; # 原 pre-commit-hooks.nix（2025 更名）
     git-hooks.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ---- 秘密管理：sops-nix（见 STANDARDS.md §5）----
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+
     # DMS (DankMaterialShell) —— quickshell 桌面壳，模块用 nixpkgs 自带的 quickshell（≥0.3.0）
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
@@ -33,13 +37,8 @@
       url = "path:/home/ran/Documents/nix-packaging/fcclient";
       flake = false; # 纯源文件目录（default.nix + .deb），不当作独立 flake
     };
-    # 🔴 私有配置目录（仓库外，git 不追踪 → token 永不泄露）
-    # 与 fcclientPkg 同理：path 输入在纯求值下允许，flake.lock 记录路径。
-    # 目录里放 github-token 文件（一行 token 文本），经下方 access-tokens 注入。
-    secrets = {
-      url = "path:/home/ran/Documents/nix-secrets";
-      flake = false;
-    };
+    # 🔴 GitHub token 已迁移至 sops-nix（secrets/secrets.yaml 加密，见 modules/secrets.nix），
+    #    原仓库外 secrets path 输入已删除（token 不再明文进 /nix/store）
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
@@ -90,7 +89,9 @@
 
           # 按需运行的包：nix run .#fcclient（不装进系统，不进 systemPackages）
           # 包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
-          # 独立 pkgs（允许 unfree，否则 nix build .#fcclient 会拒绝）
+          # 🔴 CI 处理：GitHub Actions 无此目录，CI 用 --override-input fcclientPkg
+          #    指向仓库内 .ci/fcclient-placeholder（仅 eval 用占位，见 ci.yml）
+          #    ⚠️ 勿用 builtins.pathExists 条件化（纯求值下恒 false，包会消失）
           packages.fcclient =
             (import inputs.nixpkgs {
               inherit system;
@@ -109,13 +110,16 @@
           system = "x86_64-linux";
           modules = [
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
-            ./hardware-configuration.nix
+            ./hardware-configuration.nix # 硬件检测 + fileSystems（nixos-generate-config 产物）
 
-            # ---- 私有配置注入：GitHub token（仓库外 secrets 输入，不进 git）----
-            # token 存在才设置（新机器无 token 也能构建，只是 api.github.com 限速）
-            {
-              nix.settings.access-tokens = inputs.nixpkgs.lib.mkIf (builtins.pathExists "${inputs.secrets}/github-token") "github=${builtins.readFile "${inputs.secrets}/github-token"}";
-            }
+            # ⚠️ 2026-08-16 回退：disko 声明式分区已移除（test 进紧急模式——
+            #    disko 采纳动作未执行，生成的 fileSystems 引用不存在的 .snapshots
+            #    子卷导致挂载失败）。fileSystems 恢复由 hardware-configuration.nix
+            #    管理（by-uuid）。未来采纳 disko 需先执行 --mode format,mount。
+
+            # ---- sops-nix 秘密管理（STANDARDS §5）：GitHub token 等 ----
+            # 配置见 modules/secrets.nix（声明/解密 key/消费方接线）
+            inputs.sops-nix.nixosModules.sops
 
             # ---- DMS (DankMaterialShell) 桌面壳模块（提供 programs.dank-material-shell 选项）----
             inputs.dms.nixosModules.default
@@ -152,7 +156,9 @@
                 # "process org.freedesktop.systemd1 exited with status 1"。
                 # 改为 startAsUserService：HM 作为 systemd user service 在登录时激活，
                 # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
-                # ⚠️ STANDARDS.md §3.1/#6：Phase 5 将移除（26.05 实验特性，仅 pam_mount 场景）
+                # ⚠️ STANDARDS.md §3.1/#6：✅ 调研确认保留（2026-08）——
+                #    上游真实 bug #3172（boot 期激活 vs 用户 dbus 竞态）唯一受支持修复；
+                #    无替代修复（#3405 未合并），移除会回归登录失败。勿改！
                 startAsUserService = true;
                 # 🔴 代理地址单一来源注入：HM 模块经 extraSpecialArgs 拿到 config.proxy
                 extraSpecialArgs = {
@@ -163,6 +169,11 @@
                   imports = [ ./home/home.nix ];
                 };
               };
+              # 🔴 调研确认（home-manager PR #6981）：startAsUserService 模式下模块
+              #    不自动启用用户服务（无 wantedBy）→ 登录时不会自动激活，仅 rebuild
+              #    时经 sd-switch 触发。这里补上 wantedBy 让每次登录都激活。
+              #    注意：不能 wants/after nix-daemon.socket（systemd 禁止用户→系统依赖，#8565）
+              systemd.user.services.home-manager.wantedBy = [ "default.target" ];
             })
             inputs.nix-index-database.nixosModules.nix-index
             {
