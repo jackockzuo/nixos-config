@@ -159,7 +159,9 @@
                 # "process org.freedesktop.systemd1 exited with status 1"。
                 # 改为 startAsUserService：HM 作为 systemd user service 在登录时激活，
                 # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
-                # ⚠️ STANDARDS.md §3.1/#6：Phase 5 将移除（26.05 实验特性，仅 pam_mount 场景）
+                # ⚠️ STANDARDS.md §3.1/#6：✅ 调研确认保留（2026-08）——
+                #    上游真实 bug #3172（boot 期激活 vs 用户 dbus 竞态）唯一受支持修复；
+                #    无替代修复（#3405 未合并），移除会回归登录失败。勿改！
                 startAsUserService = true;
                 # 🔴 代理地址单一来源注入：HM 模块经 extraSpecialArgs 拿到 config.proxy
                 extraSpecialArgs = {
@@ -170,6 +172,11 @@
                   imports = [ ./home/home.nix ];
                 };
               };
+              # 🔴 调研确认（home-manager PR #6981）：startAsUserService 模式下模块
+              #    不自动启用用户服务（无 wantedBy）→ 登录时不会自动激活，仅 rebuild
+              #    时经 sd-switch 触发。这里补上 wantedBy 让每次登录都激活。
+              #    注意：不能 wants/after nix-daemon.socket（systemd 禁止用户→系统依赖，#8565）
+              systemd.user.services.home-manager.wantedBy = [ "default.target" ];
             })
             inputs.nix-index-database.nixosModules.nix-index
             {
