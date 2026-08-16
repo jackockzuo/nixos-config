@@ -327,10 +327,15 @@ perSystem = { config, ... }: {
 
 - 校验目标：`self.checks.${system}.pre-commit-check`。
 
-### 6.3 CI（GitHub Actions，迁移收尾阶段）
+### 6.3 CI（GitHub Actions）
 
-- 每个 PR：`nix flake check`（含 treefmt 检查 + pre-commit-check + disko 配置 dry-run）+ `nix fmt --check`。
-- 不引入外部服务依赖；用 `DeterminateSystems/nix-installer-action` 或官方 action。
+- 每个 PR：`nix flake check`（含 treefmt 检查 + pre-commit-check）+ `nix fmt -- --fail-on-change`。
+- 不引入外部服务依赖；用 `DeterminateSystems/nix-installer-action` + `magic-nix-cache-action`。
+- ⚠️ **fcclientPkg 特殊处理**：它是仓库外 path 输入（`/home/ran/Documents/nix-packaging/fcclient`），CI 无此目录。
+  - CI 命令：`nix flake check --override-input fcclientPkg "path:${GITHUB_WORKSPACE}/.ci/fcclient-placeholder"`
+  - 占位包 `.ci/fcclient-placeholder/default.nix`（`{ pkgs }: pkgs.hello`）仅求值不构建。
+  - ⚠️ **禁止**用 `builtins.pathExists` 条件化 packages（纯求值下恒 false，本机包会消失——踩过坑）。
+  - `--override-input` 必须 `path:` 前缀 + 绝对路径（相对路径解析到 flake 自身，报错误导）。
 
 ---
 
@@ -360,7 +365,7 @@ perSystem = { config, ... }: {
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
 | 6 | `startAsUserService = true`（26.05 实验特性，非 pam_mount 场景） | §3.1 | 移除，回默认 boot 期激活 |
 | 7 | ~~镜像源系统层/用户层重复硬编码~~ ✅ 已收敛（2026-08） | §0.2 | 完成（仅 modules/nix.nix；客户端经 daemon 继承） |
-| 8 | ~~无 treefmt / git-hooks / CI~~ ✅ treefmt+git-hooks 已启用（2026-08）；CI 待 Phase 4 | §6 | treefmt(nixfmt)+statix+deadnix 全绿；CI 待补 |
+| 8 | ~~无 treefmt / git-hooks / CI~~ ✅ treefmt+git-hooks+CI 已启用（2026-08） | §6 | treefmt(nixfmt)+statix+deadnix 全绿；CI（ci.yml：flake check + fmt 门禁）已建 |
 | 9 | `~/.config/nixpkgs/config.nix` 的 allowUnfree | §3.2 | **保留 + 注释澄清**：作用域与 #5 不同——系统层 `nixpkgs.config` 只管 `nixos-rebuild`/HM 包解析；此文件管命令行客户端（`nix profile add`/`nix-env`/`nix-shell`）装 unfree 包，删除会破坏该能力。非冗余，是必需配置 |
 | 10 | ~~`hardware-configuration.nix` 的 fileSystems 与 disko 职责重叠~~ ✅ 已拆分（2026-08） | §4.1 | 完成：硬件检测提取为 `modules/hardware-detect.nix`（`--no-filesystems` 语义），fileSystems 由 `disko.nix` 生成 |
 | 11 | `home.stateVersion = "24.05"` 与 NixOS `25.05` | §3.3 | **保持不动**（正确行为），仅核对分支匹配 |
@@ -371,7 +376,7 @@ perSystem = { config, ... }: {
 - **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。✅ **已完成（2026-08-16）**：flake-parts 迁移 + treefmt/statix/deadnix 全绿 + 存量 71 处 statix/deadnix 警告清零。
 - **Phase 2（磁盘）**：#4 引入 disko.nix，`--mode format,mount` 采纳现有盘，验证 fstab 与 snapper 快照。风险：中，先备份快照再执行。✅ **配置接入已完成（2026-08-16）**：disko.nix（btrfs 子卷 + compress=zstd/noatime + .snapshots 独立子卷）接入 flake，fileSystems 由 disko 生成，check/dry-build 全绿。⚠️ **采纳动作（§8.3）需用户执行，未做**。
 - **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。🟡 **最小迁移已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon），`path:` 输入删除，store 零明文泄漏（toplevel 依赖扫描验证）。**剩余**：`initialPassword`/root 密码明文待迁（需用户确认新密码 + `nixos-rebuild test` 后 switch）。
-- **Phase 4（质量）**：#8 CI + pre-commit 全量启用。
+- **Phase 4（质量）**：#8 CI + pre-commit 全量启用。✅ **已完成（2026-08-16）**：`ci.yml`（GitHub Actions：`nix flake check` + `nix fmt -- --fail-on-change`）建立；fcclientPkg 仓库外 path 输入用 `.ci/fcclient-placeholder` override 解决（CI 无该目录）；本机/CI 双环境验证通过。
 - **Phase 5（可选演进）**：#6 移除 startAsUserService；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。
 
 ### 8.3 Phase 2 待执行：disko 采纳现有盘（用户操作）
