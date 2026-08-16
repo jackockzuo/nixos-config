@@ -24,10 +24,6 @@ _:
       # ── 性能优化 ──
       # add_newline = false：紧凑布局，提示符之间不插入空行
       add_newline = false;
-      # scan_for_workdir_files = false：不递归扫描上级目录，只检查当前目录，识别更快
-      scan_for_workdir_files = false;
-      # scan_timeout = 30：目录扫描超时（毫秒），深层/大目录立即放弃，不拖慢提示符
-      scan_timeout = 30;
       # command_timeout = 500：等待外部命令（python --version / go version / node --version 等）返回版本的最大毫秒数，防止个别命令卡住
       command_timeout = 500;
 
@@ -78,6 +74,10 @@ _:
         truncation_symbol = "…/";
         # 🔒 目录只读（无写权限）时后缀显示锁图标（spaceship DIR_LOCK 同款）
         read_only = "🔒 ";
+        # 性能优化：不递归扫描上级目录，只检查当前目录，识别更快
+        scan_for_workdir_files = false;
+        # 目录扫描超时（毫秒），深层/大目录立即放弃，不拖慢提示符
+        scan_timeout = 30;
         substitutions = {
           "Documents" = "󰈙 ";
           "Downloads" = " ";
