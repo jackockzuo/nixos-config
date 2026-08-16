@@ -1,7 +1,7 @@
 # ============================================================
 # lazygit.nix —— git TUI（Catppuccin Mocha 主题）
 # ============================================================
-{ pkgs, ... }:
+_:
 
 {
   # lazygit：Catppuccin Mocha 主题（git TUI）
@@ -10,7 +10,10 @@
     settings = {
       gui.theme = {
         selectedLineBgColor = [ "#313244" ];
-        activeBorderColor = [ "#89b4fa" "bold" ];
+        activeBorderColor = [
+          "#89b4fa"
+          "bold"
+        ];
         inactiveBorderColor = [ "#585b70" ];
         optionsFgColor = [ "#89b4fa" ];
         selectedRangeBgColor = [ "#313244" ];

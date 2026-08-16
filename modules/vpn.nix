@@ -4,7 +4,7 @@
 # 使用方式：networking.wireguard.interfaces 或 services.tailscale
 # 注意：与 DMS 的 VPN 面板（enableVPN）配合时检查归属
 # ============================================================
-{ ... }:
+_:
 
 {
   # 预留：需要时在此添加 VPN 配置

@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # onefetch：git 仓库信息面板（Catppuccin Mocha 配色）

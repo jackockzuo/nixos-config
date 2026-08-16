@@ -354,13 +354,13 @@ perSystem = { config, ... }: {
 | # | 现状问题 | 违反准则 | 修正动作 |
 |---|---|---|---|
 | 1 | ~~`configuration.nix` 遗留死代码~~ ✅ 已删除（2026-08） | §2 深度模块化 | 完成 |
-| 2 | 裸 flake，无 flake-parts | §1.1 | 迁移至 `mkFlake` |
+| 2 | ~~裸 flake，无 flake-parts~~ ✅ 已迁移（2026-08） | §1.1 | 完成（`mkFlake` + `flake.nixosConfigurations`，`nix flake check` 全绿） |
 | 3 | 秘密用仓库外 `path:` 输入 + `initialPassword` 明文 | §0.6 / §5 | sops-nix 接管 |
 | 4 | 分区靠 README 手动 parted，无 disko | §4.1 | 引入 `disko.nix`（`--mode format,mount` 无痛采纳） |
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
 | 6 | `startAsUserService = true`（26.05 实验特性，非 pam_mount 场景） | §3.1 | 移除，回默认 boot 期激活 |
 | 7 | ~~镜像源系统层/用户层重复硬编码~~ ✅ 已收敛（2026-08） | §0.2 | 完成（仅 modules/nix.nix；客户端经 daemon 继承） |
-| 8 | 无 treefmt / git-hooks / CI | §6 | 逐项补齐 |
+| 8 | ~~无 treefmt / git-hooks / CI~~ ✅ treefmt+git-hooks 已启用（2026-08）；CI 待 Phase 4 | §6 | treefmt(nixfmt)+statix+deadnix 全绿；CI 待补 |
 | 9 | `~/.config/nixpkgs/config.nix` 的 allowUnfree | §3.2 | **保留 + 注释澄清**：作用域与 #5 不同——系统层 `nixpkgs.config` 只管 `nixos-rebuild`/HM 包解析；此文件管命令行客户端（`nix profile add`/`nix-env`/`nix-shell`）装 unfree 包，删除会破坏该能力。非冗余，是必需配置 |
 | 10 | `hardware-configuration.nix` 的 fileSystems 与 disko 职责重叠 | §4.1 | 用 `--no-filesystems` 重新生成，只留硬件部分 |
 | 11 | `home.stateVersion = "24.05"` 与 NixOS `25.05` | §3.3 | **保持不动**（正确行为），仅核对分支匹配 |
@@ -368,7 +368,7 @@ perSystem = { config, ... }: {
 ### 8.2 迁移路线图（分阶段，每阶段结束必须 `nix flake check` 通过）
 
 - **Phase 0（清理）**：#1 删除 configuration.nix；#5/#7/#9 单一来源收敛。风险：无。立即做。
-- **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。
+- **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。✅ **已完成（2026-08-16）**：flake-parts 迁移 + treefmt/statix/deadnix 全绿 + 存量 71 处 statix/deadnix 警告清零。
 - **Phase 2（磁盘）**：#4 引入 disko.nix，`--mode format,mount` 采纳现有盘，验证 fstab 与 snapper 快照。风险：中，先备份快照再执行。
 - **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。
 - **Phase 4（质量）**：#8 CI + pre-commit 全量启用。

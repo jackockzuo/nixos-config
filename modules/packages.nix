@@ -44,7 +44,7 @@ in
     appimage-run # AppImage 运行器
 
     # ---- 联网工具（迁移后第一件事：查资料）----
-    firefox 
+    firefox
     google-chrome
     wget
     git
