@@ -107,6 +107,15 @@
       vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = '切换缓冲区' })
       vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = '帮助标签' })
 
+      -- LSP 导航: telescope 浮动窗口（现代体验），原有 gd/gr/K 原生跳转保留（快速单跳）
+      -- <leader>ca 已在 LSP on_attach 中定义（vim.lsp.buf.code_action），此处不重复
+      vim.keymap.set('n', '<leader>gd', builtin.lsp_definitions, { desc = 'LSP 定义跳转 (telescope)' })
+      vim.keymap.set('n', '<leader>gr', builtin.lsp_references, { desc = 'LSP 引用查找 (telescope)' })
+      vim.keymap.set('n', '<leader>gi', builtin.lsp_implementations, { desc = 'LSP 实现查找 (telescope)' })
+      vim.keymap.set('n', '<leader>gt', builtin.lsp_type_definitions, { desc = 'LSP 类型定义 (telescope)' })
+      vim.keymap.set('n', '<leader>ds', builtin.lsp_document_symbols, { desc = 'LSP 文档符号 (telescope)' })
+      vim.keymap.set('n', '<leader>ws', builtin.lsp_workspace_symbols, { desc = 'LSP 工作区符号 (telescope)' })
+
       -- 补全: nvim-cmp + LuaSnip (风格与 catppuccin 匹配, 圆角边框)
       local cmp = require("cmp")
       local luasnip = require("luasnip")

@@ -14,6 +14,7 @@
     ./users.nix # 用户与权限（ran/root/groups/shell）
     ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）
     ./services.nix # 系统服务（pipewire/snapper/udisks/tlp）
+    ./backup.nix # 异地加密备份（restic，补 snapper 本地快照短板）
     ./locale.nix # 语言/时区/输入法（fcitx5）
     ./fonts.nix # 系统字体（Maple Mono NF CN + 中文回退）
     ./nix.nix # Nix daemon（镜像源/GC/experimental-features）
