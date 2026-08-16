@@ -1,0 +1,14 @@
+# ============================================================
+# .sops.yaml —— sops 加密规则（STANDARDS.md §5）
+# 用途：定义 secrets/ 下文件的加密规则与允许解密的 age 公钥
+# 修改：新增机器/用户时，把其 age 公钥加入 keys 并在 key_groups 引用，
+#       然后运行 `sops updatekeys secrets/secrets.yaml`
+# ⚠️ 私钥永不进仓库（~/.config/sops/age/keys.txt 或 /var/lib/sops-nix/key.txt）
+# ============================================================
+keys:
+  - &omen age19j84k0ya9jkn850yt2mmnl63qqmmamcqrhnmhp5y4yuhsvmfzglqnalw57
+creation_rules:
+  - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$
+    key_groups:
+      - age:
+          - *omen
