@@ -75,7 +75,8 @@ nixos-install --flake .#omen
 ```bash
 # 1. 首次登录（初始密码 ran）立即改密码
 passwd
-# 然后删掉 users.nix 的 initialPassword 行再 rebuild
+# 密码哈希由 sops 管理（STANDARDS §5）：改密码后需同步更新 secrets/secrets.yaml
+# 的 user-password 字段（流程见下"改密码"）
 
 # 2. 更新配置（单仓库一次搞定）
 cd ~/nixos-config && git pull && sudo nixos-rebuild switch --flake .#omen
@@ -85,6 +86,15 @@ echo $XDG_CURRENT_DESKTOP   # Niri
 fcitx5-remote -t            # 输入法
 snapper -c root list        # 滚挂防护
 nmcli device                # 网络
+```
+
+### 改密码（sops 管理后）
+
+```bash
+# 生成新哈希并更新加密文件（会打开 $EDITOR，改 user-password 的值后保存）
+mkpasswd -s
+nix shell nixpkgs#sops -c sops secrets/secrets.yaml
+# 保存后重新 switch 生效：sudo nixos-rebuild switch --flake .#omen
 ```
 
 ## 五、验证状态（2026-08）
