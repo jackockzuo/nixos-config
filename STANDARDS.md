@@ -140,7 +140,7 @@ nixos-config/
   - `useUserPackages = true` ✅（包进 `/etc/profiles/per-user/$USER`，且 `environment.pathsToLink = [ "/etc/profile.d" ]` 使 `home.sessionVariables` 覆盖整个图形登录会话）
   - `extraSpecialArgs = { inherit inputs; }` ✅（传递 flake inputs，禁止用 `_module.args`）
   - `sharedModules` ✅ 用于跨用户公共模块（当前单用户可不设，预留）
-  - **`startAsUserService = true` ❌ 必须移除**：该选项 26.05 才新增，官方文档明确"仅限 pam_mount 等登录时才挂载 home 的场景，其他场景仍属实验性"，且已知与 nix-daemon 有竞态（home-manager#8565）。本机 home 常驻，用默认的 boot 期 system service（`systemctl status home-manager-ran.service`）即可。
+  - **`startAsUserService = true` ✅ 保留（调研确认，2026-08）**：该选项 26.05 新增、官方标注"非 pam_mount 场景仍实验性"，**但它是上游真实 bug #3172（boot 期 HM 激活 vs 用户 dbus-broker 竞态，导致登录后 `systemctl --user` 报 `org.freedesktop.systemd1 exited with status 1`）的唯一受支持修复**。本机曾实证踩中该竞态。无替代修复（PR #3405 未合并；#3172 2026 仍开放）。**配套必须**：`systemd.user.services.home-manager.wantedBy = [ "default.target" ]`（模块不自动启用用户服务，需手动补，否则登录时不激活）。**重评条件**：#3172/#8565 上游修复后。已知 tradeoff：#8565（用户单元无法依赖 nix-daemon.socket）、#9762（enableLegacyProfileManagement 被忽略）。
 - 用户配置引用：`home-manager.users.ran = ./home/home.nix;`（或 `imports = [ ./home/home.nix ]`，等价）。
 
 ### 3.2 用户级模块写法
@@ -363,7 +363,7 @@ perSystem = { config, ... }: {
 | 3 | ~~秘密用仓库外 `path:` 输入 + `initialPassword` 明文~~ ✅ **最小迁移完成（2026-08）**：GitHub token 已迁入 sops（`secrets/secrets.yaml` 加密 + `modules/secrets.nix` 接线），token 不再明文进 nix store（toplevel 依赖扫描零泄漏）；`path:` 输入已删。**待办**：`initialPassword`/root 密码仍明文（Phase 3 完整迁移时处理） | §0.6 / §5 | sops 部分完成；密码迁移待后续 |
 | 4 | ~~分区靠 README 手动 parted，无 disko~~ ✅ disko.nix 已接入（2026-08） | §4.1 | 完成配置接入（fileSystems 由 disko 生成，check/dry-build 全绿）；**采纳动作待执行**（见 §8.3） |
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
-| 6 | `startAsUserService = true`（26.05 实验特性，非 pam_mount 场景） | §3.1 | 移除，回默认 boot 期激活 |
+| 6 | ~~`startAsUserService = true`（26.05 实验特性）~~ ✅ 调研确认保留（2026-08） | §3.1 | 保留（上游 #3172 竞态修复，无替代）；补 `wantedBy` 启用登录激活 |
 | 7 | ~~镜像源系统层/用户层重复硬编码~~ ✅ 已收敛（2026-08） | §0.2 | 完成（仅 modules/nix.nix；客户端经 daemon 继承） |
 | 8 | ~~无 treefmt / git-hooks / CI~~ ✅ treefmt+git-hooks+CI 已启用（2026-08） | §6 | treefmt(nixfmt)+statix+deadnix 全绿；CI（ci.yml：flake check + fmt 门禁）已建 |
 | 9 | `~/.config/nixpkgs/config.nix` 的 allowUnfree | §3.2 | **保留 + 注释澄清**：作用域与 #5 不同——系统层 `nixpkgs.config` 只管 `nixos-rebuild`/HM 包解析；此文件管命令行客户端（`nix profile add`/`nix-env`/`nix-shell`）装 unfree 包，删除会破坏该能力。非冗余，是必需配置 |
@@ -377,7 +377,7 @@ perSystem = { config, ... }: {
 - **Phase 2（磁盘）**：#4 引入 disko.nix，`--mode format,mount` 采纳现有盘，验证 fstab 与 snapper 快照。风险：中，先备份快照再执行。✅ **配置接入已完成（2026-08-16）**：disko.nix（btrfs 子卷 + compress=zstd/noatime + .snapshots 独立子卷）接入 flake，fileSystems 由 disko 生成，check/dry-build 全绿。⚠️ **采纳动作（§8.3）需用户执行，未做**。
 - **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。🟡 **最小迁移已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon），`path:` 输入删除，store 零明文泄漏（toplevel 依赖扫描验证）。**剩余**：`initialPassword`/root 密码明文待迁（需用户确认新密码 + `nixos-rebuild test` 后 switch）。
 - **Phase 4（质量）**：#8 CI + pre-commit 全量启用。✅ **已完成（2026-08-16）**：`ci.yml`（GitHub Actions：`nix flake check` + `nix fmt -- --fail-on-change`）建立；fcclientPkg 仓库外 path 输入用 `.ci/fcclient-placeholder` override 解决（CI 无该目录）；本机/CI 双环境验证通过。
-- **Phase 5（可选演进）**：#6 移除 startAsUserService；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。
+- **Phase 5（可选演进）**：#6 ✅ 已调研解决（2026-08）：保留 startAsUserService + 补 wantedBy；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。
 
 ### 8.3 Phase 2 待执行：disko 采纳现有盘（用户操作）
 
