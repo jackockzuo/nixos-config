@@ -26,10 +26,9 @@ _:
       #   kitty 的 background_opacity 只作用于默认背景色 cell——
       #   vim 状态栏/编辑器主题自带背景色的区域保持不透明（对终端是特性）。
       background_blur = "1";
-      # 背景透明度 0.92：niri 合成器没有窗口模糊，85% 透明度配壁纸会显得浑浊发闷，
-      # 调高到 92% 让文字更清晰、壁纸观感更干净
-      # （与 background_blur 配合 = 毛玻璃效果；调低到 0.5-0.7 更明显）
-      background_opacity = "0.92";
+      # 🔴 背景透明度 0.75：毛玻璃明显但不糊文字（与 background_blur 配合）。
+      #   调更低（0.5-0.6）= 更透；调更高（0.9+）= 更接近不透明。
+      background_opacity = "0.75";
       dynamic_background_opacity = "yes";
       hide_window_decorations = "yes";
       window_padding_width = "12";
