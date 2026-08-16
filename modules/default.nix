@@ -10,7 +10,6 @@
     ./system.nix # 系统基础（stateVersion/unfree 放行）
     ./boot.nix # 引导与内核（GRUB 双系统/内核参数）
     ./hardware.nix # 硬件（NVIDIA 混合显卡/蓝牙/zram）
-    ./hardware-detect.nix # 硬件检测（initrd 模块/microcode，原 hardware-configuration.nix 去 fileSystems）
     ./network.nix # 网络（hostname/NetworkManager）
     ./users.nix # 用户与权限（ran/root/groups/shell）
     ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）
@@ -31,6 +30,6 @@
     # ./printing.nix # 打印扫描（CUPS/SANE）
     ./security.nix # 系统安全（fail2ban/auditd/sudo 代理环境保留）
     ./proxy.nix # 代理配置单一来源（options.proxy，全系统共用）
-    ./secrets.nix # sops-nix 秘密管理（GitHub token 等，见 STANDARDS §5）
+    ./secrets.nix # sops-nix 秘密管理（GitHub token/密码，见 STANDARDS §5）
   ];
 }

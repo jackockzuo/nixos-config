@@ -361,20 +361,20 @@ perSystem = { config, ... }: {
 | 1 | ~~`configuration.nix` 遗留死代码~~ ✅ 已删除（2026-08） | §2 深度模块化 | 完成 |
 | 2 | ~~裸 flake，无 flake-parts~~ ✅ 已迁移（2026-08） | §1.1 | 完成（`mkFlake` + `flake.nixosConfigurations`，`nix flake check` 全绿） |
 | 3 | ~~秘密用仓库外 `path:` 输入 + `initialPassword` 明文~~ ✅ **最小迁移完成（2026-08）**：GitHub token 已迁入 sops（`secrets/secrets.yaml` 加密 + `modules/secrets.nix` 接线），token 不再明文进 nix store（toplevel 依赖扫描零泄漏）；`path:` 输入已删。**待办**：`initialPassword`/root 密码仍明文（Phase 3 完整迁移时处理） | §0.6 / §5 | sops 部分完成；密码迁移待后续 |
-| 4 | ~~分区靠 README 手动 parted，无 disko~~ ✅ disko.nix 已接入（2026-08） | §4.1 | 完成配置接入（fileSystems 由 disko 生成，check/dry-build 全绿）；**采纳动作待执行**（见 §8.3） |
+| 4 | 分区靠 README 手动 parted，无 disko | §4.1 | ⚠️ **2026-08-16 已回退**：disko 接入曾导致 `nixos-rebuild test` 进紧急模式（disko 采纳动作未执行，生成的 fileSystems 引用不存在的 `.snapshots` 子卷 → 挂载失败）。fileSystems 已恢复由 `hardware-configuration.nix`（by-uuid）管理。**未来接入 disko 必须先执行 `--mode format,mount` 采纳，再启用模块** |
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
 | 6 | ~~`startAsUserService = true`（26.05 实验特性）~~ ✅ 调研确认保留（2026-08） | §3.1 | 保留（上游 #3172 竞态修复，无替代）；补 `wantedBy` 启用登录激活 |
 | 7 | ~~镜像源系统层/用户层重复硬编码~~ ✅ 已收敛（2026-08） | §0.2 | 完成（仅 modules/nix.nix；客户端经 daemon 继承） |
 | 8 | ~~无 treefmt / git-hooks / CI~~ ✅ treefmt+git-hooks+CI 已启用（2026-08） | §6 | treefmt(nixfmt)+statix+deadnix 全绿；CI（ci.yml：flake check + fmt 门禁）已建 |
 | 9 | `~/.config/nixpkgs/config.nix` 的 allowUnfree | §3.2 | **保留 + 注释澄清**：作用域与 #5 不同——系统层 `nixpkgs.config` 只管 `nixos-rebuild`/HM 包解析；此文件管命令行客户端（`nix profile add`/`nix-env`/`nix-shell`）装 unfree 包，删除会破坏该能力。非冗余，是必需配置 |
-| 10 | ~~`hardware-configuration.nix` 的 fileSystems 与 disko 职责重叠~~ ✅ 已拆分（2026-08） | §4.1 | 完成：硬件检测提取为 `modules/hardware-detect.nix`（`--no-filesystems` 语义），fileSystems 由 `disko.nix` 生成 |
+| 10 | ~~`hardware-configuration.nix` 的 fileSystems 与 disko 职责重叠~~ ✅ 已回退（2026-08） | §4.1 | 回退完成：fileSystems 恢复 `hardware-configuration.nix`（by-uuid）管理；`hardware-detect.nix`/`disko.nix` 已删除。disko 接入需先采纳（§4.1 警示） |
 | 11 | `home.stateVersion = "24.05"` 与 NixOS `25.05` | §3.3 | **保持不动**（正确行为），仅核对分支匹配 |
 
 ### 8.2 迁移路线图（分阶段，每阶段结束必须 `nix flake check` 通过）
 
 - **Phase 0（清理）**：#1 删除 configuration.nix；#5/#7/#9 单一来源收敛。风险：无。立即做。
 - **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。✅ **已完成（2026-08-16）**：flake-parts 迁移 + treefmt/statix/deadnix 全绿 + 存量 71 处 statix/deadnix 警告清零。
-- **Phase 2（磁盘）**：#4 引入 disko.nix，`--mode format,mount` 采纳现有盘，验证 fstab 与 snapper 快照。风险：中，先备份快照再执行。✅ **配置接入已完成（2026-08-16）**：disko.nix（btrfs 子卷 + compress=zstd/noatime + .snapshots 独立子卷）接入 flake，fileSystems 由 disko 生成，check/dry-build 全绿。⚠️ **采纳动作（§8.3）需用户执行，未做**。
+- **Phase 2（磁盘）**：#4 disko 声明式分区。⛔ **2026-08-16 已回退**：曾接入 disko.nix 并通过 check/dry-build，但 `nixos-rebuild test` 进紧急模式——**根因：disko 采纳动作（`--mode format,mount`）未执行，生成的 fileSystems 引用不存在的 `.snapshots` 独立子卷导致挂载失败**。经验教训：**先采纳（改分区）→ 再启用模块**，顺序不可颠倒。fileSystems 已恢复 `hardware-configuration.nix` 管理。未来重试：备份 → `disko --mode format,mount` → 启用模块 → test → switch。
 - **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。🟡 **最小迁移已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon），`path:` 输入删除，store 零明文泄漏（toplevel 依赖扫描验证）。**剩余**：`initialPassword`/root 密码明文待迁（需用户确认新密码 + `nixos-rebuild test` 后 switch）。
 - **Phase 4（质量）**：#8 CI + pre-commit 全量启用。✅ **已完成（2026-08-16）**：`ci.yml`（GitHub Actions：`nix flake check` + `nix fmt -- --fail-on-change`）建立；fcclientPkg 仓库外 path 输入用 `.ci/fcclient-placeholder` override 解决（CI 无该目录）；本机/CI 双环境验证通过。
 - **Phase 5（可选演进）**：#6 ✅ 已调研解决（2026-08）：保留 startAsUserService + 补 wantedBy；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。

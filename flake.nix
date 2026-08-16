@@ -17,10 +17,6 @@
     git-hooks.url = "github:cachix/git-hooks.nix"; # 原 pre-commit-hooks.nix（2025 更名）
     git-hooks.inputs.nixpkgs.follows = "nixpkgs";
 
-    # ---- 磁盘管理：disko 声明式分区（见 STANDARDS.md §4）----
-    disko.url = "github:nix-community/disko";
-    disko.inputs.nixpkgs.follows = "nixpkgs";
-
     # ---- 秘密管理：sops-nix（见 STANDARDS.md §5）----
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -114,11 +110,12 @@
           system = "x86_64-linux";
           modules = [
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
+            ./hardware-configuration.nix # 硬件检测 + fileSystems（nixos-generate-config 产物）
 
-            # ---- disko 声明式分区（STANDARDS §4）：生成 fileSystems/swapDevices ----
-            # 硬件检测（initrd 模块/microcode）见 modules/hardware-detect.nix
-            inputs.disko.nixosModules.disko
-            ./disko.nix # 磁盘布局唯一权威（p1 ESP 1G + p2 btrfs @/@home/@nix + .snapshots）
+            # ⚠️ 2026-08-16 回退：disko 声明式分区已移除（test 进紧急模式——
+            #    disko 采纳动作未执行，生成的 fileSystems 引用不存在的 .snapshots
+            #    子卷导致挂载失败）。fileSystems 恢复由 hardware-configuration.nix
+            #    管理（by-uuid）。未来采纳 disko 需先执行 --mode format,mount。
 
             # ---- sops-nix 秘密管理（STANDARDS §5）：GitHub token 等 ----
             # 配置见 modules/secrets.nix（声明/解密 key/消费方接线）
