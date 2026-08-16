@@ -17,6 +17,10 @@
     git-hooks.url = "github:cachix/git-hooks.nix"; # 原 pre-commit-hooks.nix（2025 更名）
     git-hooks.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ---- 磁盘管理：disko 声明式分区（见 STANDARDS.md §4）----
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
+
     # DMS (DankMaterialShell) —— quickshell 桌面壳，模块用 nixpkgs 自带的 quickshell（≥0.3.0）
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
@@ -109,7 +113,11 @@
           system = "x86_64-linux";
           modules = [
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
-            ./hardware-configuration.nix
+
+            # ---- disko 声明式分区（STANDARDS §4）：生成 fileSystems/swapDevices ----
+            # 硬件检测（initrd 模块/microcode）见 modules/hardware-detect.nix
+            inputs.disko.nixosModules.disko
+            ./disko.nix # 磁盘布局唯一权威（p1 ESP 1G + p2 btrfs @/@home/@nix + .snapshots）
 
             # ---- 私有配置注入：GitHub token（仓库外 secrets 输入，不进 git）----
             # token 存在才设置（新机器无 token 也能构建，只是 api.github.com 限速）
