@@ -34,13 +34,9 @@
         "flakes"
       ];
 
-      # 国内镜像源（与系统层 /etc/nix/nix.conf 一致，用户级优先）
-      substituters = [
-        "https://mirror.sjtu.edu.cn/nix-channels/store"
-        "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
-        "https://mirrors.ustc.edu.cn/nix-channels/store"
-        "https://cache.nixos.org"
-      ];
+      # 🔴 substituters 不再在此声明：单一来源是系统层 modules/nix.nix
+      #    （daemon 通过 /etc/nix/nix.conf 统一管理下载源），
+      #    客户端 nix shell / nix profile add 自动继承 daemon 配置。
       # trusted-public-keys 由系统层 daemon 侧管理，客户端不设避免 restricted 警告
       connect-timeout = 10;
     };

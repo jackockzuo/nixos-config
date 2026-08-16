@@ -9,7 +9,6 @@
 ```
 nixos-config（单仓库）
 ├── flake.nix              # omen 配置：导入 modules/ + home/ + hardware + secrets
-├── configuration.nix      # 系统：GRUB双系统/NVIDIA/音频/输入法/greetd/联网工具
 ├── hardware-configuration.nix  # @home 保留（零备份迁移）
 ├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
 └── home/                  # 用户级配置（home-manager）

@@ -41,8 +41,7 @@
     dates = "weekly";
     options = "--delete-older-than 7d";
   };
-  # 允许所有用户使用nixpkgs的unfree包
-  nixpkgs.config.allowUnfree = true;
+  # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 }
