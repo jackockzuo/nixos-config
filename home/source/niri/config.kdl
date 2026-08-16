@@ -24,7 +24,13 @@ environment {
     LC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
     // 输入法环境变量
     XMODIFIERS "@im=fcitx"
+    // 🔴 现代推荐（fcitx wiki 2025-09 版 + niri#3099 验证配置，Qt 6.8.2+）：
+    //   QT_IM_MODULES "wayland;fcitx" — Qt6 原生 text-input-v3 优先，fcitx 兜底
+    //   QT_IM_MODULE "fcitx" — 兼容 Qt4/5（QT_IM_MODULES 仅 Qt 6.7+ 生效，需两者并存）
+    //   ⚠️ 若遇 niri#4402/#3099 候选框闪烁/重定位问题，临时改 QT_IM_MODULES "fcitx"
+    //   强制 classicui 客户端内渲染（候选框主题始终正确）。
     QT_IM_MODULES "wayland;fcitx"
+    QT_IM_MODULE "fcitx"
     // qt主题
     QT_QPA_PLATFORMTHEME "gtk3"
     QT_QPA_PLATFORMTHEME_QT6 "gtk3"

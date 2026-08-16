@@ -52,6 +52,15 @@ in
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
     };
+    # 🔴 输入法按应用声明（fcitx wiki 2025-09 现代写法）：
+    # 全局 GTK_IM_MODULE 不再设置（Wayland 原生 GTK3/4 自动走 text-input-v3，
+    # 全局设置反而触发候选框闪烁）；仅 X11/XWayland 的 GTK 应用需要
+    # gtk-im-module=fcitx，经 extraConfig 合并进 HM 生成的 settings.ini。
+    # 注意：gtk2.extraConfig 是字符串类型（~/.gtkrc-2.0 语法，多行用 \n 连接），
+    # gtk3/4 是 attrset。
+    gtk2.extraConfig = "gtk-im-module=\"fcitx\"";
+    gtk3.extraConfig = { gtk-im-module = "fcitx"; };
+    gtk4.extraConfig = { gtk-im-module = "fcitx"; };
   };
 
   # ---- 3b. QT 全局主题（Qt6 应用跟随 GTK 主题）----

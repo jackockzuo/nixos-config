@@ -1,6 +1,10 @@
 # ============================================================
-# proxy.nix —— 代理配置（方案 A：环境变量代理）
-# 后端：fcclient（肥猫云）本地 HTTP 代理，端口 7892
+# proxy.nix —— 用户级代理应用层（环境变量 + fish 开关）
+# 后端：fcclient（肥猫云）本地 HTTP 代理
+#
+# 🔴 代理地址单一来源：modules/proxy.nix 的 options.proxy（系统级），
+#    经 flake.nix 的 home-manager.extraSpecialArgs 注入本模块（special arg `proxy`）
+#    换端口/换客户端 → 改 modules/proxy.nix，本文件自动跟随
 #
 # 三层防御，防止"代理工具没开 → 全网断连"：
 #   第 1 层（niri/config.kdl）：开机自动拉起 fcclient
@@ -8,18 +12,16 @@
 #   第 3 层（本文件）：fish 手动开关 proxy / noproxy
 #
 # 修改指南：
-#   换端口/换客户端 → 只改下方 proxyAddr 一处（含第 2 层探测端口）
-#   加内网放行   → 只改 noProxy 列表
+#   加内网放行   → 改 modules/proxy.nix 的 noProxy 默认值
 #   临时直连     → fish 里敲 noproxy（本会话生效）
 # ============================================================
-{ lib, ... }:
+{ lib, proxy, ... }:
 
 let
-  proxyAddr = "http://127.0.0.1:7892";
-  proxyHost = "127.0.0.1";
-  proxyPort = "7892";
-  # 内网/本机/常用局域段放行（CIDR 由 curl/git 等客户端解析，无需 iptables）
-  noProxy = "localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12";
+  proxyAddr = proxy.address;
+  proxyHost = proxy.host;
+  proxyPort = proxy.port;
+  noProxy = proxy.noProxy;
 in
 {
   # ---- 全局代理环境变量（GUI 应用 + 新终端均继承）----

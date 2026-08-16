@@ -16,14 +16,22 @@
     XDG_CURRENT_DESKTOP = "Niri";
 
     # --- 输入法（与系统层 locale.nix 的 environment.sessionVariables 配合）---
-    # --- 修复 Fcitx5 Wayland 卡顿与光标跟随 ---
-    GTK_IM_MODULE = "fcitx";
-    QT_IM_MODULE = "fcitx";
+    # --- 现代写法（fcitx wiki 2025-09 + niri#3099 验证配置）---
+    # 不设全局 GTK_IM_MODULE：Wayland 原生 GTK3/4 自动走 text-input-v3，
+    # 全局设置反而触发候选框闪烁；X11/XWayland 应用由
+    # home/modules/desktop/fcitx5.nix 的 gtk-{2,3,4} 配置里 gtk-im-module 接管。
+    QT_IM_MODULE = "fcitx"; # Qt4/5 及非 KWin 合成器需要
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
-    GLFW_IM_MODULE = "ibus"; # fcitx5 提供 ibus 兼容，GLFW 应用走 ibus 通道
+    # 🔴 kitty 源码（glfw/ibus_glfw.c）只认 GLFW_IM_MODULE=ibus，
+    # 其他值直接忽略；fcitx5 提供 ibus 协议兼容，ibus 值对 fcitx5 有效。
+    GLFW_IM_MODULE = "ibus";
 
     # --- 不依赖 ---
     PASSWORD_STORE = "gnome-listsecret";
+
+    # --- man 手册分页（bat 渲染，MANROFFOPT 保留粗体/下划线）---
+    MANPAGER = "bat --paging=never";
+    MANROFFOPT = "-c";
   };
 }

@@ -18,15 +18,24 @@
 
   # 2. 外观：Catppuccin 紫色主题 + Noto Sans CJK SC 字体 + 横排候选框
   #（候选框是 UI 组件，用系统默认中文字体；Maple Mono 仅终端使用）
-  xdg.configFile."fcitx5/conf/classicui.conf".text = ''
-    Vertical Candidate List=False
-    Font="Noto Sans CJK SC 11"
-    MenuFont="Noto Sans CJK SC 10"
-    Theme=catppuccin-mocha-mauve
-    DarkTheme=catppuccin-mocha-mauve
-    UseDarkTheme=True
-    PerScreenDPI=True
-  '';
+  # force=true：防止 fcitx5 运行时重写 classicui.conf 覆盖主题（与下方 config 同理）
+  xdg.configFile."fcitx5/conf/classicui.conf" = {
+    force = true;
+    text = ''
+      Vertical Candidate List=False
+      Font="Noto Sans CJK SC 11"
+      MenuFont="Noto Sans CJK SC 10"
+      Theme=catppuccin-mocha-mauve
+      DarkTheme=catppuccin-mocha-mauve
+      UseDarkTheme=True
+      PerScreenDPI=True
+    '';
+  };
+
+  # 2b. GTK IM 按应用声明（现代写法，fcitx wiki 2025-09）：
+  # 全局 GTK_IM_MODULE 不再设置（Wayland 原生 GTK3/4 自动走 text-input-v3），
+  # 这里经 HM gtk.*.extraConfig 只为 X11/XWayland 的 GTK 应用声明 gtk-im-module=fcitx
+  # （extraConfig 由 appearance.nix 的 gtk.enable 合并进同一 settings.ini，避免冲突）
 
   # 3. 声明式配置 Rime 引擎：强制使用"雾凇拼音" (rime_ice) 词库方案
   # 注意：rime-ice 数据由系统层 fcitx5-rime override 提供（共享数据目录），
