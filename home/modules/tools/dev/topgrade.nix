@@ -19,6 +19,10 @@ _:
         set_title = false;
       };
       commands = {
+        # 先拉最新 nixpkgs/各 input（保持 unstable 滚动更新）
+        # 无 sudo（只更新 flake.lock，不碰系统）
+        "NixOS flake update" = "nix flake update --flake /home/ran/nixos-config";
+        # 再重建系统（需 sudo）
         "NixOS flake rebuild" = "sudo nixos-rebuild switch --flake /home/ran/nixos-config#omen";
       };
     };
