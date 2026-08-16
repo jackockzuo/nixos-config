@@ -49,10 +49,13 @@
     ];
   };
   environment.sessionVariables = {
-    GTK_IM_MODULE = "fcitx";
+    # 现代写法（fcitx wiki 2025-09）：不设全局 GTK_IM_MODULE —— Wayland 原生
+    # GTK3/4 自动走 text-input-v3，全局设置反而触发候选框闪烁；
+    # X11/XWayland 应用用 gtk-im-module=fcitx（见 home/modules/desktop/fcitx5.nix）。
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
+    # 🔴 kitty 源码（glfw/ibus_glfw.c）只认 ibus 值，fcitx5 提供 ibus 协议兼容；
     # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
-    GLFW_IM_MODULE = "fcitx";
+    GLFW_IM_MODULE = "ibus";
   };
 }

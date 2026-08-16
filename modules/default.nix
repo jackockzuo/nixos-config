@@ -19,7 +19,8 @@
     ./nix.nix # Nix daemon（镜像源/GC/experimental-features）
     ./packages.nix # 系统级全局二进制（按用途分节）
     ./virtualisation.nix # 容器与虚拟化（podman/AppImage）
-
+    ./nix-addons/nix-ld.nix # nix-ld（nix 管理的非 NixOS 系统）
+    ./nix-addons/nix-index.nix # nix-index（nix 管理的非 NixOS 系统）
     # ---- 🔮 预留模块（需要时取消注释）----
     # ./firewall.nix # 防火墙（nftables/ufw/firewalld）
     # ./vpn.nix # VPN（WireGuard/OpenVPN/Tailscale）
@@ -28,5 +29,6 @@
     # ./syncthing.nix # 文件同步（Syncthing）
     # ./printing.nix # 打印扫描（CUPS/SANE）
     ./security.nix # 系统安全（fail2ban/auditd/sudo 代理环境保留）
+    ./proxy.nix # 代理配置单一来源（options.proxy，全系统共用）
   ];
 }

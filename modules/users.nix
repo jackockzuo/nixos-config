@@ -2,7 +2,7 @@
 # users.nix —— 用户与权限
 # 职责：用户 ran/root、groups、登录 shell、初始密码
 # 修改：加用户/改权限组/改 shell → 改这里
-# 关联：shell.nix（fish 由用户级 home-manager 管理别名/主题）
+# 关联：tools/terminal/fish.nix（fish 由用户级 home-manager 管理别名/主题）
 # ============================================================
 { pkgs, ... }:
 
