@@ -1,0 +1,45 @@
+// --- NIRI BLUR START ---
+// 完整毛玻璃方案：
+// - 所有窗口：半透明 + 圆角 + 背景模糊（xray 模式，性能最优，模糊壁纸背景）
+// - 浮动窗口：更透 + 实时模糊（xray=false，模糊底下所有窗口内容，效果最完整）
+// - 例外：视频/图片播放器、waydroid 保持完全不透明
+
+// 顶层的blur配置，细节调整blur的效果
+blur {
+    passes 4
+    offset 4
+    noise 0.02
+    saturation 1.5
+}
+
+// 全局毛玻璃：所有窗口半透明 + 圆角 + 背景模糊
+// xray 不写则默认开启：仅模糊一次壁纸背景供所有窗口复用，零额外消耗
+// 圆角让模糊形状跟随窗口圆角（niri 特性），clip 保证内容不溢出圆角
+window-rule {
+    opacity 0.94
+    geometry-corner-radius 12
+    clip-to-geometry true
+    background-effect {
+        blur true
+    }
+}
+
+// 浮动窗口：更透，并开启实时模糊（xray=false）
+// 效果：模糊浮动窗口底下的所有内容（包括其他窗口），毛玻璃最完整
+// 注意：xray=false 为实验性功能，拖动窗口/开合动画时效果会短暂消失；更耗性能
+// 若想省电可把 xray false 改为 xray true（此时只模糊壁纸，透视底下窗口）
+window-rule {
+    match is-floating=true
+    opacity 0.9
+    background-effect {
+        xray false
+        blur true
+    }
+}
+
+// waydroid 安卓模拟器：保持完全不透明，避免界面透过
+window-rule {
+    match app-id="waydroid"
+    opacity 1.0
+}
+// --- NIRI BLUR END ---

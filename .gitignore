@@ -1,0 +1,11 @@
+# vim 交换文件
+*.swp
+*.swo
+
+# nix
+result
+/result
+
+# opencode 内部状态
+.omo/
+.sisyphus/
