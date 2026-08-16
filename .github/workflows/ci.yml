@@ -1,0 +1,42 @@
+# ============================================================
+# ci.yml —— NixOS 配置 CI（STANDARDS.md §6.3）
+# 触发：push 到 main + 所有 PR
+# 检查：nix flake check（treefmt/statix/deadnix/pre-commit 全量）
+#        + nix fmt -- --fail-on-change（RFC 风格格式化门禁）
+# 特殊处理：
+#   - fcclientPkg 是仓库外 path 输入（/home/ran/...），CI 无此目录。
+#     CI 用 --override-input fcclientPkg ./.ci/fcclient-placeholder 提供占位包
+#     （仅求值，不构建；本机 flake.lock 仍指向真实路径）。
+#   - secrets/secrets.yaml 是 sops 加密文件（纯密文），CI 无需解密即可 check。
+# 不引入外部服务；仅官方/社区维护 action。
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      # 标准修改流程质量门禁（STANDARDS §10）：flake check 全绿
+      # fcclientPkg 是仓库外 path 输入，CI 无此目录 → override 到仓库内占位包
+      # （--override-input 需要 path: 前缀 + 绝对路径，否则解析到 flake 自身）
+      - name: Nix flake check
+        run: nix flake check --override-input fcclientPkg "path:${GITHUB_WORKSPACE}/.ci/fcclient-placeholder"
+
+      # 格式化门禁（STANDARDS §6.1）：RFC 风格，nix fmt 统一入口
+      # 注：treefmt 的 check 语义是 --fail-on-change（无 --check flag）
+      - name: Nix fmt check
+        run: nix fmt -- --fail-on-change

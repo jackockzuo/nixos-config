@@ -93,7 +93,9 @@
 
           # 按需运行的包：nix run .#fcclient（不装进系统，不进 systemPackages）
           # 包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
-          # 独立 pkgs（允许 unfree，否则 nix build .#fcclient 会拒绝）
+          # 🔴 CI 处理：GitHub Actions 无此目录，CI 用 --override-input fcclientPkg
+          #    指向仓库内 .ci/fcclient-placeholder（仅 eval 用占位，见 ci.yml）
+          #    ⚠️ 勿用 builtins.pathExists 条件化（纯求值下恒 false，包会消失）
           packages.fcclient =
             (import inputs.nixpkgs {
               inherit system;
