@@ -82,5 +82,8 @@ in
     btrfs-progs
     btrfs-assistant # snapper 快照 GUI 管理（rule.kdl 已有其浮动窗口规则）
     vim
+
+    # ---- 同步工具 ----
+    localsend
   ];
 }

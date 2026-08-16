@@ -19,5 +19,6 @@
   # ---- 预留：其他社交软件 ----
   home.packages = with pkgs; [
     qq
+    wechat
   ];
 }

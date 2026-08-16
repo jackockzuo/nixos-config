@@ -3,9 +3,13 @@
 # 该放什么：Ollama / LM Studio / Chatbox 等本地模型工具
 # 使用方式：home.packages = with pkgs; [ ollama ... ];
 # ============================================================
+
+
 { pkgs, ... }:
 
 {
-  # 预留：需要时在此添加 AI 工具
-  home.packages = with pkgs; [ ];
+  # opencode：终端内的 AI 编码代理（与 Claude Code 同类）
+  home.packages = with pkgs; [
+    opencode
+  ];
 }

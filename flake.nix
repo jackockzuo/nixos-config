@@ -29,6 +29,12 @@
       url = "path:/home/ran/Documents/nix-secrets";
       flake = false;
     };
+    
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -39,8 +45,9 @@
       dms,
       fcclientPkg,
       secrets,
+      nix-index-database,
       ...
-    }:
+    }@inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -53,6 +60,7 @@
           allowUnfree = true;
         };
       };
+
     in
     {
       # 按需运行的包：nix run .#fcclient（不装进系统，不进 systemPackages）
@@ -90,7 +98,10 @@
 
           # ---- 复用现有 Home Manager 配置（用户级全部继承）----
           home-manager.nixosModules.home-manager
-          {
+          # 模块写成函数以拿到 NixOS config：把系统级代理配置
+          # （modules/proxy.nix 的 options.proxy）注入 HM，用户级 fish 开关/
+          # 环境变量与 nix-daemon 共用同一地址（单点修改）
+          ({ config, ... }: {
             home-manager = {
               # allowUnfree 已由 configuration.nix 顶层 nixpkgs.config 管理
               # 🔴 useGlobalPkgs 必须为 true：HM 模块 fcitx5.nix 用
@@ -106,12 +117,20 @@
               # 改为 startAsUserService：HM 作为 systemd user service 在登录时激活，
               # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
               startAsUserService = true;
+              # 🔴 代理地址单一来源注入：HM 模块经 extraSpecialArgs 拿到 config.proxy
+              extraSpecialArgs = { proxy = config.proxy; };
               users.ran = {
                 # 用户级配置已并入本仓库 home/ 目录（home.nix 的相对 imports 自动解析）
                 imports = [ ./home/home.nix ];
               };
             };
-          }
+          })
+  inputs.nix-index-database.nixosModules.nix-index
+  {
+    programs.nix-index-database.comma.enable = true; # 开启逗号命令(后面会讲)
+  }
+
+
         ];
       };
     };
