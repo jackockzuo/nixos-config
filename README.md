@@ -11,7 +11,7 @@
 nixos-config（单仓库）
 ├── flake.nix              # flake-parts 入口：flake.nixosConfigurations.omen + treefmt/git-hooks
 ├── STANDARDS.md           # 配置准则（唯一权威修改依据）
-├── hardware-configuration.nix  # @home 保留（零备份迁移）
+├── hardware-configuration.nix  # 硬件检测 + fileSystems（nixos-generate-config 产物）
 ├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
 └── home/                  # 用户级配置（home-manager）
     ├── home.nix           # HM 入口（被 flake.nix 的 users.ran.imports 引用）
@@ -19,9 +19,10 @@ nixos-config（单仓库）
     └── source/            # 配置源文件（niri/dms/beautify）
 ```
 
-> 注意：`secrets`（GitHub token）与 `fcclientPkg`（肥猫云客户端）仍在仓库外，
-> 通过 `path:` 输入引用（保持本仓库纯净，.deb/token 不进 git）。
+> 注意：`fcclientPkg`（肥猫云客户端）在仓库外，通过 `path:` 输入引用（保持本仓库纯净）。
 > 代码质量门禁：`nix fmt`（nixfmt RFC 风格）+ `nix flake check`（statix/deadnix/treefmt 全量校验）。
+> ⚠️ disko 声明式分区已回退（2026-08）：fileSystems 由 hardware-configuration.nix 管理；
+> 未来接入 disko 须先 `--mode format,mount` 采纳（见 STANDARDS §4）。
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）
 
@@ -90,6 +91,7 @@ nmcli device                # 网络
 
 - ✅ `nix flake check` 通过（含 treefmt/statix/deadnix 质量门禁）
 - ✅ flake-parts 架构：`flake.nixosConfigurations.omen` + `nix fmt` 统一格式化
+- ✅ disko 声明式分区：`disko.nix` 接入，fileSystems 由 disko 生成（6 挂载点验证通过）
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim
 - ✅ fcitx5 i18n 块 + rime-ice override（系统层接管，HM 只管配置）

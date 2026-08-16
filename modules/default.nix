@@ -30,5 +30,6 @@
     # ./printing.nix # 打印扫描（CUPS/SANE）
     ./security.nix # 系统安全（fail2ban/auditd/sudo 代理环境保留）
     ./proxy.nix # 代理配置单一来源（options.proxy，全系统共用）
+    ./secrets.nix # sops-nix 秘密管理（GitHub token/密码，见 STANDARDS §5）
   ];
 }

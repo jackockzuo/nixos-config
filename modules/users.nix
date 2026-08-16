@@ -1,10 +1,10 @@
 # ============================================================
 # users.nix —— 用户与权限
-# 职责：用户 ran/root、groups、登录 shell、初始密码
+# 职责：用户 ran/root、groups、登录 shell、密码（sops 管理）
 # 修改：加用户/改权限组/改 shell → 改这里
 # 关联：tools/terminal/fish.nix（fish 由用户级 home-manager 管理别名/主题）
 # ============================================================
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   users = {
@@ -21,10 +21,13 @@
           "podman"
           "input"
         ];
-        # 临时初始密码：登录后立即 `passwd` 修改，然后删掉这行再 rebuild
-        initialPassword = "ran";
+        # 🔴 密码哈希由 sops 管理（STANDARDS §5.4）：neededForUsers 秘密在 users
+        #    创建前解密到 /run/secrets-for-users，经 hashedPasswordFile 读取。
+        #    ✅ 不再有明文密码（旧 initialPassword 已删除）。
+        #    改密码：mkpasswd -s 生成新哈希 → 更新 secrets/secrets.yaml 的 user-password
+        hashedPasswordFile = config.sops.secrets.user-password.path;
       };
-      root.initialPassword = "rootpassword";
+      root.hashedPasswordFile = config.sops.secrets.root-password.path;
     };
     mutableUsers = false;
   };
