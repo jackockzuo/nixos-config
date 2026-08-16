@@ -4,7 +4,7 @@
 # 使用方式：services.jellyfin = { enable = true; ... }
 # 注意：桌面端播放器（Spotify 等）放 home-manager/desktop/media.nix
 # ============================================================
-{ ... }:
+_:
 
 {
   # 预留：需要时在此添加媒体服务器

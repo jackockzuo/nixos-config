@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # yazi：终端文件管理器（Catppuccin Mocha 主题）
@@ -19,41 +19,118 @@
     # 一一对应关系转换（yazi 0.3+ Rgba 风格配色，值完全一致）
     theme = {
       manager = {
-        cwd = { fg = "#89b4fa"; };
-        hovered = { fg = "#cdd6f4"; bg = "#313244"; };
-        preview_hovered = { underline = true; };
-        find_keyword = { fg = "#f9e2af"; italic = true; };
-        find_position = { fg = "#f9e2af"; bg = "#585b70"; };
-        marker_selected = { fg = "#f38ba8"; };
-        marker_copied = { fg = "#a6e3a1"; };
-        marker_cut = { fg = "#f9e2af"; };
-        tab_active = { fg = "#11111b"; bg = "#cba6f7"; };
-        tab_inactive = { fg = "#cdd6f4"; bg = "#313244"; };
+        cwd = {
+          fg = "#89b4fa";
+        };
+        hovered = {
+          fg = "#cdd6f4";
+          bg = "#313244";
+        };
+        preview_hovered = {
+          underline = true;
+        };
+        find_keyword = {
+          fg = "#f9e2af";
+          italic = true;
+        };
+        find_position = {
+          fg = "#f9e2af";
+          bg = "#585b70";
+        };
+        marker_selected = {
+          fg = "#f38ba8";
+        };
+        marker_copied = {
+          fg = "#a6e3a1";
+        };
+        marker_cut = {
+          fg = "#f9e2af";
+        };
+        tab_active = {
+          fg = "#11111b";
+          bg = "#cba6f7";
+        };
+        tab_inactive = {
+          fg = "#cdd6f4";
+          bg = "#313244";
+        };
       };
       status = {
         separator_open = "";
         separator_close = "";
-        mode_normal = { fg = "#11111b"; bg = "#cba6f7"; bold = true; };
-        mode_select = { fg = "#11111b"; bg = "#a6e3a1"; bold = true; };
-        mode_unset = { fg = "#11111b"; bg = "#f9e2af"; bold = true; };
+        mode_normal = {
+          fg = "#11111b";
+          bg = "#cba6f7";
+          bold = true;
+        };
+        mode_select = {
+          fg = "#11111b";
+          bg = "#a6e3a1";
+          bold = true;
+        };
+        mode_unset = {
+          fg = "#11111b";
+          bg = "#f9e2af";
+          bold = true;
+        };
       };
       input = {
-        border = { fg = "#89b4fa"; };
-        title = { fg = "#89b4fa"; };
+        border = {
+          fg = "#89b4fa";
+        };
+        title = {
+          fg = "#89b4fa";
+        };
       };
       filetype.rules = [
-        { mime = "image/*"; fg = "#a6e3a1"; }
-        { mime = "video/*"; fg = "#f38ba8"; }
-        { mime = "audio/*"; fg = "#f9e2af"; }
-        { mime = "text/*"; fg = "#94e2d5"; }
-        { name = "*/"; fg = "#89b4fa"; }
-        { name = "*.rs"; fg = "#fab387"; }
-        { name = "*.py"; fg = "#f9e2af"; }
-        { name = "*.js"; fg = "#f9e2af"; }
-        { name = "*.ts"; fg = "#f5c2e7"; }
-        { name = "*.nix"; fg = "#89b4fa"; }
-        { name = "*.md"; fg = "#a6e3a1"; }
-        { name = "*.json"; fg = "#f9e2af"; }
+        {
+          mime = "image/*";
+          fg = "#a6e3a1";
+        }
+        {
+          mime = "video/*";
+          fg = "#f38ba8";
+        }
+        {
+          mime = "audio/*";
+          fg = "#f9e2af";
+        }
+        {
+          mime = "text/*";
+          fg = "#94e2d5";
+        }
+        {
+          name = "*/";
+          fg = "#89b4fa";
+        }
+        {
+          name = "*.rs";
+          fg = "#fab387";
+        }
+        {
+          name = "*.py";
+          fg = "#f9e2af";
+        }
+        {
+          name = "*.js";
+          fg = "#f9e2af";
+        }
+        {
+          name = "*.ts";
+          fg = "#f5c2e7";
+        }
+        {
+          name = "*.nix";
+          fg = "#89b4fa";
+        }
+        {
+          name = "*.md";
+          fg = "#a6e3a1";
+        }
+        {
+          name = "*.json";
+          fg = "#f9e2af";
+        }
       ];
     };
     # 主配置（yazi.toml）：常用设置——显示隐藏文件、自然排序、目录置顶

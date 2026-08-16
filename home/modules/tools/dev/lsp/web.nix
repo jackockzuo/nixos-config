@@ -5,7 +5,12 @@
 #   - 已核对：当前 nixpkgs（rev 0e251e2）中存在 pkgs.vscode-langservers-extracted
 #   - 🔴 默认禁用：需要时在 lsp.nix 中把 config.lsp.web.enable 改为 true
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.web.enable [

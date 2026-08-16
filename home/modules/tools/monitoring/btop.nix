@@ -7,7 +7,7 @@
 #    当前安装的 btop 1.4.7 上完全失效（颜色不生效）。
 #    本文件改用新语法重写主题，恢复 Catppuccin Mocha 配色。
 #    themes 选项内容会原样写入 ~/.config/btop/themes/catppuccin_mocha.theme
-{ pkgs, ... }:
+_:
 
 {
   programs.btop = {

@@ -3,13 +3,14 @@
 > 单仓库架构（2026-08 合并）：
 > - **本仓库**（nixos-config）：系统级配置 + 用户级配置（home/ 目录）一体化
 > - 用户级配置原独立仓库 [home-manager-ran](https://github.com/jackockzuo/home-manager-ran) 已并入 `home/` 子目录
+> - 配置修改**唯一权威依据**：`STANDARDS.md`（准则文档，含架构/目录/格式/秘密/磁盘规范）
 
 ## 一、架构说明
 
 ```
 nixos-config（单仓库）
-├── flake.nix              # omen 配置：导入 modules/ + home/ + hardware + secrets
-├── configuration.nix      # 系统：GRUB双系统/NVIDIA/音频/输入法/greetd/联网工具
+├── flake.nix              # flake-parts 入口：flake.nixosConfigurations.omen + treefmt/git-hooks
+├── STANDARDS.md           # 配置准则（唯一权威修改依据）
 ├── hardware-configuration.nix  # @home 保留（零备份迁移）
 ├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
 └── home/                  # 用户级配置（home-manager）
@@ -20,6 +21,7 @@ nixos-config（单仓库）
 
 > 注意：`secrets`（GitHub token）与 `fcclientPkg`（肥猫云客户端）仍在仓库外，
 > 通过 `path:` 输入引用（保持本仓库纯净，.deb/token 不进 git）。
+> 代码质量门禁：`nix fmt`（nixfmt RFC 风格）+ `nix flake check`（statix/deadnix/treefmt 全量校验）。
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）
 
@@ -86,7 +88,8 @@ nmcli device                # 网络
 
 ## 五、验证状态（2026-08）
 
-- ✅ `nix flake check` 通过
+- ✅ `nix flake check` 通过（含 treefmt/statix/deadnix 质量门禁）
+- ✅ flake-parts 架构：`flake.nixosConfigurations.omen` + `nix fmt` 统一格式化
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim
 - ✅ fcitx5 i18n 块 + rime-ice override（系统层接管，HM 只管配置）

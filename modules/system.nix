@@ -4,7 +4,7 @@
 # 修改：NixOS 大版本升级时更新 stateVersion → 改这里
 # 注意：GitHub token 由 flake.nix 的 secrets 输入注入（不在此文件）
 # ============================================================
-{ ... }:
+_:
 
 {
   # 🔴 私有配置（GitHub token 等）经 flake.nix 的 secrets path 输入引入

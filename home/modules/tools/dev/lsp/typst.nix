@@ -6,7 +6,12 @@
 #   - 构建 .typ 文件还需编译器 pkgs.typst（按需取消注释）：
 #       # pkgs.typst
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.typst.enable [

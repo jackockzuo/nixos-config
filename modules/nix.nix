@@ -31,9 +31,9 @@
   # 否则 daemon（root 服务）不继承终端 export，直连 cache.nixos.org 龟速
   # 地址单一来源：modules/proxy.nix 的 options.proxy
   systemd.services.nix-daemon.environment = {
-    http_proxy  = config.proxy.address;
+    http_proxy = config.proxy.address;
     https_proxy = config.proxy.address;
-    all_proxy   = config.proxy.address;
+    all_proxy = config.proxy.address;
   };
   # 系统级自动 GC（保留 7 天）
   nix.gc = {
@@ -41,8 +41,7 @@
     dates = "weekly";
     options = "--delete-older-than 7d";
   };
-  # 允许所有用户使用nixpkgs的unfree包
-  nixpkgs.config.allowUnfree = true;
+  # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 }

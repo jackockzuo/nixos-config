@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # zellij 终端复用器（Catppuccin Mocha 主题）

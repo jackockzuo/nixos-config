@@ -5,7 +5,7 @@
 # 注意：cava 配置为 ini 格式（pkgs.formats.ini），hex 颜色值必须
 #    带单引号作为字符串写入（'#f38ba8'），否则 cava 解析失败。
 #    HM 自动写入 ~/.config/cava/config
-{ pkgs, ... }:
+_:
 
 {
   programs.cava = {

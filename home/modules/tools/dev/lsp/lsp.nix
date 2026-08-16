@@ -11,7 +11,7 @@
 #   🔴 后续可扩展：java（jdt-language-server，jdtls 较重、需额外 JVM 配置）、
 #     cmake（cmake-language-server，极少单独使用）—— 需要时再加文件即可
 # ============================================================
-{ config, lib, ... }:
+{ lib, ... }:
 
 {
   options.lsp = {

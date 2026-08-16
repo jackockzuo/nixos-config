@@ -12,7 +12,48 @@
   # 启动 DMS 登录界面；登录后由 greeter 内部拉起 niri 会话。
   # 🔴 注意：这里不能显式设置 command！greeter 模块用 lib.mkDefault 设置 command，
   # 显式赋值优先级更高会覆盖掉 greeter → 登录界面不生效。command 交给 greeter 模块。
-  programs.niri.enable = true; # 合成器必须由 NixOS 安装（不能只靠 HM），greeter 才能列出
+  programs = {
+    niri.enable = true; # 合成器必须由 NixOS 安装（不能只靠 HM），greeter 才能列出
+
+    # ============ DMS 桌面壳（DankMaterialShell）============
+    #dms (DankMaterialShell, 模块来自 dms flake input: dms.nixosModules.default)
+    dank-material-shell = {
+      enable = true;
+
+      systemd = {
+        enable = true; # Systemd service for auto-start
+        restartIfChanged = true; # Auto-restart dms.service when dms-shell changes
+      };
+
+      # Core features
+      enableSystemMonitoring = true; # System monitoring widgets (dgop)
+      enableVPN = true; # VPN management widget
+      enableDynamicTheming = true; # Wallpaper-based theming (matugen)
+      enableAudioWavelength = true; # Audio visualizer (cava)
+      enableCalendarEvents = true; # Calendar integration (khal)
+    };
+
+    # DMS Greeter 登录界面（模块来自 dms flake input: dms.nixosModules.greeter）
+    # 自动接管 services.greetd 的 default_session.command，开机显示 DMS 登录界面
+    dank-material-shell.greeter = {
+      enable = true;
+      compositor.name = "niri"; # 用 niri 跑 greeter 界面（必须 NixOS 安装）
+      # 同步用户 DMS 主题/壁纸/配色到 greeter（settings.json/session.json/dms-colors.json）
+      configHome = "/home/ran";
+      # 保存 greeter 日志方便排查
+      logs = {
+        save = true;
+        path = "/tmp/dms-greeter.log";
+      };
+    };
+
+    # ============ dconf / GSettings（系统代理等桌面集成依赖）============
+    # 说明：fcclient 等代理客户端通过 gsettings (org.gnome.system.proxy) 设置系统代理，
+    # 但 niri/DMS 不依赖 GNOME 模块，gsettings-desktop-schemas 不会自动进系统环境，
+    # 导致浏览器（Chrome/Firefox）读系统代理时提示"没有安装架构"而无法走代理。
+    # 这里显式启用 dconf 并把 gsettings-desktop-schemas 的 schema 目录暴露给会话。
+    dconf.enable = true;
+  };
 
   # 独立 greeter 系统用户（greetd 标准做法）：登录界面以最小权限运行，
   # 用户认证通过后才以目标用户（ran）启动桌面会话。
@@ -44,38 +85,6 @@
     StartLimitBurst = 30;
   };
 
-  # ============ DMS 桌面壳（DankMaterialShell）============
-  #dms (DankMaterialShell, 模块来自 dms flake input: dms.nixosModules.default)
-  programs.dank-material-shell = {
-    enable = true;
-
-    systemd = {
-      enable = true; # Systemd service for auto-start
-      restartIfChanged = true; # Auto-restart dms.service when dms-shell changes
-    };
-
-    # Core features
-    enableSystemMonitoring = true; # System monitoring widgets (dgop)
-    enableVPN = true; # VPN management widget
-    enableDynamicTheming = true; # Wallpaper-based theming (matugen)
-    enableAudioWavelength = true; # Audio visualizer (cava)
-    enableCalendarEvents = true; # Calendar integration (khal)
-  };
-
-  # DMS Greeter 登录界面（模块来自 dms flake input: dms.nixosModules.greeter）
-  # 自动接管 services.greetd 的 default_session.command，开机显示 DMS 登录界面
-  programs.dank-material-shell.greeter = {
-    enable = true;
-    compositor.name = "niri"; # 用 niri 跑 greeter 界面（必须 NixOS 安装）
-    # 同步用户 DMS 主题/壁纸/配色到 greeter（settings.json/session.json/dms-colors.json）
-    configHome = "/home/ran";
-    # 保存 greeter 日志方便排查
-    logs = {
-      save = true;
-      path = "/tmp/dms-greeter.log";
-    };
-  };
-
   # ============ portal（桌面集成）============
   # 🔴 只保留 gnome + gtk：niri 26.04+ 对 gnome portal 的录屏支持已完善，
   # wlr 与 gnome 混用会导致 OBS 等录屏软件识别不到屏幕（社区公认问题）。
@@ -87,13 +96,6 @@
     config.common.default = "*";
   };
 
-  # ============ dconf / GSettings（系统代理等桌面集成依赖）============
-  # 说明：fcclient 等代理客户端通过 gsettings (org.gnome.system.proxy) 设置系统代理，
-  # 但 niri/DMS 不依赖 GNOME 模块，gsettings-desktop-schemas 不会自动进系统环境，
-  # 导致浏览器（Chrome/Firefox）读系统代理时提示"没有安装架构"而无法走代理。
-  # 这里显式启用 dconf 并把 gsettings-desktop-schemas 的 schema 目录暴露给会话。
-  programs.dconf.enable = true;
   environment.systemPackages = [ pkgs.gsettings-desktop-schemas ];
-  environment.sessionVariables.GSETTINGS_SCHEMA_DIR =
-    "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/gsettings-desktop-schemas-${pkgs.gsettings-desktop-schemas.version}/glib-2.0/schemas";
+  environment.sessionVariables.GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/gsettings-desktop-schemas-${pkgs.gsettings-desktop-schemas.version}/glib-2.0/schemas";
 }
