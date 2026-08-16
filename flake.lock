@@ -194,21 +194,28 @@
         "home-manager": "home-manager",
         "nix-index-database": "nix-index-database",
         "nixpkgs": "nixpkgs",
-        "secrets": "secrets",
+        "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix"
       }
     },
-    "secrets": {
-      "flake": false,
+    "sops-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
       "locked": {
-        "lastModified": 1786775775,
-        "narHash": "sha256-qmzUpvDHzr3GUVPiw2XgSSKDszR55n7w7hXtteNK1ug=",
-        "path": "/home/ran/Documents/nix-secrets",
-        "type": "path"
+        "lastModified": 1786629091,
+        "narHash": "sha256-gkig4nPi1CWc4Z50GBsjE4ygSE7hMpl/TwID2an2Cck=",
+        "owner": "Mic92",
+        "repo": "sops-nix",
+        "rev": "a8627b21b9107c5711c96b84f32a9a4b3d45295f",
+        "type": "github"
       },
       "original": {
-        "path": "/home/ran/Documents/nix-secrets",
-        "type": "path"
+        "owner": "Mic92",
+        "repo": "sops-nix",
+        "type": "github"
       }
     },
     "treefmt-nix": {

@@ -21,6 +21,10 @@
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ---- 秘密管理：sops-nix（见 STANDARDS.md §5）----
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+
     # DMS (DankMaterialShell) —— quickshell 桌面壳，模块用 nixpkgs 自带的 quickshell（≥0.3.0）
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
@@ -37,13 +41,8 @@
       url = "path:/home/ran/Documents/nix-packaging/fcclient";
       flake = false; # 纯源文件目录（default.nix + .deb），不当作独立 flake
     };
-    # 🔴 私有配置目录（仓库外，git 不追踪 → token 永不泄露）
-    # 与 fcclientPkg 同理：path 输入在纯求值下允许，flake.lock 记录路径。
-    # 目录里放 github-token 文件（一行 token 文本），经下方 access-tokens 注入。
-    secrets = {
-      url = "path:/home/ran/Documents/nix-secrets";
-      flake = false;
-    };
+    # 🔴 GitHub token 已迁移至 sops-nix（secrets/secrets.yaml 加密，见 modules/secrets.nix），
+    #    原仓库外 secrets path 输入已删除（token 不再明文进 /nix/store）
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
@@ -119,11 +118,9 @@
             inputs.disko.nixosModules.disko
             ./disko.nix # 磁盘布局唯一权威（p1 ESP 1G + p2 btrfs @/@home/@nix + .snapshots）
 
-            # ---- 私有配置注入：GitHub token（仓库外 secrets 输入，不进 git）----
-            # token 存在才设置（新机器无 token 也能构建，只是 api.github.com 限速）
-            {
-              nix.settings.access-tokens = inputs.nixpkgs.lib.mkIf (builtins.pathExists "${inputs.secrets}/github-token") "github=${builtins.readFile "${inputs.secrets}/github-token"}";
-            }
+            # ---- sops-nix 秘密管理（STANDARDS §5）：GitHub token 等 ----
+            # 配置见 modules/secrets.nix（声明/解密 key/消费方接线）
+            inputs.sops-nix.nixosModules.sops
 
             # ---- DMS (DankMaterialShell) 桌面壳模块（提供 programs.dank-material-shell 选项）----
             inputs.dms.nixosModules.default

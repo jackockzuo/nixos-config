@@ -355,7 +355,7 @@ perSystem = { config, ... }: {
 |---|---|---|---|
 | 1 | ~~`configuration.nix` 遗留死代码~~ ✅ 已删除（2026-08） | §2 深度模块化 | 完成 |
 | 2 | ~~裸 flake，无 flake-parts~~ ✅ 已迁移（2026-08） | §1.1 | 完成（`mkFlake` + `flake.nixosConfigurations`，`nix flake check` 全绿） |
-| 3 | 秘密用仓库外 `path:` 输入 + `initialPassword` 明文 | §0.6 / §5 | sops-nix 接管 |
+| 3 | ~~秘密用仓库外 `path:` 输入 + `initialPassword` 明文~~ ✅ **最小迁移完成（2026-08）**：GitHub token 已迁入 sops（`secrets/secrets.yaml` 加密 + `modules/secrets.nix` 接线），token 不再明文进 nix store（toplevel 依赖扫描零泄漏）；`path:` 输入已删。**待办**：`initialPassword`/root 密码仍明文（Phase 3 完整迁移时处理） | §0.6 / §5 | sops 部分完成；密码迁移待后续 |
 | 4 | ~~分区靠 README 手动 parted，无 disko~~ ✅ disko.nix 已接入（2026-08） | §4.1 | 完成配置接入（fileSystems 由 disko 生成，check/dry-build 全绿）；**采纳动作待执行**（见 §8.3） |
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
 | 6 | `startAsUserService = true`（26.05 实验特性，非 pam_mount 场景） | §3.1 | 移除，回默认 boot 期激活 |
@@ -370,7 +370,7 @@ perSystem = { config, ... }: {
 - **Phase 0（清理）**：#1 删除 configuration.nix；#5/#7/#9 单一来源收敛。风险：无。立即做。
 - **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。✅ **已完成（2026-08-16）**：flake-parts 迁移 + treefmt/statix/deadnix 全绿 + 存量 71 处 statix/deadnix 警告清零。
 - **Phase 2（磁盘）**：#4 引入 disko.nix，`--mode format,mount` 采纳现有盘，验证 fstab 与 snapper 快照。风险：中，先备份快照再执行。✅ **配置接入已完成（2026-08-16）**：disko.nix（btrfs 子卷 + compress=zstd/noatime + .snapshots 独立子卷）接入 flake，fileSystems 由 disko 生成，check/dry-build 全绿。⚠️ **采纳动作（§8.3）需用户执行，未做**。
-- **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。
+- **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。🟡 **最小迁移已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon），`path:` 输入删除，store 零明文泄漏（toplevel 依赖扫描验证）。**剩余**：`initialPassword`/root 密码明文待迁（需用户确认新密码 + `nixos-rebuild test` 后 switch）。
 - **Phase 4（质量）**：#8 CI + pre-commit 全量启用。
 - **Phase 5（可选演进）**：#6 移除 startAsUserService；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。
 
