@@ -107,6 +107,15 @@
       vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = '切换缓冲区' })
       vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = '帮助标签' })
 
+      -- LSP 导航: telescope 浮动窗口（现代体验），原有 gd/gr/K 原生跳转保留（快速单跳）
+      -- <leader>ca 已在 LSP on_attach 中定义（vim.lsp.buf.code_action），此处不重复
+      vim.keymap.set('n', '<leader>gd', builtin.lsp_definitions, { desc = 'LSP 定义跳转 (telescope)' })
+      vim.keymap.set('n', '<leader>gr', builtin.lsp_references, { desc = 'LSP 引用查找 (telescope)' })
+      vim.keymap.set('n', '<leader>gi', builtin.lsp_implementations, { desc = 'LSP 实现查找 (telescope)' })
+      vim.keymap.set('n', '<leader>gt', builtin.lsp_type_definitions, { desc = 'LSP 类型定义 (telescope)' })
+      vim.keymap.set('n', '<leader>ds', builtin.lsp_document_symbols, { desc = 'LSP 文档符号 (telescope)' })
+      vim.keymap.set('n', '<leader>ws', builtin.lsp_workspace_symbols, { desc = 'LSP 工作区符号 (telescope)' })
+
       -- 补全: nvim-cmp + LuaSnip (风格与 catppuccin 匹配, 圆角边框)
       local cmp = require("cmp")
       local luasnip = require("luasnip")
@@ -147,11 +156,6 @@
 
       -- LSP: mason 管理 + lspconfig 默认配置
       require("mason").setup()
-      require("mason-lspconfig").setup({
-        -- 不强制安装任何 server: 用户可能有系统级 LSP, 避免大体积下载
-        -- 空的 ensure_installed 时 mason-lspconfig 会配合 lspconfig 自动检测已安装的 server
-        ensure_installed = {},
-      })
       local lspconfig = require("lspconfig")
       local on_attach = function(_, bufnr)
         local opts = { buffer = bufnr }
@@ -161,12 +165,32 @@
         vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
         vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
       end
-      -- 通过 mason-lspconfig 的默认 handler 给所有 server 挂上 on_attach
-      require("mason-lspconfig").setup_handlers({
-        function(server_name)
-          lspconfig[server_name].setup({ on_attach = on_attach })
-        end,
+      require("mason-lspconfig").setup({
+        -- 不强制安装任何 server: 用户可能有系统级 LSP, 避免大体积下载
+        -- 空的 ensure_installed 时 mason-lspconfig 会配合 lspconfig 自动检测已安装的 server
+        ensure_installed = {},
+        -- 现代写法（mason-lspconfig 2.x，旧版 setup_handlers 已移除）：
+        -- 给所有自动检测到的 server 统一挂 on_attach（gd/gr/K/重命名/代码操作键位）
+        handlers = {
+          function(server_name)
+            if lspconfig[server_name] then
+              lspconfig[server_name].setup({ on_attach = on_attach })
+            end
+          end,
+        },
       })
+
+      -- 🔴 nixpkgs 的 nvim-lspconfig 2.11.0 未内置 nil/nixd server 定义，
+      --    需手动注册 nil（Nix LSP，已装于 PATH），现代写法 vim.lsp.config（nvim 0.11+）
+      local nil_ok, nil_setup = pcall(vim.lsp.config, 'nil', {
+        cmd = { 'nil' },
+        root_markers = { 'flake.nix', 'default.nix', 'shell.nix' },
+        filetypes = { 'nix' },
+        on_attach = on_attach, -- 直接复用统一键位
+      })
+      if nil_ok then
+        vim.lsp.enable('nil')
+      end
 
       -- 手感插件: treesitter 文本对象 (af/if/ac/ic/ab/ib 选择, ]m/[m 跳转函数)
       -- nvim-treesitter 0.10+ 已移除 nvim-treesitter.configs, 改用插件自身的 setup API

@@ -18,7 +18,7 @@
       # ── 左右分栏布局（spaceship 风格）──
       # 第一行：左侧导航（OS/用户/目录/git/nix）+ 右侧环境（语言链/耗时/任务/退出码）
       # 第二行：输入提示符。语言链右对齐不占左侧空间，多语言项目也不冗杂
-      format = "$os$username$directory$git_branch$git_status$nix_shell$line_break$character";
+      format = "$os$username$directory$git_branch$git_status\${custom.nix}$nix_shell$line_break$character";
       right_format = "$package$c$cpp$fortran$rust$java$haskell$python$go$nodejs$ruby$lua$perl$php$cmake$pixi$cmd_duration$jobs$exit_code";
 
       # ── 性能优化 ──
@@ -178,6 +178,17 @@
         symbol = "📦 ";
         style = "fg:green";
         format = "via· [$symbol$version]($style) ";
+      };
+
+      # ── Nix 项目目录标识（flake.nix/default.nix/shell.nix 检测）──
+      # 与 nix_shell（环境状态 pure/impure）区分：目录是 Nix 项目显示 ❄ nix，进入 nix develop 则右侧显示 ❄ pure
+      # 性能：每次提示符渲染只跑一次 `test -f`（微秒级），command_timeout = 500 已兜底，无感知开销
+      custom.nix = {
+        command = "test -f flake.nix -o -f default.nix -o -f shell.nix && echo nix";
+        when = true;
+        symbol = "❄ ";
+        style = "fg:green";
+        format = "[$symbol$output]($style) ";
       };
 
       # ── nix shell：雪花符号 + 环境状态 ──
