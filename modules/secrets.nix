@@ -16,7 +16,14 @@
     age.keyFile = "/home/ran/.config/sops/age/keys.txt";
 
     # ---- 秘密声明 ----
-    secrets.github-token = { }; # → /run/secrets/github-token
+    # 🔴 neededForUsers = true：解密到 /run/secrets-for-users，必须在 users 创建
+    #    【之前】解密（否则 users 模块读不到 hashedPasswordFile）
+    #    ⚠️ neededForUsers 秘密不能设 owner（users 尚不存在）
+    secrets = {
+      github-token = { }; # → /run/secrets/github-token
+      user-password.neededForUsers = true;
+      root-password.neededForUsers = true;
+    };
 
     # ---- 消费方：nix-daemon 的 GitHub access-tokens ----
     # 🔴 原理：sops 秘密在【激活期】解密，而 nix.settings.access-tokens 是【构建期】值，
