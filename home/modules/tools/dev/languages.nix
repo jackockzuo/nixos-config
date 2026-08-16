@@ -8,9 +8,9 @@
 
 {
   # 预留：需要时在此添加开发工具链
-  home.packages = with pkgs; [ 
+  home.packages = with pkgs; [
     zed # 现代编辑器（类似 VSCode，支持本地/远程）
     vscode # 微软编辑器（VSCode OSS，支持本地/远程）
-    
+
   ];
 }

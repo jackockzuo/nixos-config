@@ -5,7 +5,12 @@
 #   - 🔴 默认禁用：需要时在 lsp.nix 中把 config.lsp.bash.enable 改为 true
 #   - 注：JSON/YAML/HTML/CSS 的 LSP 在 web.nix（vscode-langservers-extracted）
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.bash.enable [

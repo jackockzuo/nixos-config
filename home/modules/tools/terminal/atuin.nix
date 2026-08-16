@@ -17,7 +17,7 @@
 #   - common_prefix 仅存在于 [stats] 段，非顶层有效键 → 已省略
 #   - 主题：atuin 18.x TUI 默认跟随终端的 16 色配色，无需单独 theme
 #     配置；本机 kitty 已是 Catppuccin Mocha 16 色主题，atuin 自动匹配
-{ pkgs, ... }:
+_:
 
 {
   programs.atuin = {
@@ -31,7 +31,12 @@
 
       # 可用过滤模式及循环顺序（对应旧版 filter_mode 列表语义）：
       # 全局 / 本机 / 本次会话 / 当前目录，不启用 workspace 标签
-      search.filters = [ "global" "host" "session" "directory" ];
+      search.filters = [
+        "global"
+        "host"
+        "session"
+        "directory"
+      ];
 
       # 启用 workspace 过滤模式（与上方 search.filters 组合使用）
       workspaces = true;

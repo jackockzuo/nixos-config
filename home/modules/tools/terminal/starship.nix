@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # 极简双行布局 Starship 配置
@@ -113,54 +113,86 @@
 
       # ── 语言版本链：仅当项目含对应文件时显示 ──
       # 颜色使用各语言的经典色（无背景）；前 7 个模块走 starship 默认 detect 规则
-      c       = { symbol = " "; style = "fg:green";  format = "[$symbol$name$version]($style) "; };
-      cpp     = { symbol = " "; style = "fg:green";  format = "[$symbol$name$version]($style) "; disabled = false; };
-      fortran = { symbol = "󱈚 "; style = "fg:green";  format = "[$symbol$name$version]($style) "; };
-      rust    = { symbol = "";  style = "fg:peach";  format = "[$symbol$version]($style) "; };
-      java    = { symbol = " "; style = "fg:red";    format = "[$symbol$version]($style) "; };
-      haskell = { symbol = "";  style = "fg:mauve";  format = "[$symbol$version]($style) "; };
-      python  = { symbol = "";  style = "fg:yellow"; format = "[$symbol$version]($style) "; };
+      c = {
+        symbol = " ";
+        style = "fg:green";
+        format = "[$symbol$name$version]($style) ";
+      };
+      cpp = {
+        symbol = " ";
+        style = "fg:green";
+        format = "[$symbol$name$version]($style) ";
+        disabled = false;
+      };
+      fortran = {
+        symbol = "󱈚 ";
+        style = "fg:green";
+        format = "[$symbol$name$version]($style) ";
+      };
+      rust = {
+        symbol = "";
+        style = "fg:peach";
+        format = "[$symbol$version]($style) ";
+      };
+      java = {
+        symbol = " ";
+        style = "fg:red";
+        format = "[$symbol$version]($style) ";
+      };
+      haskell = {
+        symbol = "";
+        style = "fg:mauve";
+        format = "[$symbol$version]($style) ";
+      };
+      python = {
+        symbol = "";
+        style = "fg:yellow";
+        format = "[$symbol$version]($style) ";
+      };
 
       # 以下模块用 detect_files / detect_extensions 精确指定触发文件，避免扫描无关目录（性能优化）
       go = {
         symbol = " ";
         style = "fg:sky";
         format = "[$symbol$version]($style) ";
-        detect_files = ["go.mod"];
+        detect_files = [ "go.mod" ];
       };
       nodejs = {
         symbol = " ";
         style = "fg:green";
         format = "[$symbol$version]($style) ";
-        detect_files = ["package.json"];
+        detect_files = [ "package.json" ];
       };
       ruby = {
         symbol = " ";
         style = "fg:red";
         format = "[$symbol$version]($style) ";
-        detect_files = [".ruby-version" "Gemfile"];
+        detect_files = [
+          ".ruby-version"
+          "Gemfile"
+        ];
       };
       lua = {
         symbol = " ";
         style = "fg:blue";
         format = "[$symbol$version]($style) ";
         # .lua-version 不通用，补充 *.lua 扩展名识别
-        detect_files = [".lua-version"];
-        detect_extensions = ["lua"];
+        detect_files = [ ".lua-version" ];
+        detect_extensions = [ "lua" ];
       };
       perl = {
         symbol = " ";
         style = "fg:teal";
         format = "[$symbol$version]($style) ";
         # cpanfile 不通用，补充 *.pl 扩展名识别
-        detect_files = ["cpanfile"];
-        detect_extensions = ["pl"];
+        detect_files = [ "cpanfile" ];
+        detect_extensions = [ "pl" ];
       };
       php = {
         symbol = " ";
         style = "fg:mauve";
         format = "[$symbol$version]($style) ";
-        detect_files = ["composer.json"];
+        detect_files = [ "composer.json" ];
       };
       cmake = {
         symbol = " ";

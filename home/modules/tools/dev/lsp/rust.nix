@@ -6,7 +6,12 @@
 #       # pkgs.rustc
 #       # pkgs.rustfmt
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.rust.enable [

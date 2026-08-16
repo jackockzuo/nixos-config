@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # ---- 9. xdg-desktop-portal ----

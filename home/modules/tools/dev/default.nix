@@ -5,7 +5,7 @@
 # 新增 → 新建 <工具>.nix 并在此加一行；预留 → 取消注释
 # 纯安装包（无配置）由 tools/default.nix 的 home.packages 统一管理
 # ============================================================
-{ pkgs, ... }:
+_:
 
 {
   imports = [
@@ -16,8 +16,7 @@
     ./topgrade.nix # 一键升级
     ./lazygit.nix # git TUI（Catppuccin Mocha 主题）
     ./neovim.nix # 编辑器（含 fcitx5 状态联动）
-    ./lsp/lsp.nix # 语言服务器（LSP），每语言一文件，本文件统一启停
-    ./languages.nix # 开发语言/数据库客户端
+    ./lsp/lsp.nix # 语言服务器（LSP），每语言一文件，本文件统一启停    ./languages.nix # 开发语言/数据库客户端
     ./pass.nix # pass 密码管理（gpg 加密）
   ];
 }

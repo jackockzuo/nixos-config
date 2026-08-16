@@ -9,15 +9,42 @@
     #   HM 生成 conf.d/plugin-*.fish 自动加载，插件随系统一起进入 store，完全声明式）
     # 插件名/源码均来自 pkgs.fishPlugins（nixpkgs 打包，已验证存在）
     plugins = [
-      { name = "transient-fish"; src = pkgs.fishPlugins.transient-fish; }    # 命令执行后提示符自动变短
-      { name = "done"; src = pkgs.fishPlugins.done; }                        # 长命令完成提醒（替代原 notify-long-command 函数）
-      { name = "autopair"; src = pkgs.fishPlugins.autopair; }                # 括号/引号自动配对
-      { name = "sponge"; src = pkgs.fishPlugins.sponge; }                    # 常用命令彩色输出
-      { name = "bang-bang"; src = pkgs.fishPlugins.bang-bang; }              # !! 展开上条命令
-      { name = "fish-you-should-use"; src = pkgs.fishPlugins.fish-you-should-use; } # 存在别名时提示（学习型）
-      { name = "bass"; src = pkgs.fishPlugins.bass; }                        # fish 里执行 bash 命令/脚本
-      { name = "forgit"; src = pkgs.fishPlugins.forgit; }                    # fzf 加持的 git 操作
-      { name = "git-abbr"; src = pkgs.fishPlugins.git-abbr; }                # git 命令缩写（60+ 个，带补全）
+      {
+        name = "transient-fish";
+        src = pkgs.fishPlugins.transient-fish;
+      } # 命令执行后提示符自动变短
+      {
+        name = "done";
+        src = pkgs.fishPlugins.done;
+      } # 长命令完成提醒（替代原 notify-long-command 函数）
+      {
+        name = "autopair";
+        src = pkgs.fishPlugins.autopair;
+      } # 括号/引号自动配对
+      {
+        name = "sponge";
+        src = pkgs.fishPlugins.sponge;
+      } # 常用命令彩色输出
+      {
+        name = "bang-bang";
+        src = pkgs.fishPlugins.bang-bang;
+      } # !! 展开上条命令
+      {
+        name = "fish-you-should-use";
+        src = pkgs.fishPlugins.fish-you-should-use;
+      } # 存在别名时提示（学习型）
+      {
+        name = "bass";
+        src = pkgs.fishPlugins.bass;
+      } # fish 里执行 bash 命令/脚本
+      {
+        name = "forgit";
+        src = pkgs.fishPlugins.forgit;
+      } # fzf 加持的 git 操作
+      {
+        name = "git-abbr";
+        src = pkgs.fishPlugins.git-abbr;
+      } # git 命令缩写（60+ 个，带补全）
     ];
     interactiveShellInit = ''
       set fish_greeting ""
@@ -74,40 +101,42 @@
       tl = "tldr";
     };
   };
-  # 🔴 100% 兼容的方式：直接生成 Fish 自动加载函数文件 ~/.config/fish/functions/clean-system.fish
-  xdg.configFile."fish/functions/clean-system.fish".text = ''
-    function clean-system
-        echo "🧹 正在清理 Nix 废弃历史版本..."
-        sudo nix-collect-garbage -d
+  xdg.configFile = {
+    # 🔴 100% 兼容的方式：直接生成 Fish 自动加载函数文件 ~/.config/fish/functions/clean-system.fish
+    "fish/functions/clean-system.fish".text = ''
+      function clean-system
+          echo "🧹 正在清理 Nix 废弃历史版本..."
+          sudo nix-collect-garbage -d
 
-        echo "🧹 正在清理 NixOS 旧系统代（保留最近 5 代）..."
-        sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
+          echo "🧹 正在清理 NixOS 旧系统代（保留最近 5 代）..."
+          sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
 
-        echo "✨ 系统保洁完成，恢复极致清爽！"
-    end
-  '';
+          echo "✨ 系统保洁完成，恢复极致清爽！"
+      end
+    '';
 
-  # 迁移自 minimal-niri-dotfiles：y (yazi 退出后 cd 回目录) / lt (eza 树状) / la (eza 长格式)
-  # 注：y.fish 手写在此处（与 yazi.nix 模块的 enableFishIntegration 互斥——
-  # 两者都会生成同一 fish/functions/y.fish，故 yazi.nix 不启用 fish 集成）
-  xdg.configFile."fish/functions/y.fish".text = ''
-    function y
-    	set tmp (mktemp -t "yazi-cwd.XXXXXX")
-    	yazi $argv --cwd-file="$tmp"
-    	if read -z cwd < "$tmp"; and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
-    		builtin cd -- "$cwd"
-    	end
-    	rm -f -- "$tmp"
-    end
-  '';
-  xdg.configFile."fish/functions/lt.fish".text = ''
-    function lt
-    	command eza --icons=auto --tree --git -- $argv
-    end
-  '';
-  xdg.configFile."fish/functions/la.fish".text = ''
-    function la
-    	command eza -l --icons=auto --git -- $argv
-    end
-  '';
+    # 迁移自 minimal-niri-dotfiles：y (yazi 退出后 cd 回目录) / lt (eza 树状) / la (eza 长格式)
+    # 注：y.fish 手写在此处（与 yazi.nix 模块的 enableFishIntegration 互斥——
+    # 两者都会生成同一 fish/functions/y.fish，故 yazi.nix 不启用 fish 集成）
+    "fish/functions/y.fish".text = ''
+      function y
+      	set tmp (mktemp -t "yazi-cwd.XXXXXX")
+      	yazi $argv --cwd-file="$tmp"
+      	if read -z cwd < "$tmp"; and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
+      		builtin cd -- "$cwd"
+      	end
+      	rm -f -- "$tmp"
+      end
+    '';
+    "fish/functions/lt.fish".text = ''
+      function lt
+      	command eza --icons=auto --tree --git -- $argv
+      end
+    '';
+    "fish/functions/la.fish".text = ''
+      function la
+      	command eza -l --icons=auto --git -- $argv
+      end
+    '';
+  };
 }

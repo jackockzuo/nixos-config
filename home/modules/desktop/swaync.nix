@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # ---- 4. SwayNC 通知（真毛玻璃，ext-background-effect-v1，niri 26.04 原生支持）----

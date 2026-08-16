@@ -4,7 +4,7 @@
 # 使用方式：programs.firefox = { enable = true; ... };
 # 注意：浏览器二进制由系统层 packages.nix 安装（firefox/chromium/google-chrome）
 # ============================================================
-{ ... }:
+_:
 
 {
   # 预留：需要时在此添加浏览器配置
