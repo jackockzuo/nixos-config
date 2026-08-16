@@ -24,10 +24,11 @@
 
   # 纯安装包（无配置，按领域分组管理）
   home.packages = with pkgs; [
-    # ── terminal 领域：终端图片工具 + git 信息面板 ──
+    # ── terminal 领域：终端图片工具 + git 信息面板 + 录屏 ──
     timg # 终端图片
     ueberzugpp # 终端图片后端
     onefetch # git 仓库信息面板
+    vhs # 终端录屏（把操作录成 GIF/视频）
 
     # ── monitoring 领域：磁盘分析 + 日志/网络排障 ──
     duf # 磁盘空间
