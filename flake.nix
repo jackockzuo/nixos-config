@@ -103,7 +103,7 @@
           # 环境变量与 nix-daemon 共用同一地址（单点修改）
           ({ config, ... }: {
             home-manager = {
-              # allowUnfree 已由 configuration.nix 顶层 nixpkgs.config 管理
+              # allowUnfree 已由 modules/system.nix 顶层 nixpkgs.config 管理
               # 🔴 useGlobalPkgs 必须为 true：HM 模块 fcitx5.nix 用
               # lib.mkIf (!config.home-manager.useGlobalPkgs or false) 判断是否接管
               # i18n.inputMethod——NixOS 上系统层已管理，设 true 让 HM 跳过，避免双份配置
