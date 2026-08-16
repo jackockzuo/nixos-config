@@ -6,7 +6,12 @@
 #   🔴 本用户每天写 nix 配置：若想要更强的分析能力，
 #      把下面 pkgs.nil 换成 pkgs.nixd 即可，其余不用动
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.nix.enable [

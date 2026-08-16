@@ -21,7 +21,7 @@ let
   proxyAddr = proxy.address;
   proxyHost = proxy.host;
   proxyPort = proxy.port;
-  noProxy = proxy.noProxy;
+  inherit (proxy) noProxy;
 in
 {
   # ---- 全局代理环境变量（GUI 应用 + 新终端均继承）----

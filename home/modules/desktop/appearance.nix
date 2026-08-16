@@ -15,24 +15,26 @@ in
   # 注意：source 相对路径基于本文件位置（modules/desktop/）
   # ============================================================
 
-  # ---- 1. fastfetch 定制系统信息面板 ----
-  # 效果：终端启动时显示彩色键名的树状信息面板（OS/KER/PAK/AGE/USR/WM/DES/SHE/TER/PC/CPU/MEM/SWP/GPU/MON/DIS）
-  # logo：kitty-direct 原生协议渲染官方 NixOS 彩色雪花（store 路径注入，见上方 let）
-  xdg.configFile."fastfetch/config.jsonc" = {
-    text = builtins.replaceStrings [ "@NIXOS_LOGO_PATH@" ] [ logoPath ] fastfetchConfig;
-    force = true; # 覆盖原作者旧配置
-  };
-  xdg.configFile."fastfetch/nixos-logo.png" = {
-    source = ../../source/beautify/fastfetch/nixos-logo.png;
-    force = true;
-  };
+  xdg.configFile = {
+    # ---- 1. fastfetch 定制系统信息面板 ----
+    # 效果：终端启动时显示彩色键名的树状信息面板（OS/KER/PAK/AGE/USR/WM/DES/SHE/TER/PC/CPU/MEM/SWP/GPU/MON/DIS）
+    # logo：kitty-direct 原生协议渲染官方 NixOS 彩色雪花（store 路径注入，见上方 let）
+    "fastfetch/config.jsonc" = {
+      text = builtins.replaceStrings [ "@NIXOS_LOGO_PATH@" ] [ logoPath ] fastfetchConfig;
+      force = true; # 覆盖原作者旧配置
+    };
+    "fastfetch/nixos-logo.png" = {
+      source = ../../source/beautify/fastfetch/nixos-logo.png;
+      force = true;
+    };
 
-  # ---- 2. fontconfig 字体渲染 ----
-  # 效果：全局抗锯齿 + hintslight 微调 + 中文回退（Noto Sans CJK SC）
-  # 字体分工：终端 Maple Mono（kitty 显式指定）、等宽代码 JetBrainsMono、UI/中文 Noto Sans CJK SC
-  xdg.configFile."fontconfig/fonts.conf" = {
-    source = ../../source/beautify/fontconfig/fonts.conf;
-    force = true; # 覆盖原作者旧配置
+    # ---- 2. fontconfig 字体渲染 ----
+    # 效果：全局抗锯齿 + hintslight 微调 + 中文回退（Noto Sans CJK SC）
+    # 字体分工：终端 Maple Mono（kitty 显式指定）、等宽代码 JetBrainsMono、UI/中文 Noto Sans CJK SC
+    "fontconfig/fonts.conf" = {
+      source = ../../source/beautify/fontconfig/fonts.conf;
+      force = true; # 覆盖原作者旧配置
+    };
   };
 
   # ---- 3. GTK 全局统一主题 (Catppuccin Mocha) ----
@@ -59,8 +61,12 @@ in
     # 注意：gtk2.extraConfig 是字符串类型（~/.gtkrc-2.0 语法，多行用 \n 连接），
     # gtk3/4 是 attrset。
     gtk2.extraConfig = "gtk-im-module=\"fcitx\"";
-    gtk3.extraConfig = { gtk-im-module = "fcitx"; };
-    gtk4.extraConfig = { gtk-im-module = "fcitx"; };
+    gtk3.extraConfig = {
+      gtk-im-module = "fcitx";
+    };
+    gtk4.extraConfig = {
+      gtk-im-module = "fcitx";
+    };
   };
 
   # ---- 3b. QT 全局主题（Qt6 应用跟随 GTK 主题）----

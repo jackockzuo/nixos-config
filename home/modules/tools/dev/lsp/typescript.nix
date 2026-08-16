@@ -8,7 +8,12 @@
 #       # pkgs.nodejs
 #   - 🔴 默认禁用：需要时在 lsp.nix 中把 config.lsp.typescript.enable 改为 true
 # ============================================================
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = lib.mkIf config.lsp.typescript.enable [

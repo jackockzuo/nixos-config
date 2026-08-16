@@ -17,9 +17,11 @@
 
 {
   # ---------- 用户 ----------
-  home.username = "ran";
-  home.homeDirectory = "/home/ran";
-  home.stateVersion = "24.05";
+  home = {
+    username = "ran";
+    homeDirectory = "/home/ran";
+    stateVersion = "24.05";
+  };
 
   programs.home-manager.enable = true;
 
