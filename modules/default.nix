@@ -10,6 +10,7 @@
     ./system.nix # 系统基础（stateVersion/unfree 放行）
     ./boot.nix # 引导与内核（GRUB 双系统/内核参数）
     ./hardware.nix # 硬件（NVIDIA 混合显卡/蓝牙/zram）
+    ./hardware-detect.nix # 硬件检测（initrd 模块/microcode，原 hardware-configuration.nix 去 fileSystems）
     ./network.nix # 网络（hostname/NetworkManager）
     ./users.nix # 用户与权限（ran/root/groups/shell）
     ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）

@@ -66,11 +66,11 @@ _:
     # 显式 false 优先级高于 DMS 的 mkDefault true。
     power-profiles-daemon.enable = false;
   };
-  # 🔴 snapper 需要每个子卷下有 .snapshots 目录，否则创建快照报错。
-  # btrfs 上最稳的是把 .snapshots 做成独立子卷（可被快照自身的父卷跳过），
-  # 但普通目录也能用；这里用 systemd-tmpfiles 开机自动创建，保证存在。
-  systemd.tmpfiles.rules = [
-    "d /.snapshots 0755 root root -"
-    "d /home/.snapshots 0755 root root -"
-  ];
+  # 🔴 .snapshots 目录由 disko 声明为独立子卷并挂载（disko.nix，STANDARDS §4.2 方案 A）：
+  #    - /.snapshots      → 独立子卷（与 @ 平级），挂载到 /
+  #    - /home/.snapshots → 独立子卷，挂载到 /home
+  #    快照存独立子卷 → 快照 / 时自动排除 .snapshots 自身（不递归）。
+  #    挂载点在采纳 disko 后自动存在，无需 tmpfiles 创建（原 tmpfiles 规则已移除）。
+  # 注意：采纳 disko（--mode format,mount）后，现有历史快照（@ 内部普通目录）会被
+  # 新挂载的独立子卷遮蔽——需手动迁移旧快照才能继续查看（见 STANDARDS §4.2）。
 }
