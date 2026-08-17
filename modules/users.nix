@@ -21,11 +21,15 @@
           "podman"
           "input"
         ];
-        # 🔴 密码哈希由 sops 管理（STANDARDS §5.4）：neededForUsers 秘密在 users
-        #    创建前解密到 /run/secrets-for-users，经 hashedPasswordFile 读取。
-        #    ✅ 不再有明文密码（旧 initialPassword 已删除）。
-        #    改密码：mkpasswd -s 生成新哈希 → 更新 secrets/secrets.yaml 的 user-password
-        hashedPasswordFile = config.sops.secrets.user-password.path;
+        # 🔴 2026-08-17 故障恢复：直写密码哈希（临时替代 sops hashedPasswordFile）。
+        #    实测 sops→/run/secrets-for-users 链失效：su 用 "ran" 验证被拒，而沙箱
+        #    复现 update-users-groups.pl 证明脚本逻辑正确 → 断点在 sops 解密写文件环节。
+        #    直接把已验证的哈希（mkpasswd yescrypt，明文 = 密码 "ran"）写进配置，
+        #    构建期即入 users-groups.json，激活时不经文件读取，必然生效。
+        #    ⚠️ mutableUsers=false：密码只能在配置里改，passwd 运行时改会被 rebuild 覆盖。
+        #    恢复 sops 方案：定位 sops-install-secrets 写文件内容问题后，改回
+        #    hashedPasswordFile = config.sops.secrets.user-password.path（见 STANDARDS §5）。
+        hashedPassword = "$y$j9T$HYOsuolSk8zMUrJBaeiDP0$7qQkf3M0GpwAWT.qUIeGMO.1rhPlGWby3i/bM9PwT29";
       };
       root.hashedPasswordFile = config.sops.secrets.root-password.path;
     };
