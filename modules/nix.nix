@@ -9,13 +9,20 @@
 {
   # ============ Nix：国内镜像 + daemon 调优 ============
   nix.settings = {
+    # 🔴 nyx 缓存放首位：优先获取 CachyOS 预编译内核/nvidia 模块（本地无则避免现场编译）。
+    #    ⚠️ 官方现行缓存是 nyx-cache.chaotic.cx（旧 nyx.cachix.org 已迁移，key 不同！）
+    #    若 chaotic 再次迁移缓存地址：要么改这里，要么删掉本节改回自动（cache.enable=true）
     substituters = [
+      "https://nyx-cache.chaotic.cx/"
       "https://mirror.sjtu.edu.cn/nix-channels/store"
       "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://cache.nixos.org"
     ];
-    trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+    trusted-public-keys = [
+      "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    ];
     trusted-users = [
       "root"
       "@wheel"
@@ -44,4 +51,15 @@
   # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
+
+  # ============ Chaotic-Nyx（CachyOS 高性能包生态）============
+  chaotic.nyx = {
+    # CachyOS 包 overlay：提供 linuxPackages_cachyos 等高性能包（boot.nix 内核切换依赖它）
+    overlay.enable = true;
+    # ❌ cache.enable 默认 true 会自动追加 nyx 缓存配置到 nix.settings（顺序不可控），
+    #    与上方手动配置（nyx 首位 + 国内镜像）冲突/重复 → 显式关闭，缓存由本文件全权管理。
+    cache.enable = false;
+    # ❌ cpu-set 选项在本版本 chaotic 中不存在（仅 cache/nixPath/overlay/registry）；
+    #    CPU governor 改由 services.tlp.settings 配置（见 services.nix，AC=performance）。
+  };
 }

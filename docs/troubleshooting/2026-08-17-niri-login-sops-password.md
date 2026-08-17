@@ -65,7 +65,7 @@
 
 | # | 问题 | 直接原因 | 深层原因 |
 |---|---|---|---|
-| 1 | 密码永远被拒 | `/etc/shadow` 哈希与用户输入不匹配 | **sops→/run 文件内容链损坏**（文件存在但内容 ≠ sops 里的哈希）；`mutableUsers=false` 下每次 rebuild 用坏内容重写 shadow，登录自 sops 迁移起就一直是坏的 |
+| 1 | 密码永远被拒 | `/etc/shadow` 哈希与用户输入不匹配（锁死） | 🔴 **sops age.keyFile 放在 `/home/ran/.config/sops/age/keys.txt`，而 `/home` 是独立子卷——开机 initrd 激活（neededForUsers 解密）时 `/home` 尚未挂载（实测晚 4 秒）→ sops-install-secrets 读不到密钥 → `/run/secrets-for-users/*` 从不生成 → users 步骤写 "!"（锁定）→ 密码自 sops 迁移起每次开机都失败**（journal 证据：`cannot read keyfile '/home/ran/.config/sops/age/keys.txt': no such file or directory`） |
 | 2 | niri 起不来 | niri EGL 初始化崩溃 | 会话变量强制 `GBM_BACKEND=nvidia-drm`，但运行内核（旧 6.18）无 nvidia 模块、nouveau 在跑 → 用户态 nvidia 栈找不到内核驱动 |
 | 3 | 登录流程混乱 | greetd 先跑 initial_session（自动登录 niri），崩溃后回落 greeter | 未提交的 `initial_session` 试验改动与既有"greeter 登录"设计冲突 |
 
@@ -120,7 +120,7 @@ exit && sudo reboot
 
 ## 遗留事项（TODO）
 
-- [ ] **修复 sops 密码链根因**：排查 `sops-install-secrets` 写入 `/run/secrets-for-users` 内容为何与 secrets.yaml 不符（疑点：neededForUsers 秘密写文件环节；可先在真机上 `sudo cat /run/secrets-for-users/user-password` 与解密值比对）；
-- [ ] **恢复 sops 密码管理**：确认根因后，`users.nix` 的 `hashedPassword` 改回 `hashedPasswordFile = config.sops.secrets.user-password.path`，消除明文哈希（STANDARDS §0.6）；
-- [ ] **root 密码**：当前仍走 sops `hashedPasswordFile`，链若同样损坏 root 登录会失败；登录后 `sudo nixos-rebuild switch` 在真机环境收尾可恢复（若仍失败则同样处理）；
+- [x] **修复 sops 密码链根因** ✅（2026-08-17 定位并修复）：age.keyFile 在 `/home`（开机激活时未挂载）→ 移到 `/var/lib/sops-nix/keys.txt`（`/` 下）→ 恢复 `hashedPasswordFile`；
+- [x] **恢复 sops 密码管理** ✅：`users.nix` 已从直写哈希改回 `hashedPasswordFile`（明文哈希消除，STANDARDS §0.6 合规）；
+- [ ] **root 密码验证**：root 同样走 sops hashedPasswordFile，修复 keyFile 后 root 登录应恢复（用 root 的密码验证）；若仍失败需更新 root-password 秘密；
 - [ ] **验证 nvidia 驱动状态**：重启到新 generation（内核 7.1.8）后确认 `lsmod | grep nvidia`、`nvidia-smi` 正常、niri 无崩溃。

@@ -111,6 +111,7 @@ nixos-config/
 │   ├── proxy.nix                # options.proxy 单一来源
 │   ├── locale.nix               # 时区/语言/输入法
 │   ├── services.nix             # pipewire/snapper/tlp/...
+│   ├── performance.nix          # 🎯 本机性能计算优化（scx/irqbalance/TLP/zram/fd）
 │   └── ...
 ├── home/                        # home-manager 用户级模块
 │   ├── home.nix                 # 聚合入口（imports）—— 被 flake 以 home-manager.users.ran 引用
@@ -126,6 +127,7 @@ nixos-config/
 **强制规则：**
 - 新增配置 → 在对应领域新建 `<关注点>.nix`，并在所在目录 `default.nix` 的 `imports` 加一行。
 - 新增故障记录/排查文档 → 进 `docs/troubleshooting/`（`<日期>-<症状>.md`），并在其 `README.md` 索引表加一行。
+- **本机独有配置标记（🎯 [OMEN]）**：任何硬件绑定 / 单机特有 / 影响行为的调优（性能、功耗、驱动修复、挂载选项）必须在注释前缀 `# 🎯 [OMEN]`，并写清"为什么本机特有 + 关闭方法"。能做成 options 开关的（如 `options.omen.performance.enable`）优先用开关，实现"一行标记/关闭"。
 - 系统级（需要 root/全局 PATH/常驻服务）进 `modules/`；用户级（配置/会话环境）进 `home/modules/`；两者职责不得颠倒。
 - 预留模块（firewall/vpn/...）保持"注释即可启用"，删除时同步删 imports 行，禁止留空壳文件。
 - **删除死代码**：`configuration.nix` 是遗留文件（flake 从未引用它），迁移期删除，避免误导"这里还能改配置"。
@@ -304,6 +306,9 @@ home-manager 侧：`home-manager.sharedModules = [ inputs.sops-nix.homeManagerMo
 3. 迁移顺序：先建 sops 文件并切到 `hashedPasswordFile`，验证 `/run/secrets/*` 就绪后再删旧 `path:` 输入与明文密码。
 4. **impermanence 警示**：若未来用 tmpfs 根，`sops.age.keyFile` 必须落在持久化路径（如 `/nix/persist/...`）。
 5. 已知限制写进文档：initrd 阶段不解密；`nixos-rebuild test` 先于 `switch` 验证。
+6. 🔴 **keyFile 必须放开机早期可达的位置（`/` 下，如 `/var/lib/sops-nix/keys.txt`）**：
+   `neededForUsers` 秘密在 initrd 激活阶段解密，此时独立子卷（如 `/home`）尚未挂载。
+   放 `/home` 下会导致 sops 读不到密钥 → 密码文件从不生成 → shadow 锁死（2026-08-17 事故根因，实测 `/home` 晚挂载 4 秒）。禁止把 keyFile 放 `/home` 或任何独立子卷内。
 
 ---
 
