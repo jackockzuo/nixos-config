@@ -26,6 +26,10 @@
 #    colors.<颜色名>.{dark,light,default}.{color,...}，写 {{colors.primary.hex}}
 #    会解析失败（引擎 resolve_path 找不到 "hex" 键 → ResolveError → 渲染失败）。
 #    因此下面全部用 {{colors.<名>.default.hex}}。
+# 5. 🔴 2026-08-17 实测：config.toml **必须**含 [config] 段（可为空）。DMS 的
+#    theme dry-run（matugen ... --dry-run，无 -c）直接解析用户 config.toml，
+#    缺 [config] → "missing field `config`" TOML 解析失败 → 主题生成整体失败。
+#    空 [config] 不设 scheme/contrast，与 DMS 的 -m/-t/--contrast 命令行参数无冲突。
 # ──────────────────────────────────────────────────────────────────────────
 _:
 
@@ -62,10 +66,13 @@ _:
   #    DMS 会合并本文件的 [templates] 段（见文件头研究结论），
   #    所以这里用 DMS 兼容的 [templates] + [templates.fish] 命名表格式，
   #    并写绝对路径（DMS 以 /tmp 临时文件为基准解析相对路径）。
-  #    [config] 段省略：DMS 通过 -m/-t/--contrast 命令行参数控制配色方案，
-  #    写入 [config] 反而可能与 DMS 的 scheme/contrast 设置产生干扰。
+  #    🔴 2026-08-17 实测修正：matugen 4.x 的 config.toml **必须**有 [config] 段
+  #    （可为空）！DMS 的 theme dry-run 会直接解析用户 config.toml（不带 -c），
+  #    缺 [config] 报 "TOML parse error ... missing field `config`"，主题生成整体失败。
+  #    空 [config] 不设 scheme/contrast → 不干扰 DMS 的 -m/-t/--contrast 命令行参数。
   xdg.configFile."matugen/config.toml" = {
     text = ''
+      [config]
       [templates]
       [templates.fish]
       input_path = '/home/ran/.config/matugen/templates/fish-colors.fish.template'
