@@ -12,7 +12,7 @@
 
 {
   imports = [
-    ./terminal # 终端体验（fish/starship/fzf/atuin/yazi/zellij/...）
+    ./terminal # 终端体验（fish/starship/fzf/atuin/yazi/...）
     ./monitoring # 系统监控（btop/cava）
     ./dev # 开发工具（git/neovim/lazygit/...）
     ./theming # 主题联动（matugen 壁纸→配色）

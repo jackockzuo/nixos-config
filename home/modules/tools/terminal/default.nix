@@ -16,7 +16,6 @@ _:
     ./bat.nix # bat 增强 cat（Catppuccin Mocha 主题）
     ./atuin.nix # 终端历史搜索（SQLite + TUI，接管 Ctrl-R）
     ./yazi.nix # yazi 终端文件管理器（Catppuccin Mocha 主题）
-    ./zellij.nix # zellij 终端复用器（Catppuccin Mocha 主题）
     ./onefetch.nix # git 仓库信息面板（Catppuccin Mocha 配色）
   ];
 }
