@@ -66,8 +66,11 @@
 
   services.greetd = {
     enable = true;
+
     settings.default_session = {
       # command 由 DMS greeter 模块提供（lib.mkDefault），此处不设置
+      # 🔴 不要添加 initial_session（自动登录）：它会绕过 DMS 登录界面直接启动
+      # niri，且与 greeter 流程冲突（initial_session 退出后才轮到 greeter）。
       user = "greeter";
     };
   };
