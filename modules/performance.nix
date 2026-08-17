@@ -18,27 +18,34 @@ in
     # scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合架构友好），
     # 与 cachyos BORE 调度互为补充（scx 运行在 BPF 层覆盖全局调度）。
     # 🔴 若 scx.service 启动失败不影响登录（内核自动回退 CFS），验证：systemctl status scx
-    services.scx = {
-      enable = true;
-      scheduler = "scx_lavd";
-    };
-
+    #
     # ============ 中断均衡：多核分摊硬件中断 ============
     # 13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
-    services.irqbalance.enable = true;
-
+    #
     # ============ 功耗策略：TLP（电池管理 + AC 性能 governor）============
     # TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者（DMS 默认 mkDefault true）
-    services.tlp = {
-      enable = true;
-      settings = {
-        # 🔴 性能计算需求：AC 电源下 performance governor（最高频）
-        #    scx_lavd 叠加；电池保持 TLP 默认 powersave 省电；
-        #    ⚠️ AC 恒频发热上升，thermald（services.nix）兜底散热。
-        CPU_SCALING_GOVERNOR_ON_AC = "performance";
+    # 子配置说明：
+    #   - scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合架构友好），与 cachyos BORE
+    #     调度互为补充（scx 运行在 BPF 层覆盖全局调度）。🔴 若 scx.service 启动失败不影响登录
+    #     （内核自动回退 CFS），验证：systemctl status scx
+    #   - irqbalance：13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
+    #   - TLP：AC 电源下 performance governor（最高频），scx_lavd 叠加；电池保持 TLP 默认
+    #     powersave 省电；⚠️ AC 恒频发热上升，thermald（services.nix）兜底散热。
+    #     TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者
+    services = {
+      scx = {
+        enable = true;
+        scheduler = "scx_lavd";
       };
+      irqbalance.enable = true;
+      tlp = {
+        enable = true;
+        settings = {
+          CPU_SCALING_GOVERNOR_ON_AC = "performance";
+        };
+      };
+      power-profiles-daemon.enable = false;
     };
-    services.power-profiles-daemon.enable = false;
 
     # ============ 内存交换：zram（压缩内存 swap）============
     # 计算任务占满内存时防死机；比 SSD 交换快一个数量级

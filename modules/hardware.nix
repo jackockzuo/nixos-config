@@ -1,10 +1,10 @@
 # ============================================================
 # hardware.nix —— 硬件相关（显卡/蓝牙/交换）
-# 职责：NVIDIA 混合显卡、图形库、蓝牙、zram 交换
+# 职责：NVIDIA 混合显卡、图形库（含 VA-API）、蓝牙
 # 修改：显卡模式切换/加硬件支持 → 改这里
-# 关联：boot.nix（内核参数 nvidia-drm）
+# 关联：boot.nix（内核参数 nvidia-drm）、performance.nix（zram 交换已移入）
 # ============================================================
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   hardware = {
@@ -33,15 +33,13 @@
       #    （"output ... is not allowed to refer to linux-...-dev"）→ 构建失败。
       #    这里放宽内核模块派生的 allowedReferences（= null 即默认无限制），
       #    代价是闭包多带 kernel.dev（只读引用，约 1-2GB，功能无影响）。
-      package = (
-        pkgs.nvidia_cachyos.overrideAttrs (old: {
-          passthru = old.passthru // {
-            mod = old.passthru.mod.overrideAttrs (_: {
-              allowedReferences = null;
-            });
-          };
-        })
-      );
+      package = pkgs.nvidia_cachyos.overrideAttrs (old: {
+        passthru = old.passthru // {
+          mod = old.passthru.mod.overrideAttrs (_: {
+            allowedReferences = null;
+          });
+        };
+      });
       prime = {
         # 混合显卡：默认 offload（按需调用独显）
         offload.enable = true;

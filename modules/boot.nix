@@ -51,7 +51,7 @@ in
     #   - scx_lavd 调度器叠加（services.nix），针对交互+计算并行优化
     #   - nvidia 595 驱动经 boot.kernelPackages 自动配对（nyx 缓存有预编译）
     #   回滚：GRUB 旧 generation 一键回退；或改 kernelProfile 一行切回 zen/latest/lts
-    kernelPackages = kernelPackages;
+    inherit kernelPackages; # 由 kernelProfile 决定（见上方 let 块）
     kernelParams = [
       "ibt=off" # nvidia 兼容（KVM 直通/嵌套虚拟化需要）
       "nvidia-drm.modeset=1"
