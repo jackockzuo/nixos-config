@@ -14,6 +14,7 @@
     ./users.nix # 用户与权限（ran/root/groups/shell）
     ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）
     ./services.nix # 系统服务（pipewire/snapper/udisks/tlp）
+    ./performance.nix # 🎯 本机性能计算优化（scx/irqbalance/TLP governor/zram/fd 上限）
     ./locale.nix # 语言/时区/输入法（fcitx5）
     ./fonts.nix # 系统字体（Maple Mono NF CN + 中文回退）
     ./nix.nix # Nix daemon（镜像源/GC/experimental-features）

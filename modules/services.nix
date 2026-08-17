@@ -56,15 +56,9 @@ _:
     # 没有它 VSCode 无法保存 GitHub 登录态、Chrome 无法记住密码。
     # 之前 portal 指向了 gnome-keyring 但服务从未启用（bug）。
     gnome.gnome-keyring.enable = true;
-    # 笔记本电源管理（TLP：电池阈值/省电调优，与 powerManagement 共存）
-    tlp.enable = true;
     # 🔴 Intel CPU 散热管理：防止过热降频（HP OMEN 游戏本高负载场景）
     # thermald 与 TLP 互补（TLP 管电源策略，thermald 管热节流），可共存
     thermald.enable = true;
-    # 🔴 必须显式关掉 power-profiles-daemon：DMS 模块默认启用它（mkDefault），
-    # 与 TLP 功能重叠且 NixOS 断言两者互斥（同时 enable 会 rebuild 失败）。
-    # 显式 false 优先级高于 DMS 的 mkDefault true。
-    power-profiles-daemon.enable = false;
   };
   # 🔴 .snapshots 目录：tmpfiles 创建（普通目录方案）。
   #    ⚠️ 2026-08-16 回退：disko 独立子卷方案已回退（disko 采纳动作未执行，

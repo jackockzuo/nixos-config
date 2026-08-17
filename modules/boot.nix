@@ -6,6 +6,23 @@
 # ============================================================
 { pkgs, ... }:
 
+let
+  # ============ 内核选择开关（改这一行即可切换，随时切回）============
+  # "cachyos"  → CachyOS 高性能内核（默认，来自 chaotic overlay，x86-64-v3 优化）
+  # "zen"      → Zen（BORE 调度器，nixpkgs 内建，nvidia 自动配对）
+  # "latest"   → 主线最新（原默认 7.1.x）
+  # "lts"      → 6.12 LTS（求稳）
+  # ⚠️ 切换后 nvidia 模块随内核自动重建（构建期验证，失败则不切换）
+  kernelProfile = "cachyos";
+  kernelPackages =
+    {
+      cachyos = pkgs.linuxPackages_cachyos;
+      zen = pkgs.linuxPackages_zen;
+      latest = pkgs.linuxPackages_latest;
+      lts = pkgs.linuxPackages_6_12;
+    }
+    .${kernelProfile};
+in
 {
   boot = {
     # ============ 引导：GRUB（实际引导链是 GRUB，从 Arch 时代继承）============
@@ -28,8 +45,13 @@
       };
     };
 
-    # ============ 内核：最新（≈ 现在的 7.1.x）============
-    kernelPackages = pkgs.linuxPackages_latest;
+    # ============ 内核：由上方 kernelProfile 决定（2026-08-17 默认 CachyOS）============
+    # 选型依据（用户需求：桌面视频 + 性能计算）：
+    #   - CachyOS：BORE 调度 + x86-64-v3 优化 + cachyos-settings，性能计算/桌面响应兼顾
+    #   - scx_lavd 调度器叠加（services.nix），针对交互+计算并行优化
+    #   - nvidia 595 驱动经 boot.kernelPackages 自动配对（nyx 缓存有预编译）
+    #   回滚：GRUB 旧 generation 一键回退；或改 kernelProfile 一行切回 zen/latest/lts
+    kernelPackages = kernelPackages;
     kernelParams = [
       "ibt=off" # nvidia 兼容（KVM 直通/嵌套虚拟化需要）
       "nvidia-drm.modeset=1"
