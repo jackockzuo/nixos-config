@@ -5,11 +5,13 @@
 // - 例外：视频/图片播放器、waydroid 保持完全不透明
 
 // 顶层的blur配置，细节调整blur的效果
+// 现代参数（niri 26.04 官方默认 passes 3/offset 3，此处按用户参考调轻：
+// passes 2 省 GPU，offset 3.0 平滑，noise 0.02 抗色带，saturation 1.4 低饱和更雅）
 blur {
-    passes 4
-    offset 4
+    passes 2
+    offset 3.0
     noise 0.02
-    saturation 1.5
+    saturation 1.4
 }
 
 // 全局毛玻璃：所有窗口半透明 + 圆角 + 背景模糊
@@ -21,6 +23,25 @@ window-rule {
     clip-to-geometry true
     background-effect {
         blur true
+    }
+}
+
+// kitty 专属规则：毛玻璃终端（透明度单一来源 = kitty 内部 background_opacity）
+// 🔴 关键（现代写法）：
+//   - opacity 1.0：禁止 niri 侧再降透明度，避免与 kitty background_opacity 双重乘算
+//   - draw-border-with-background false：防止焦点环以实心矩形透过半透明窗口
+//     （否则会看到矩形色块，参考 niri FAQ "transparent windows tinted"）
+//   - blur true 与 kitty background_blur 可共存（都只是"启用模糊"），
+//     若 blur 形状想严格跟随 12px 圆角则保留本规则；协议请求为矩形
+window-rule {
+    match app-id="kitty"
+    opacity 1.0
+    geometry-corner-radius 12
+    clip-to-geometry true
+    draw-border-with-background false
+    background-effect {
+        blur true
+        xray false
     }
 }
 

@@ -119,11 +119,13 @@ nixos-config/
 ├── secrets/                     # sops 加密秘密（只存密文，可进 git）
 │   └── secrets.yaml             # ENC[AES256_GCM,...]
 ├── assets/                      # 静态资源（grub 主题等）
+├── docs/troubleshooting/        # 疑难杂症记录（一病一档，见该目录 README.md 约定）
 └── .github/workflows/           # CI（nix flake check + treefmt）
 ```
 
 **强制规则：**
 - 新增配置 → 在对应领域新建 `<关注点>.nix`，并在所在目录 `default.nix` 的 `imports` 加一行。
+- 新增故障记录/排查文档 → 进 `docs/troubleshooting/`（`<日期>-<症状>.md`），并在其 `README.md` 索引表加一行。
 - 系统级（需要 root/全局 PATH/常驻服务）进 `modules/`；用户级（配置/会话环境）进 `home/modules/`；两者职责不得颠倒。
 - 预留模块（firewall/vpn/...）保持"注释即可启用"，删除时同步删 imports 行，禁止留空壳文件。
 - **删除死代码**：`configuration.nix` 是遗留文件（flake 从未引用它），迁移期删除，避免误导"这里还能改配置"。
@@ -360,7 +362,7 @@ perSystem = { config, ... }: {
 |---|---|---|---|
 | 1 | ~~`configuration.nix` 遗留死代码~~ ✅ 已删除（2026-08） | §2 深度模块化 | 完成 |
 | 2 | ~~裸 flake，无 flake-parts~~ ✅ 已迁移（2026-08） | §1.1 | 完成（`mkFlake` + `flake.nixosConfigurations`，`nix flake check` 全绿） |
-| 3 | ~~秘密用仓库外 `path:` 输入 + `initialPassword` 明文~~ ✅ **最小迁移完成（2026-08）**：GitHub token 已迁入 sops（`secrets/secrets.yaml` 加密 + `modules/secrets.nix` 接线），token 不再明文进 nix store（toplevel 依赖扫描零泄漏）；`path:` 输入已删。**待办**：`initialPassword`/root 密码仍明文（Phase 3 完整迁移时处理） | §0.6 / §5 | sops 部分完成；密码迁移待后续 |
+| 3 | ~~秘密用仓库外 `path:` 输入 + `initialPassword` 明文~~ ✅ **迁移完成（2026-08）**：GitHub token + ran/root 密码哈希全部迁入 sops（`secrets/secrets.yaml` 加密 + `modules/secrets.nix` 接线，`neededForUsers` 管理密码）；`path:` 输入已删、`~/Documents/nix-secrets` 已删；store 零明文泄漏（toplevel 依赖扫描验证） | §0.6 / §5 | 完成 |
 | 4 | 分区靠 README 手动 parted，无 disko | §4.1 | ⚠️ **2026-08-16 已回退**：disko 接入曾导致 `nixos-rebuild test` 进紧急模式（disko 采纳动作未执行，生成的 fileSystems 引用不存在的 `.snapshots` 子卷 → 挂载失败）。fileSystems 已恢复由 `hardware-configuration.nix`（by-uuid）管理。**未来接入 disko 必须先执行 `--mode format,mount` 采纳，再启用模块** |
 | 5 | ~~allowUnfree 重复声明~~ ✅ 已收敛（2026-08） | §0.2 单一来源 | 完成（仅 system.nix） |
 | 6 | ~~`startAsUserService = true`（26.05 实验特性）~~ ✅ 调研确认保留（2026-08） | §3.1 | 保留（上游 #3172 竞态修复，无替代）；补 `wantedBy` 启用登录激活 |
@@ -375,7 +377,7 @@ perSystem = { config, ... }: {
 - **Phase 0（清理）**：#1 删除 configuration.nix；#5/#7/#9 单一来源收敛。风险：无。立即做。
 - **Phase 1（架构）**：#2 迁移 flake-parts（1.1 骨架 + treefmt + git-hooks 引入）。风险：低，纯结构重组，`nix flake check` 兜底。✅ **已完成（2026-08-16）**：flake-parts 迁移 + treefmt/statix/deadnix 全绿 + 存量 71 处 statix/deadnix 警告清零。
 - **Phase 2（磁盘）**：#4 disko 声明式分区。⛔ **2026-08-16 已回退**：曾接入 disko.nix 并通过 check/dry-build，但 `nixos-rebuild test` 进紧急模式——**根因：disko 采纳动作（`--mode format,mount`）未执行，生成的 fileSystems 引用不存在的 `.snapshots` 独立子卷导致挂载失败**。经验教训：**先采纳（改分区）→ 再启用模块**，顺序不可颠倒。fileSystems 已恢复 `hardware-configuration.nix` 管理。未来重试：备份 → `disko --mode format,mount` → 启用模块 → test → switch。
-- **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。🟡 **最小迁移已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon），`path:` 输入删除，store 零明文泄漏（toplevel 依赖扫描验证）。**剩余**：`initialPassword`/root 密码明文待迁（需用户确认新密码 + `nixos-rebuild test` 后 switch）。
+- **Phase 3（秘密）**：#3 sops-nix 迁移（5.4 顺序），删除 path: 输入与 initialPassword。风险：中，先 `nixos-rebuild test`。✅ **已完成（2026-08-16）**：GitHub token → sops（`secrets/secrets.yaml` + `modules/secrets.nix`，NIX_CONFIG 注入 nix-daemon）；ran/root 密码 → `hashedPasswordFile`（`neededForUsers` 在 users 创建前解密）；`path:` 输入与 `~/Documents/nix-secrets` 删除；store 零明文泄漏。⚠️ 已泄露的旧 token 需在 GitHub 撤销后更新（见 §5.4 流程）。
 - **Phase 4（质量）**：#8 CI + pre-commit 全量启用。✅ **已完成（2026-08-16）**：`ci.yml`（GitHub Actions：`nix flake check` + `nix fmt -- --fail-on-change`）建立；fcclientPkg 仓库外 path 输入用 `.ci/fcclient-placeholder` override 解决（CI 无该目录）；本机/CI 双环境验证通过。
 - **Phase 5（可选演进）**：#6 ✅ 已调研解决（2026-08）：保留 startAsUserService + 补 wantedBy；多主机预留 `hosts/` 目录（当前单机可仅保留 `hosts/omen`）。
 
