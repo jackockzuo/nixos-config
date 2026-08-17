@@ -142,7 +142,7 @@ nixos-config/
 - 选项固定为：
   - `useGlobalPkgs = true` ✅（省一次 nixpkgs 求值，overlay/unfree 由系统层管）
   - `useUserPackages = true` ✅（包进 `/etc/profiles/per-user/$USER`，且 `environment.pathsToLink = [ "/etc/profile.d" ]` 使 `home.sessionVariables` 覆盖整个图形登录会话）
-  - `extraSpecialArgs = { inherit inputs; }` ✅（传递 flake inputs，禁止用 `_module.args`）
+  - `extraSpecialArgs = { inherit (config) proxy; }` ✅（只注入 home 模块实际需要的 `config.proxy` 单一来源——代理地址；**禁止**用 `_module.args`）
   - `sharedModules` ✅ 用于跨用户公共模块（当前单用户可不设，预留）
   - **`startAsUserService = true` ✅ 保留（调研确认，2026-08）**：该选项 26.05 新增、官方标注"非 pam_mount 场景仍实验性"，**但它是上游真实 bug #3172（boot 期 HM 激活 vs 用户 dbus-broker 竞态，导致登录后 `systemctl --user` 报 `org.freedesktop.systemd1 exited with status 1`）的唯一受支持修复**。本机曾实证踩中该竞态。无替代修复（PR #3405 未合并；#3172 2026 仍开放）。**配套必须**：`systemd.user.services.home-manager.wantedBy = [ "default.target" ]`（模块不自动启用用户服务，需手动补，否则登录时不激活）。**重评条件**：#3172/#8565 上游修复后。已知 tradeoff：#8565（用户单元无法依赖 nix-daemon.socket）、#9762（enableLegacyProfileManagement 被忽略）。
 - 用户配置引用：`home-manager.users.ran = ./home/home.nix;`（或 `imports = [ ./home/home.nix ]`，等价）。
