@@ -119,11 +119,13 @@ nixos-config/
 ├── secrets/                     # sops 加密秘密（只存密文，可进 git）
 │   └── secrets.yaml             # ENC[AES256_GCM,...]
 ├── assets/                      # 静态资源（grub 主题等）
+├── docs/troubleshooting/        # 疑难杂症记录（一病一档，见该目录 README.md 约定）
 └── .github/workflows/           # CI（nix flake check + treefmt）
 ```
 
 **强制规则：**
 - 新增配置 → 在对应领域新建 `<关注点>.nix`，并在所在目录 `default.nix` 的 `imports` 加一行。
+- 新增故障记录/排查文档 → 进 `docs/troubleshooting/`（`<日期>-<症状>.md`），并在其 `README.md` 索引表加一行。
 - 系统级（需要 root/全局 PATH/常驻服务）进 `modules/`；用户级（配置/会话环境）进 `home/modules/`；两者职责不得颠倒。
 - 预留模块（firewall/vpn/...）保持"注释即可启用"，删除时同步删 imports 行，禁止留空壳文件。
 - **删除死代码**：`configuration.nix` 是遗留文件（flake 从未引用它），迁移期删除，避免误导"这里还能改配置"。

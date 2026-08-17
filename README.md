@@ -13,6 +13,7 @@ nixos-config（单仓库）
 ├── STANDARDS.md           # 配置准则（唯一权威修改依据）
 ├── hardware-configuration.nix  # 硬件检测 + fileSystems（nixos-generate-config 产物）
 ├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
+├── docs/                  # 文档（troubleshooting/ 疑难杂症记录）
 └── home/                  # 用户级配置（home-manager）
     ├── home.nix           # HM 入口（被 flake.nix 的 users.ran.imports 引用）
     ├── modules/           # 用户级模块（desktop/tools/network/...）
