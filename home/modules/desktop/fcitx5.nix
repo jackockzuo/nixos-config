@@ -34,10 +34,11 @@ _:
         '';
       };
 
-      # 2b. GTK IM 按应用声明（现代写法，fcitx wiki 2025-09）：
-      # 全局 GTK_IM_MODULE 不再设置（Wayland 原生 GTK3/4 自动走 text-input-v3），
-      # 这里经 HM gtk.*.extraConfig 只为 X11/XWayland 的 GTK 应用声明 gtk-im-module=fcitx
-      # （extraConfig 由 appearance.nix 的 gtk.enable 合并进同一 settings.ini，避免冲突）
+      # 2b. GTK IM 模块按后端拆分（现代写法，fcitx wiki 2025-09 + STANDARDS §4）：
+      # Wayland 原生 GTK3/4 → 合成器 text-input-v3（niri 支持）→ classicui 浮窗主题生效；
+      # 因此 gtk3/gtk4 settings.ini **不再写** gtk-im-module（写了会退回应用内嵌候选框=“原皮”，
+      # 2026-08-21 实测根因）。XWayland GTK3 走 GTK 内建 XIM（XMODIFIERS 全局已设）；
+      # GTK2（仅 X11）保留 gtk-im-module=fcitx。详见 appearance.nix 的 gtk 段注释。
 
       # 4. 默认输入法 Profile：开机默认加载美式键盘 + Rime 雾凇拼音
       "fcitx5/profile".text = ''
