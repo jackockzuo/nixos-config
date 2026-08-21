@@ -10,7 +10,7 @@ _:
   # Wine 程序安装（推荐独立 prefix，卸载零残留）
   # 用法: wine-install <安装程序路径> [prefix名]
   #   例: wine-install setup.exe              → 用默认 ~/.wine 安装
-  #   例: wine-install setup.exe sgs           → 用独立 prefix ~/.wine-sgs 安装
+  #   例: wine-install setup.exe           → 用独立 prefix ~/.wine 安装
   xdg.configFile."fish/functions/wine-install.fish".text = ''
     function wine-install
         set -l installer $argv[1]
