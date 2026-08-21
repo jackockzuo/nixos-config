@@ -39,12 +39,17 @@ in
 
   # ---- 第 2 层：终端启动时探测代理端口，未运行则清除代理变量 ----
   # 依赖 nc（nixpkgs.netcat-openbsd 提供，无需额外安装，系统层已有）
+  # 🔴 type -q nc 守卫（2026-08-18，Distrobox 容器报错修复）：
+  #   宿主有 nc；容器内 Ubuntu 可能没装 netcat → 无守卫时报
+  #   "Unknown command: nc"。守卫后：nc 不存在 → 跳过探测（直连模式）。
   programs.fish.interactiveShellInit = lib.mkAfter ''
     # 探测 fcclient 是否在监听；没跑就清掉代理变量，避免死代理断网
-    if not nc -z -w1 ${proxyHost} ${proxyPort} 2>/dev/null
-        set -e http_proxy https_proxy all_proxy
-        set -e HTTP_PROXY HTTPS_PROXY ALL_PROXY
-        echo "⚠️  fcclient 未运行，代理已禁用（直连模式）"
+    if type -q nc
+        if not nc -z -w1 ${proxyHost} ${proxyPort} 2>/dev/null
+            set -e http_proxy https_proxy all_proxy
+            set -e HTTP_PROXY HTTPS_PROXY ALL_PROXY
+            echo "⚠️  fcclient 未运行，代理已禁用（直连模式）"
+        end
     end
   '';
 

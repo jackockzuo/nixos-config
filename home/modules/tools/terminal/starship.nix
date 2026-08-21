@@ -1,4 +1,4 @@
-_:
+{ lib, ... }:
 
 {
   # 极简双行布局 Starship 配置
@@ -9,7 +9,9 @@ _:
   #   4. 双行布局：第一行 = 状态信息，第二行 = 输入提示符
   programs.starship = {
     enable = true;
-    enableFishIntegration = true;
+    # 🐚 fish 集成在下方 lib.mkAfter 守卫块（type -q starship），
+    # 关闭 HM 无条件生成（Distrobox 挂载 $HOME 时容器内报 Unknown command）
+    enableFishIntegration = false;
     enableBashIntegration = true;
 
     settings = {
@@ -282,4 +284,16 @@ _:
       };
     };
   };
+
+  # 🐚 fish 集成（type -q 守卫，2026-08-18 Distrobox 容器报错修复）：
+  #   保留 HM 原有 TERM != dumb 兜底，新增 type -q starship 存在性守卫——
+  #   容器内 starship 不存在时静默跳过，避免 "Unknown command: starship"。
+  #   宿主（kitty 终端）行为与 HM 原生集成完全一致（starship init fish | source）。
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if type -q starship
+        if test "$TERM" != dumb
+            starship init fish | source
+        end
+    end
+  '';
 }

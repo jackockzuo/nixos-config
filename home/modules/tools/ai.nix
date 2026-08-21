@@ -7,8 +7,8 @@
 { pkgs, ... }:
 
 {
-  # opencode：终端内的 AI 编码代理（与 Claude Code 同类）
+  # 终端内的 AI 编码代理
   home.packages = with pkgs; [
-    opencode
+    
   ];
 }
