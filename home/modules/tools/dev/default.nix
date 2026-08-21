@@ -9,7 +9,7 @@ _:
 
 {
   imports = [
-    ./languages.nix # 语言或编辑器
+    ./languages.nix # 开发语言/编辑器（vscode/zed）
     ./git.nix # git 版本控制
     ./direnv.nix # direnv 目录环境
     ./tealdeer.nix # tldr 手册（简洁命令示例）
@@ -18,7 +18,6 @@ _:
     ./lazygit.nix # git TUI（Catppuccin Mocha 主题）
     ./neovim.nix # 编辑器（含 fcitx5 状态联动）
     ./lsp/lsp.nix # 语言服务器（LSP），每语言一文件，本文件统一启停
-    ./languages.nix # 开发语言/编辑器（vscode/zed）
     ./pass.nix # pass 密码管理（gpg 加密）
   ];
 }

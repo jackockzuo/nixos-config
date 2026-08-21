@@ -2,7 +2,7 @@
 # nix.nix —— Nix 客户端/daemon
 # 职责：镜像源、GC、experimental-features
 # 修改：换源/调 GC 策略 → 改这里
-# 关联：flake.nix（secrets 输入注入 github-token 到 access-tokens）
+# 关联：modules/secrets.nix（sops 模板注入 github-token 到 NIX_CONFIG）
 # ============================================================
 { config, ... }:
 
@@ -32,7 +32,8 @@
       "flakes"
     ];
     auto-optimise-store = true;
-    # 🔴 GitHub token 不在本文件：由 flake.nix 的 secrets path 输入注入 access-tokens
+    # 🔴 GitHub token 不在本文件：由 modules/secrets.nix 的 sops 模板
+    #    （NIX_CONFIG env file）注入 nix-daemon 的 access-tokens
   };
   # 🔴 nix-daemon 下载走代理（TUN 模式未生效/绕过时兜底）
   # 否则 daemon（root 服务）不继承终端 export，直连 cache.nixos.org 龟速
