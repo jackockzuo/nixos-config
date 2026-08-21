@@ -85,5 +85,9 @@ in
 
     # ---- 同步工具 ----
     localsend
+
+    # ---- 音频调试工具 ----
+    pulseaudio  # 虽然禁用了服务端，但我们需要它提供的 `pactl` 命令行工具
+    alsa-utils  # 提供 `alsamixer` 和 `amixer`，用于底层调试
   ];
 }

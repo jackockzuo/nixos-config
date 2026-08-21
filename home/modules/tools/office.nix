@@ -9,5 +9,8 @@
   # 预留：需要时在此添加办公工具
   home.packages = with pkgs; [
     wpsoffice-cn
+    zotero
+    obsidian
+    
   ];
 }

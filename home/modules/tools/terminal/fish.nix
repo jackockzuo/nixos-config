@@ -105,7 +105,7 @@
         # 这里不需要写，因为我们跳过了上面的 alias 定义
     end
   '';
-};
+
     # ⌨️ fish 缩写（输入短词后按空格/回车自动展开；已避开与别名/函数冲突的键）
     # 现代 HM 写法：shellAbbrs 类型为 attrsOf (either str abbrModule)，
     # 简单的 git 缩写直接用字符串值即可（即现代简化形式）；
