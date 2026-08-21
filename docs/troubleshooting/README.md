@@ -19,6 +19,7 @@
 | 2026-08-17 | kitty 毛玻璃消失（配置文件正常） | niri `config.kdl` 在无用户会话期间被覆盖成默认模板，丢失 `include "blur.kdl"` 等全部 include；覆盖者未 100% 锁定（最可能 DMS greeter 运行时边界情况） | ✅ 已解决（含监控项） | [2026-08-17-niri-config-kdl-overwritten.md](./2026-08-17-niri-config-kdl-overwritten.md) |
 | 2026-08-17 | DMS 切换壁纸动态主题生成失败 | matugen config.toml 缺 `[config]` 段（matugen 4.x 必须存在，可为空）→ dry-run 直接解析用户配置报 `missing field 'config'` | ✅ 已解决 | [2026-08-17-matugen-config-section-missing.md](./2026-08-17-matugen-config-section-missing.md) |
 | 2026-08-18 | Distrobox 容器内 fish 报 "Unknown command" | HM enableFishIntegration 生成无条件集成脚本，容器挂载 $HOME+ /nix 后"脚本在、工具不在" PATH → 报 Unknown command；改用 `type -q` 守卫（fish 3.3 兼容） | ✅ 已解决 | [2026-08-18-distrobox-container-fish-unknown-command.md](./2026-08-18-distrobox-container-fish-unknown-command.md) |
+| 2026-08-21 | Ctrl+P 等 GTK/Electron 应用候选框显示 fcitx5 原皮 | gtk3/gtk4.extraConfig 写入 settings.ini 的 `gtk-im-module=fcitx` 对 Wayland 与 X11 同时生效——Wayland 原生 GTK 被迫用 fcitx GTK IM 模块 → 应用内嵌候选框（不经合成器 text-input-v3）→ 不受 classicui 主题控制 | ✅ 已解决 | [2026-08-21-fcitx5-gtk-im-module-original-skin.md](./2026-08-21-fcitx5-gtk-im-module-original-skin.md) |
 
 ## 模板（新增记录时复制）
 
