@@ -53,7 +53,13 @@
 - 落点固定：
   1. **系统会话作用域** → `modules/locale.nix` 的 `environment.sessionVariables`（统一收 XMODIFIERS / QT_IM_MODULE / SDL_IM_MODULE / GLFW_IM_MODULE）。
   2. **合成器作用域** → `home/source/niri/config.kdl` 的 `environment` 块。
-  3. `home.sessionVariables` **不重复 IM 变量**（与 /etc/profile 作用域重叠），只留用户专属变量。
+  3. `home.sessionVariables` **不重复** IM 变量（与 /etc/profile 作用域重叠），只留用户专属变量。
+- 🔴 **GTK 输入法只有一条正路（2026-08-21 事故教训）**：Wayland 原生 GTK3/4 走合成器
+  text-input-v3，因此 **GTK3/GTK4 任何形式都不设 im-module**——既不放
+  `GTK_IM_MODULE` 环境变量，也**不放 `gtk3/gtk4.extraConfig` 的 `gtk-im-module`**
+  （settings.ini 的该键对 Wayland 与 X11 同时生效，写了就会回退应用内嵌候选框=
+  原皮，见 docs/troubleshooting/2026-08-21-...）。GTK2（仅 X11/XWayland）保留
+  `gtk-im-module=fcitx`；XWayland GTK3 由 GTK3 内建 XIM 兜底（XMODIFIERS 已设）。
 - 改动 IM 变量时两处同步改（§10 checklist 第 5 项兜底）。
 
 ---
