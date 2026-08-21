@@ -1,8 +1,8 @@
 # ============================================================
 # fcitx5.nix —— 输入法用户级配置（fcitx5 + rime 雾凇）
-# 系统层（nixos-config/configuration.nix）已负责：
+# 系统层（modules/locale.nix）已负责：
 #   - i18n.inputMethod.enable/type = fcitx5（含 rime-ice addons 与 override）
-#   - GTK/QT/XMODIFIERS 环境变量
+#   - QT/XMODIFIERS 等 IM 环境变量（单一来源，见 STANDARDS §4）
 # 本模块只写用户级配置（~/.config/fcitx5、~/.local/share/fcitx5/rime）
 # ============================================================
 _:

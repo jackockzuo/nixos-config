@@ -51,11 +51,15 @@
   # 不设的话，两系统切换后时钟各错 8 小时。设 true 让 Linux 也按本地时间读 RTC。
   time.hardwareClockInLocalTime = true;
   environment.sessionVariables = {
-    # 现代写法（fcitx wiki 2025-09）：不设全局 GTK_IM_MODULE —— Wayland 原生
-    # GTK3/4 自动走 text-input-v3，全局设置反而触发候选框闪烁；
-    # X11/XWayland 应用用 gtk-im-module=fcitx（见 home/modules/desktop/fcitx5.nix）。
+    # 🔴 IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）：
+    #   本文件 = 系统登录会话层；home/source/niri/config.kdl 的 environment =
+    #   合成器 spawn 层（niri 官方 wiki：environment 不传给 systemd 启动的应用，
+    #   故两处缺一不可）。home.sessionVariables 不再重复（见 home/modules/env.nix）。
+    # 不设全局 GTK_IM_MODULE：Wayland 原生 GTK3/4 自动走 text-input-v3；
+    # X11/XWayland 应用由 home/modules/desktop/fcitx5.nix 的 gtk-{2,3,4} 接管。
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
+    SDL_IM_MODULE = "fcitx";
     # 🔴 kitty 源码（glfw/ibus_glfw.c）只认 ibus 值，fcitx5 提供 ibus 协议兼容；
     # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
     GLFW_IM_MODULE = "ibus";

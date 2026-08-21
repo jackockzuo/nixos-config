@@ -19,7 +19,7 @@
     #    （实测晚 4 秒）→ sops 读不到密钥 → 密码文件从不生成 → shadow 锁死。
     #    经 /var/lib/sops-nix/keys.txt（/ 下，root 所有）开机即可读。
     #    ~/.config/sops/age/keys.txt 保留给用户 CLI 用（nix shell nixpkgs#sops -c sops ...），
-    #    两者是同一把私钥的两份拷贝。见 STANDARDS §5.3/§5.4。
+    #    两者是同一把私钥的两份拷贝。见 STANDARDS §6。
     age.keyFile = "/var/lib/sops-nix/keys.txt";
 
     # ---- 秘密声明 ----

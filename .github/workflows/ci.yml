@@ -1,7 +1,8 @@
 # ============================================================
-# ci.yml —— NixOS 配置 CI（STANDARDS.md §6.3）
+# ci.yml —— NixOS 配置 CI（STANDARDS.md §7）
 # 触发：push 到 main + 所有 PR
-# 检查：nix flake check（treefmt/statix/deadnix/pre-commit 全量）
+# 检查：git diff --check（空白错误门禁，第 1 步）
+#        + nix flake check（treefmt/statix/deadnix/pre-commit 全量）
 #        + nix fmt -- --fail-on-change（RFC 风格格式化门禁）
 # 特殊处理：
 #   - fcclientPkg 是仓库外 path 输入（/home/ran/...），CI 无此目录。
@@ -24,6 +25,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 第 1 步（不依赖 Nix）：空白错误门禁
+      # 2026-08-21 教训：尾随空格曾漏进 home/modules/tools/ai.nix，
+      # nix fmt 虽能改写但 git 层面先拦截更省事（STANDARDS §7 第 3 步）
+      - name: Whitespace check
+        run: git diff --check
+
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v16
 
@@ -36,7 +43,7 @@ jobs:
       - name: Nix flake check
         run: nix flake check --override-input fcclientPkg "path:${GITHUB_WORKSPACE}/.ci/fcclient-placeholder"
 
-      # 格式化门禁（STANDARDS §6.1）：RFC 风格，nix fmt 统一入口
+      # 格式化门禁（STANDARDS §7）：RFC 风格，nix fmt 统一入口
       # 注：treefmt 的 check 语义是 --fail-on-change（无 --check flag）
       - name: Nix fmt check
         run: nix fmt -- --fail-on-change

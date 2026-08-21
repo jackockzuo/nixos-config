@@ -164,7 +164,7 @@
                 # "process org.freedesktop.systemd1 exited with status 1"。
                 # 改为 startAsUserService：HM 作为 systemd user service 在登录时激活，
                 # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
-                # ⚠️ STANDARDS.md §3.1/#6：✅ 调研确认保留（2026-08）——
+                # ⚠️ 见 STANDARDS §3（home-manager 一节）：✅ 调研确认保留（2026-08）——
                 #    上游真实 bug #3172（boot 期激活 vs 用户 dbus 竞态）唯一受支持修复；
                 #    无替代修复（#3405 未合并），移除会回归登录失败。勿改！
                 startAsUserService = true;

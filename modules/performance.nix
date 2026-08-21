@@ -14,24 +14,13 @@ in
   options.omen.performance.enable = lib.mkEnableOption "本机性能计算优化（13900HX + 4060m）";
 
   config = lib.mkIf cfg.enable {
-    # ============ CPU 调度：sched-ext 用户态调度器 ============
-    # scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合架构友好），
-    # 与 cachyos BORE 调度互为补充（scx 运行在 BPF 层覆盖全局调度）。
-    # 🔴 若 scx.service 启动失败不影响登录（内核自动回退 CFS），验证：systemctl status scx
-    #
-    # ============ 中断均衡：多核分摊硬件中断 ============
-    # 13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
-    #
-    # ============ 功耗策略：TLP（电池管理 + AC 性能 governor）============
-    # TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者（DMS 默认 mkDefault true）
-    # 子配置说明：
-    #   - scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合架构友好），与 cachyos BORE
-    #     调度互为补充（scx 运行在 BPF 层覆盖全局调度）。🔴 若 scx.service 启动失败不影响登录
-    #     （内核自动回退 CFS），验证：systemctl status scx
-    #   - irqbalance：13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
-    #   - TLP：AC 电源下 performance governor（最高频），scx_lavd 叠加；电池保持 TLP 默认
-    #     powersave 省电；⚠️ AC 恒频发热上升，thermald（services.nix）兜底散热。
-    #     TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者
+    # ============ 本机性能全家桶（🎯 [OMEN]，整组关闭：options.omen.performance.enable = false）============
+    # - scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合友好），与 cachyos BORE 互为补充
+    #   （scx 运行在 BPF 层覆盖全局调度）；🔴 若 scx.service 启动失败不影响登录（内核自动回退 CFS）
+    # - irqbalance：13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
+    # - TLP：AC = performance governor（恒频发热上升，thermald 兜底），电池 = powersave；
+    #   TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者
+    # - zram：内存 50% 压缩交换（抗 OOM）｜fd 上限 65536（并行编译/大数据）
     services = {
       scx = {
         enable = true;
