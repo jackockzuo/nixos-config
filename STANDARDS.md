@@ -64,6 +64,13 @@
   （GTK 空串=未设）才真正关掉。GTK2（仅 X11/XWayland）保留 `gtk-im-module=fcitx`；
   XWayland GTK3 由 GTK3 内建 XIM 兜底（XMODIFIERS 已设）。完整事故链见
   docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md。
+- 🔴 **Qt 输入法双通道（2026-08-21 DMS Spotlight 原皮真根因）**：Qt6 Wayland 应用
+  （quickshell 等 systemd user 服务启动的）**只继承系统会话环境**，niri config.kdl
+  的 environment 块喂不到它（niri 官方 wiki）——因此 `QT_IM_MODULES = "wayland;fcitx"`
+  （Qt 6.7+ 官方变量，合成器 text-input-v3 优先 → classicui 主题生效）**必须放系统层**
+  `modules/locale.nix`；`QT_IM_MODULE = "fcitx"` 仅兜底 Qt4/5。缺 `QT_IM_MODULES`
+  时 Qt6 强制走 fcitx-qt 应用内嵌候选框=原皮（本次事故）。niri config.kdl 的
+  `QT_IM_MODULES` 保留为合成器 spawn 层。
 - 改动 IM 变量时两处同步改（§10 checklist 第 5 项兜底）。
 
 ---

@@ -68,15 +68,16 @@
   官方 wiki 只指明“合成器不支持 text-input 才需要设置”，而 NixOS 模块的
   默认注入恰好与该现代建议相悖，是个隐蔽的官方默认行为。
 
-## 修复方案（两层，缺一不可）
+## 修复方案（三层，缺一不可）
 
-1. `appearance.nix`（HM 层，第一层）：
+1. **HM 层 GTK（第一层）** `appearance.nix`：
    - `gtk3.extraConfig = { };`、`gtk4.extraConfig = { };`（**不再写 gtk-im-module**）
      - Wayland 原生 GTK3/4 → 自动走合成器 text-input-v3（niri 支持）→
        classicui 浮窗渲染 → Catppuccin 主题生效
      - XWayland GTK3 → GTK3 内建 XIM（XMODIFIERS 全局 `@im=fcitx` 已在 locale.nix 设置）
    - `gtk2.extraConfig` **保留** `"gtk-im-module=\"fcitx\""`（GTK2 仅 X11/XWayland，无 text-input，必须经 fcitx IM 模块）
-2. `modules/locale.nix`（系统层，**第二层——没有它，重启后仍复现**）：
+   - `fcitx5.nix`：2b 注释同步为“按后端拆分”表述。
+2. **系统层 GTK（第二层——NixOS 官方模块自动注入）** `modules/locale.nix`：
    - `environment.variables.GTK_IM_MODULE = lib.mkForce "";`
      - NixOS 官方 fcitx5 模块（`nixos/modules/i18n/input-method/fcitx5.nix`）
        通过 `environment.variables` 无条件写 `GTK_IM_MODULE = "fcitx"`（见 `environment.variables = { ... GTK_IM_MODULE = "fcitx"; ... }`），
@@ -84,9 +85,20 @@
        `set-environment` 第 13 行 `export GTK_IM_MODULE="fcitx"`）。
      - `lib.mkForce ""` 把它覆盖为 unset（GTK 源码空串等同未设）——
        Wayland 原生 GTK 走 text-input-v3，XWayland GTK3 走内建 XIM。
-3. `fcitx5.nix`：2b 注释同步为“按后端拆分”表述。
+3. **系统层 Qt（第三层——DMS Spotlight 原皮真根因）** `modules/locale.nix`：
+   - `environment.sessionVariables.QT_IM_MODULES = "wayland;fcitx";`
+     - 用户按 Mod+P 唤起的 **DMS Spotlight = quickshell = Qt6 应用**，由 **systemd user
+       服务**启动，**只继承登录会话环境**——niri config.kdl 的 environment 块
+       **喂不到它**（niri 官方 wiki《Application-Specific Issues》原文）。
+     - 此前 `QT_IM_MODULES="wayland;fcitx"` 只写在 niri config.kdl（合成器 spawn 层），
+       系统层只有 `QT_IM_MODULE=fcitx` → Qt6 加载 fcitx-qt IM 模块 → **应用内嵌
+       候选框**（不经合成器 text-input-v3 → classicui 浮窗）→ 原皮。
+     - `QT_IM_MODULES`（Qt 6.7+ 官方变量）放系统层后：合成器 text-input-v3 优先
+       （niri 支持 → classicui 渲染 → Catppuccin 主题生效），fcitx 兜底 Qt4/5。
 4. 验证：`nixos-rebuild dry-build --flake .#omen` exit 0；`nix fmt` 0 changed；
-   `git diff --check` 干净；`nix eval` 确认 `GTK_IM_MODULE` 求值为空串。
+   `git diff --check` 干净；`nix eval` 确认：
+   - `environment.variables.GTK_IM_MODULE` 求值为空串（官方注入已覆盖）
+   - `environment.sessionVariables.QT_IM_MODULES` 求值为 `"wayland;fcitx"`（新补）
 
 ## 恢复流程（回退本次修复）
 
