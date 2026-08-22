@@ -4,7 +4,7 @@
 # 修改：换源/调 GC 策略 → 改这里
 # 关联：modules/secrets.nix（sops 模板注入 github-token 到 NIX_CONFIG）
 # ============================================================
-{ config, ... }:
+{ config, pkgs, ... }:
 
 {
   # ============ Nix：国内镜像 + daemon 调优 ============
@@ -63,4 +63,84 @@
     # ❌ cpu-set 选项在本版本 chaotic 中不存在（仅 cache/nixPath/overlay/registry）；
     #    CPU governor 改由 services.tlp.settings 配置（见 services.nix，AC=performance）。
   };
+
+  # ============ nix-ld：运行第三方二进制（曾独立 nix-addons/nix-ld.nix，并入）============
+  programs.nix-ld.enable = true;
+  # 这一套组合拳基本覆盖了 99% 的二进制程序需求
+  programs.nix-ld.libraries = with pkgs; [
+    # 基础系统库
+    stdenv.cc.cc
+    openssl
+    zlib
+    fuse3
+    icu
+    libuuid
+    xz
+    gettext
+    libxml2
+
+    # 图形界面与 UI 库 (GTK/Qt/Electron 所需)
+    glib
+    nss
+    nspr
+    atk
+    at-spi2-atk
+    at-spi2-core
+    dbus
+    dconf
+    expat
+    fontconfig
+    freetype
+    gdk-pixbuf
+    gtk3
+    pango
+    cairo
+    libdrm
+    mesa # 用于 OpenGL/Vulkan
+
+    # X11 相关库
+    libx11
+    libxcursor
+    libxdamage
+    libxext
+    libxfixes
+    libxi
+    libxrandr
+    libxrender
+    libxtst
+    libxcb
+    libxcomposite
+    libxscrnsaver
+    libxinerama
+
+    # Wayland 相关
+    wayland
+    libxkbcommon
+
+    # 音频视频处理
+    alsa-lib
+    libpulseaudio
+    libvorbis
+    libogg
+    libopus
+    libvpx
+    ffmpeg
+
+    # 网络与下载
+    curl
+    libidn2
+    libssh2
+    nghttp2
+    rtmpdump
+
+    # 常用开发语言运行时支持
+    python3
+    systemd # 很多 binary 会链接 libsystemd.so
+  ];
+
+  # ============ nix-index：command-not-found 补全（曾独立 nix-addons/nix-index.nix，并入）============
+  # 开启 nix-index 模块（~/.nix-index 数据库）
+  programs.nix-index.enable = true;
+  # 禁用系统默认 command-not-found（更新慢、经常找不到包）
+  programs.command-not-found.enable = false;
 }
