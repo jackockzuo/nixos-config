@@ -8,15 +8,19 @@
 ## 一、架构说明
 
 ```
-nixos-config（单仓库）
+nixos-config（单仓库，37 个 .nix，目录 ≤2 层 —— STANDARDS §2 量化规则）
 ├── flake.nix              # flake-parts 入口：flake.nixosConfigurations.omen + treefmt/git-hooks
-├── STANDARDS.md           # 配置准则（唯一权威修改依据）
+├── STANDARDS.md           # 配置准则（唯一权威修改依据，含架构量化规则）
 ├── hardware-configuration.nix  # 硬件检测 + fileSystems（nixos-generate-config 产物）
-├── modules/               # 系统级模块（boot/hardware/network/users/desktop/...）
+├── modules/               # 系统级 14 个文件（扁平，default.nix 聚合地图）
+│   └── default.nix        # 聚合入口（每行 imports 带职责注释 = 定位地图）
 ├── docs/                  # 文档（troubleshooting/ 疑难杂症记录）
 └── home/                  # 用户级配置（home-manager）
     ├── home.nix           # HM 入口（被 flake.nix 的 users.ran.imports 引用）
-    ├── modules/           # 用户级模块（desktop/tools/network/...）
+    ├── modules/           # 用户级 23 个文件
+    │   ├── desktop/       # 7 个（niri/kitty/fcitx5/dms/appearance/misc/default）
+    │   ├── tools/         # 12 个（fish/starship/yazi/shell-utils/dev/neovim/...）
+    │   ├── core.nix env.nix network.nix  # 顶层领域文件 + network（代理）
     └── source/            # 配置源文件（niri/dms/beautify）
 ```
 
