@@ -4,7 +4,7 @@
 # 修改：语言/时区/输入法方案 → 改这里
 # 关联：home-manager/desktop/fcitx5.nix（用户级外观/词库）
 # ============================================================
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   i18n = {
@@ -55,8 +55,6 @@
     #   本文件 = 系统登录会话层；home/source/niri/config.kdl 的 environment =
     #   合成器 spawn 层（niri 官方 wiki：environment 不传给 systemd 启动的应用，
     #   故两处缺一不可）。home.sessionVariables 不再重复（见 home/modules/env.nix）。
-    # 不设全局 GTK_IM_MODULE：Wayland 原生 GTK3/4 自动走 text-input-v3；
-    # X11/XWayland 应用由 home/modules/desktop/fcitx5.nix 的 gtk-{2,3,4} 接管。
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
@@ -64,4 +62,13 @@
     # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
     GLFW_IM_MODULE = "ibus";
   };
+  # 🔴 NixOS 官方 fcitx5 模块会把 GTK_IM_MODULE 写死为 "fcitx"
+  #   （nixos/modules/i18n/input-method/fcitx5.nix 的 environment.variables，
+  #   经 /etc/profile 的 set-environment 注入所有登录会话）——与 fcitx 官方
+  #   wiki 现代写法相悖（Wayland 原生 GTK3/4 应走 text-input-v3，不设全局
+  #   GTK_IM_MODULE，否则强制 fcitx GTK IM 模块 → 应用内嵌候选框=“原皮”）。
+  #   用 lib.mkForce "" 覆盖为 unset（GTK 源码空串等同未设）：Wayland 原生
+  #   GTK 自动走 text-input-v3；XWayland GTK3 走 GTK 内建 XIM（见 STANDARDS §4
+  #   与 docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md）。
+  environment.variables.GTK_IM_MODULE = lib.mkForce "";
 }
