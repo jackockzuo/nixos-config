@@ -21,6 +21,10 @@
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ---- CachyOS 高性能包/内核（Chaotic-Nyx）：linuxPackages_cachyos、x86-64-v3 优化包 ----
+    # 二进制缓存：nyx.cachix.org（见 modules/nix.nix substituters 首位）
+    chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
+
     # DMS (DankMaterialShell) —— quickshell 桌面壳，模块用 nixpkgs 自带的 quickshell（≥0.3.0）
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
@@ -121,6 +125,10 @@
             # 配置见 modules/secrets.nix（声明/解密 key/消费方接线）
             inputs.sops-nix.nixosModules.sops
 
+            # ---- Chaotic-Nyx（CachyOS 包）：提供 chaotic.nyx.* 选项 + linuxPackages_cachyos ----
+            # 配置见 modules/nix.nix（overlay/cpu-set）+ modules/boot.nix（内核切换）
+            inputs.chaotic.nixosModules.default
+
             # ---- DMS (DankMaterialShell) 桌面壳模块（提供 programs.dank-material-shell 选项）----
             inputs.dms.nixosModules.default
             # DMS Greeter 登录界面模块（提供 programs.dank-material-shell.greeter 选项，
@@ -156,7 +164,7 @@
                 # "process org.freedesktop.systemd1 exited with status 1"。
                 # 改为 startAsUserService：HM 作为 systemd user service 在登录时激活，
                 # 此时用户 DBus 已就绪，dconf 正常，不再抢 bus。
-                # ⚠️ STANDARDS.md §3.1/#6：✅ 调研确认保留（2026-08）——
+                # ⚠️ 见 STANDARDS §3（home-manager 一节）：✅ 调研确认保留（2026-08）——
                 #    上游真实 bug #3172（boot 期激活 vs 用户 dbus 竞态）唯一受支持修复；
                 #    无替代修复（#3405 未合并），移除会回归登录失败。勿改！
                 startAsUserService = true;

@@ -1,11 +1,23 @@
-_:
+# ============================================================
+# fzf.nix —— fzf 模糊查找（Ctrl-T 文件选择 / Alt-C 目录跳转）
+# ============================================================
+# 合并自旧 tools/shell.nix（enable + fish 集成）与 terminal-theme.nix
+# （Catppuccin Mocha 配色 + Ctrl-R 让位）
+#
+# 🔴 fish 集成改用 type -q 守卫（2026-08-18，Distrobox 容器报错修复）：
+#   HM 的 enableFishIntegration 会无条件执行 fzf --fish（store 绝对路径），
+#   容器内（Distrobox 挂载 $HOME）加载宿主 fish 配置时 fzf 输出含高层 return、
+#   fish 3.3.1 报 "return outside of function definition" + Unknown command。
+#   守卫：type -q 存在 → 宿主正常启用；不存在 → 静默跳过。
+#   ⚠️ 容器内 fish 是 3.3.1，必须用 type -q（command -q 是 fish 3.4+ 才有）。
+{ lib, ... }:
 
 {
   # fzf：模糊查找（Ctrl-T 文件选择 / Alt-C 目录跳转）
-  # 合并自旧 tools/shell.nix（enable + fish 集成）与 terminal-theme.nix（Catppuccin Mocha 配色 + Ctrl-R 让位）
   programs.fzf = {
     enable = true;
-    enableFishIntegration = true;
+    # 集成交给下方 lib.mkAfter 守卫块（type -q fzf），关闭 HM 无条件生成
+    enableFishIntegration = false;
     # Catppuccin Mocha 配色（bg = "-1" 保持终端背景透明）
     colors = {
       "fg" = "#cdd6f4";
@@ -26,4 +38,10 @@ _:
     # （这也是 HM 模块官方推荐的让位方式）
     historyWidget.command = "";
   };
+
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if type -q fzf
+        fzf --fish | source
+    end
+  '';
 }

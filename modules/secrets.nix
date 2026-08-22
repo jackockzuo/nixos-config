@@ -13,7 +13,14 @@
 
     # 🔴 主机解密 key：指向本机 age 私钥（与 .sops.yaml 的 age19j8... 公钥配对）
     # 私钥永不进仓库/进 git；root 运行 sops-install-secrets 可读（权限 600 不挡 root）
-    age.keyFile = "/home/ran/.config/sops/age/keys.txt";
+    # 🔴🔴 2026-08-17 事故根因修复：**必须放在开机早期可达的位置（/ 下）**！
+    #    原配置放在 /home/ran/.config/sops/age/keys.txt，而 /home 是独立 btrfs 子卷，
+    #    开机 initrd 激活阶段（neededForUsers 秘密在此解密）时 /home 尚未挂载
+    #    （实测晚 4 秒）→ sops 读不到密钥 → 密码文件从不生成 → shadow 锁死。
+    #    经 /var/lib/sops-nix/keys.txt（/ 下，root 所有）开机即可读。
+    #    ~/.config/sops/age/keys.txt 保留给用户 CLI 用（nix shell nixpkgs#sops -c sops ...），
+    #    两者是同一把私钥的两份拷贝。见 STANDARDS §6。
+    age.keyFile = "/var/lib/sops-nix/keys.txt";
 
     # ---- 秘密声明 ----
     # 🔴 neededForUsers = true：解密到 /run/secrets-for-users，必须在 users 创建
