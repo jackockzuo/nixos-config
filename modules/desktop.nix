@@ -39,7 +39,7 @@
       enable = true;
       compositor.name = "niri"; # 用 niri 跑 greeter 界面（必须 NixOS 安装）
       # 同步用户 DMS 主题/壁纸/配色到 greeter（settings.json/session.json/dms-colors.json）
-      configHome = "/home/ran";
+      configHome = config.users.users.ran.home; # 声明式引用，不硬编码 /home/ran
       # 保存 greeter 日志方便排查
       logs = {
         save = true;

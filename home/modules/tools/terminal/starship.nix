@@ -1,4 +1,4 @@
-_:
+{ lib, ... }:
 
 {
   # 极简双行布局 Starship 配置
@@ -9,7 +9,9 @@ _:
   #   4. 双行布局：第一行 = 状态信息，第二行 = 输入提示符
   programs.starship = {
     enable = true;
-    enableFishIntegration = true;
+    # 🐚 fish 集成在下方 lib.mkAfter 守卫块（type -q starship），
+    # 关闭 HM 无条件生成（Distrobox 挂载 $HOME 时容器内报 Unknown command）
+    enableFishIntegration = false;
     enableBashIntegration = true;
 
     settings = {
@@ -19,7 +21,7 @@ _:
       # 第一行：左侧导航（OS/用户/目录/git/nix）+ 右侧环境（语言链/耗时/任务/退出码）
       # 第二行：输入提示符。语言链右对齐不占左侧空间，多语言项目也不冗杂
       format = "$os$username$directory$git_branch$git_status\${custom.nix}$nix_shell$line_break$character";
-      right_format = "$package$c$cpp$fortran$rust$java$haskell$python$go$nodejs$ruby$lua$perl$php$cmake$pixi$cmd_duration$jobs$exit_code";
+      right_format = "$package$c$cpp$fortran$rust$java$haskell$python$go$nodejs$ruby$lua$perl$php$cmake$pixi$cmd_duration$jobs$status";
 
       # ── 性能优化 ──
       # add_newline = false：紧凑布局，提示符之间不插入空行
@@ -74,10 +76,8 @@ _:
         truncation_symbol = "…/";
         # 🔒 目录只读（无写权限）时后缀显示锁图标（spaceship DIR_LOCK 同款）
         read_only = "🔒 ";
-        # 性能优化：不递归扫描上级目录，只检查当前目录，识别更快
-        scan_for_workdir_files = false;
-        # 目录扫描超时（毫秒），深层/大目录立即放弃，不拖慢提示符
-        scan_timeout = 30;
+        # ⚠️ 2026-08-17：scan_for_workdir_files / scan_timeout 已在 starship 1.26 移除
+        #   （schema 无此键，配置会触发 "Unknown key" 警告）→ 已删除，性能由 command_timeout 兜底
         substitutions = {
           "Documents" = "󰈙 ";
           "Downloads" = " ";
@@ -105,9 +105,9 @@ _:
         style = "fg:blue";
       };
 
-      # ── 退出码：上次命令非零时显示红色 ✘（spaceship exit_code 同款）──
-      exit_code = {
-        format = "[✘ $number]($style) ";
+      # ── 退出码：上次命令非零时显示红色 ✘（starship 模块名是 status，非 exit_code）──
+      status = {
+        format = "[$symbol$status]($style) ";
         style = "fg:red";
       };
 
@@ -151,7 +151,9 @@ _:
       };
 
       # 以下模块用 detect_files / detect_extensions 精确指定触发文件，避免扫描无关目录（性能优化）
-      go = {
+      # 🔴 2026-08-17：starship 1.26 起模块名 `go` 改名为 `golang`（schema 顶层键 golang → $defs/GoConfig），
+      #    旧键 `go` 触发 "Unknown key" 警告且不生效
+      golang = {
         symbol = " ";
         style = "fg:sky";
         format = "[$symbol$version]($style) ";
@@ -282,4 +284,16 @@ _:
       };
     };
   };
+
+  # 🐚 fish 集成（type -q 守卫，2026-08-18 Distrobox 容器报错修复）：
+  #   保留 HM 原有 TERM != dumb 兜底，新增 type -q starship 存在性守卫——
+  #   容器内 starship 不存在时静默跳过，避免 "Unknown command: starship"。
+  #   宿主（kitty 终端）行为与 HM 原生集成完全一致（starship init fish | source）。
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if type -q starship
+        if test "$TERM" != dumb
+            starship init fish | source
+        end
+    end
+  '';
 }

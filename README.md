@@ -23,7 +23,7 @@ nixos-config（单仓库）
 > 注意：`fcclientPkg`（肥猫云客户端）在仓库外，通过 `path:` 输入引用（保持本仓库纯净）。
 > 代码质量门禁：`nix fmt`（nixfmt RFC 风格）+ `nix flake check`（statix/deadnix/treefmt 全量校验）。
 > ⚠️ disko 声明式分区已回退（2026-08）：fileSystems 由 hardware-configuration.nix 管理；
-> 未来接入 disko 须先 `--mode format,mount` 采纳（见 STANDARDS §4）。
+> 未来接入 disko 须先 `--mode format,mount` 采纳（见 STANDARDS §5）。
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）
 
@@ -76,7 +76,7 @@ nixos-install --flake .#omen
 ```bash
 # 1. 首次登录（初始密码 ran）立即改密码
 passwd
-# 密码哈希由 sops 管理（STANDARDS §5）：改密码后需同步更新 secrets/secrets.yaml
+# 密码哈希由 sops 管理（STANDARDS §6）：改密码后需同步更新 secrets/secrets.yaml
 # 的 user-password 字段（流程见下"改密码"）
 
 # 2. 更新配置（单仓库一次搞定）
@@ -102,7 +102,7 @@ nix shell nixpkgs#sops -c sops secrets/secrets.yaml
 
 - ✅ `nix flake check` 通过（含 treefmt/statix/deadnix 质量门禁）
 - ✅ flake-parts 架构：`flake.nixosConfigurations.omen` + `nix fmt` 统一格式化
-- ✅ disko 声明式分区：`disko.nix` 接入，fileSystems 由 disko 生成（6 挂载点验证通过）
+- ⏸ disko 已回退（2026-08）：`disko.nix` 已删除，fileSystems 由 `hardware-configuration.nix`（by-uuid）管理；重新接入须先重建 disko.nix 并 `--mode format,mount` 采纳（见 STANDARDS §5）
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim
 - ✅ fcitx5 i18n 块 + rime-ice override（系统层接管，HM 只管配置）

@@ -1,7 +1,7 @@
 # ============================================================
 # topgrade.nix —— topgrade 一键升级（含 NixOS flake 兼容处理）
 # ============================================================
-_:
+{ config, ... }:
 
 {
   # topgrade 一键升级（用 programs.topgrade 管理配置，见下）
@@ -21,9 +21,11 @@ _:
       commands = {
         # 先拉最新 nixpkgs/各 input（保持 unstable 滚动更新）
         # 无 sudo（只更新 flake.lock，不碰系统）
-        "NixOS flake update" = "nix flake update --flake /home/ran/nixos-config";
+        # ${config.home.homeDirectory} 声明式引用，不硬编码 /home/ran
+        "NixOS flake update" = "nix flake update --flake ${config.home.homeDirectory}/nixos-config";
         # 再重建系统（需 sudo）
-        "NixOS flake rebuild" = "sudo nixos-rebuild switch --flake /home/ran/nixos-config#omen";
+        "NixOS flake rebuild" =
+          "sudo nixos-rebuild switch --flake ${config.home.homeDirectory}/nixos-config#omen";
       };
     };
   };

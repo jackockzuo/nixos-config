@@ -4,7 +4,7 @@
 # 修改：语言/时区/输入法方案 → 改这里
 # 关联：home-manager/desktop/fcitx5.nix（用户级外观/词库）
 # ============================================================
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   i18n = {
@@ -51,13 +51,32 @@
   # 不设的话，两系统切换后时钟各错 8 小时。设 true 让 Linux 也按本地时间读 RTC。
   time.hardwareClockInLocalTime = true;
   environment.sessionVariables = {
-    # 现代写法（fcitx wiki 2025-09）：不设全局 GTK_IM_MODULE —— Wayland 原生
-    # GTK3/4 自动走 text-input-v3，全局设置反而触发候选框闪烁；
-    # X11/XWayland 应用用 gtk-im-module=fcitx（见 home/modules/desktop/fcitx5.nix）。
+    # 🔴 IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）：
+    #   本文件 = 系统登录会话层；home/source/niri/config.kdl 的 environment =
+    #   合成器 spawn 层（niri 官方 wiki：environment 不传给 systemd 启动的应用，
+    #   故两处缺一不可）。home.sessionVariables 不再重复（见 home/modules/env.nix）。
+    # 🔴 Qt6 Wayland 双通道（2026-08-21 补全，DMS Spotlight 原皮根因）：
+    #   QT_IM_MODULES="wayland;fcitx" —— Qt 6.7+ 官方变量：合成器 text-input-v3
+    #   优先（niri 支持 → classicui 浮窗主题生效），fcitx 兜底（Qt4/5 走 QT_IM_MODULE）。
+    #   ⚠️ 必须放系统层：niri config.kdl 的 environment **不传给 systemd 启动的
+    #   应用**（niri 官方 wiki）——DMS（quickshell，systemd user 服务）只继承
+    #   登录会话环境，缺此变量就强制 fcitx 内嵌候选框=“原皮”（2026-08-21 实测）。
+    #   两处同步改（STANDARDS §4）。
+    QT_IM_MODULES = "wayland;fcitx";
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
+    SDL_IM_MODULE = "fcitx";
     # 🔴 kitty 源码（glfw/ibus_glfw.c）只认 ibus 值，fcitx5 提供 ibus 协议兼容；
     # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
     GLFW_IM_MODULE = "ibus";
   };
+  # 🔴 NixOS 官方 fcitx5 模块会把 GTK_IM_MODULE 写死为 "fcitx"
+  #   （nixos/modules/i18n/input-method/fcitx5.nix 的 environment.variables，
+  #   经 /etc/profile 的 set-environment 注入所有登录会话）——与 fcitx 官方
+  #   wiki 现代写法相悖（Wayland 原生 GTK3/4 应走 text-input-v3，不设全局
+  #   GTK_IM_MODULE，否则强制 fcitx GTK IM 模块 → 应用内嵌候选框=“原皮”）。
+  #   用 lib.mkForce "" 覆盖为 unset（GTK 源码空串等同未设）：Wayland 原生
+  #   GTK 自动走 text-input-v3；XWayland GTK3 走 GTK 内建 XIM（见 STANDARDS §4
+  #   与 docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md）。
+  environment.variables.GTK_IM_MODULE = lib.mkForce "";
 }

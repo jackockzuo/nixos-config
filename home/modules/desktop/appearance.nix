@@ -54,19 +54,17 @@ in
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
     };
-    # 🔴 输入法按应用声明（fcitx wiki 2025-09 现代写法）：
-    # 全局 GTK_IM_MODULE 不再设置（Wayland 原生 GTK3/4 自动走 text-input-v3，
-    # 全局设置反而触发候选框闪烁）；仅 X11/XWayland 的 GTK 应用需要
-    # gtk-im-module=fcitx，经 extraConfig 合并进 HM 生成的 settings.ini。
-    # 注意：gtk2.extraConfig 是字符串类型（~/.gtkrc-2.0 语法，多行用 \n 连接），
-    # gtk3/4 是 attrset。
+    # 🔴 输入法 IM 模块按后端拆分（fcitx wiki 2025-09 现代写法 + STANDARDS §4）：
+    #  - GTK3/4 settings.ini 不再写 gtk-im-module：这行【Wayland 与 X11 都会读】，
+    #    写了会让 Wayland 原生 GTK3/4（Chromium/Electron 等）被迫加载 fcitx GTK IM 模块，
+    #    改用应用内嵌候选框（不过合成器 text-input-v3 通道）→ 显示 GTK 内嵌默认样式
+    #    （“原皮”），而不是 classicui 浮窗的 Catppuccin 主题（2026-08-21 实测修复）。
+    #    niri 支持 text-input-v3 → 原生 Wayland GTK 应用自动走合成器通道，主题生效。
+    #  - GTK2 保留“gtk-im-module=fcitx”：GTK2 只有 X11/XWayland，必须经 fcitx IM 模块。
+    #  - XWayland 的 GTK3 应用：走 GTK3 内建 XIM（XMODIFIERS 全局已设 @im=fcitx，locale.nix）。
     gtk2.extraConfig = "gtk-im-module=\"fcitx\"";
-    gtk3.extraConfig = {
-      gtk-im-module = "fcitx";
-    };
-    gtk4.extraConfig = {
-      gtk-im-module = "fcitx";
-    };
+    gtk3.extraConfig = { }; # 空：不强制 IM 模块（Wayland 原生走 text-input-v3；XWayland 走内建 XIM）
+    gtk4.extraConfig = { }; # 空：同上（GTK4 X11 亦走内建 XIM）
   };
 
   # ---- 3b. QT 全局主题（Qt6 应用跟随 GTK 主题）----

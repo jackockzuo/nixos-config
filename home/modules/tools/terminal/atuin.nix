@@ -17,13 +17,21 @@
 #   - common_prefix 仅存在于 [stats] 段，非顶层有效键 → 已省略
 #   - 主题：atuin 18.x TUI 默认跟随终端的 16 色配色，无需单独 theme
 #     配置；本机 kitty 已是 Catppuccin Mocha 16 色主题，atuin 自动匹配
-_:
+#
+# 🔴 fish 集成改用 type -q 守卫（2026-08-18，Distrobox 容器报错修复）：
+#   HM 的 enableFishIntegration 会无条件 source 一个生成好的 store 文件
+#   （内部裸调 atuin），Distrobox 挂载 $HOME 后容器内 fish 加载宿主配置时
+#   会报 "Unknown command: atuin"。改为容器感知的命令存在性守卫：
+#   type -q 存在 → 宿主正常启用；不存在（容器/无该工具环境）→ 静默跳过。
+#   atuin init fish 运行时生成与 store 文件同款的集成脚本（含 Ctrl-R/↑ 绑定）。
+#   ⚠️ 容器内 fish 是 3.3.1，必须用 type -q（command -q 是 fish 3.4+ 才有）。
+{ lib, ... }:
 
 {
   programs.atuin = {
     enable = true;
-    # fish 集成：上箭头 / Ctrl-R 打开 atuin 历史搜索
-    enableFishIntegration = true;
+    # fish 集成交给下方 lib.mkAfter 守卫块（type -q atuin），关闭 HM 无条件生成
+    enableFishIntegration = false;
 
     settings = {
       # 回车直接执行选中的历史命令（而非先回填到命令行再编辑）
@@ -63,4 +71,12 @@ _:
       history_filter = [ ];
     };
   };
+
+  # fish 集成（type -q 守卫）：atuin 存在才加载，容器/缺失环境静默跳过
+  # 与 HM 原生集成等价：atuin init fish 生成的脚本含 ↑ / Ctrl-R 绑定 + 会话钩子
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if type -q atuin
+        atuin init fish | source
+    end
+  '';
 }

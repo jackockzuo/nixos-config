@@ -16,19 +16,22 @@
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/42701c28-c857-4f68-883a-125c1e985b33";
       fsType = "btrfs";
-      options = [ "subvol=@" ];
+      # 🎯 [OMEN] 2026-08-17 性能优化：compress=zstd:1（快速压缩，计算场景少占 CPU）+
+      # noatime（SSD 减写）。旧数据不压缩，新写入生效；重装/重生成本文件会丢，注意保留
+      options = [ "subvol=@" "compress=zstd:1" "noatime" ];
     };
 
   fileSystems."/home" =
     { device = "/dev/disk/by-uuid/42701c28-c857-4f68-883a-125c1e985b33";
       fsType = "btrfs";
-      options = [ "subvol=@home" ];
+      options = [ "subvol=@home" "noatime" ];
     };
 
   fileSystems."/nix" =
     { device = "/dev/disk/by-uuid/42701c28-c857-4f68-883a-125c1e985b33";
       fsType = "btrfs";
-      options = [ "subvol=@nix" ];
+      # /nix 不加 compress：store 内包本身已压缩，再压浪费 CPU
+      options = [ "subvol=@nix" "noatime" ];
     };
 
   fileSystems."/boot" =

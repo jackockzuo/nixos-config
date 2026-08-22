@@ -21,7 +21,8 @@
 # 3. ⚠️ input_path / output_path 必须用绝对路径：DMS 把合并结果写到 /tmp 下的
 #    临时文件再 -c 传入，matugen 以该临时文件所在目录为基准解析相对路径，
 #    相对路径会解析到 /tmp 下而失效。用户模板段是原样追加（不做 SHELL_DIR/
-#    CONFIG_DIR 变量替换），所以这里直接写 /home/ran 绝对路径。
+#    CONFIG_DIR 变量替换），因此用 ${config.home.homeDirectory} 声明式引用
+#    （不硬编码 /home/ran，换用户/迁移不用改）。
 # 4. ⚠️ 模板变量必须带 .default 限定：matugen 4.x 的上下文结构是
 #    colors.<颜色名>.{dark,light,default}.{color,...}，写 {{colors.primary.hex}}
 #    会解析失败（引擎 resolve_path 找不到 "hex" 键 → ResolveError → 渲染失败）。
@@ -31,7 +32,7 @@
 #    缺 [config] → "missing field `config`" TOML 解析失败 → 主题生成整体失败。
 #    空 [config] 不设 scheme/contrast，与 DMS 的 -m/-t/--contrast 命令行参数无冲突。
 # ──────────────────────────────────────────────────────────────────────────
-_:
+{ config, ... }:
 
 {
   # 1. 用户模板文件（mustache 语法，matugen 渲染）
@@ -75,8 +76,8 @@ _:
       [config]
       [templates]
       [templates.fish]
-      input_path = '/home/ran/.config/matugen/templates/fish-colors.fish.template'
-      output_path = '/home/ran/.config/fish/colors.matugen.fish'
+      input_path = '${config.home.homeDirectory}/.config/matugen/templates/fish-colors.fish.template'
+      output_path = '${config.home.homeDirectory}/.config/fish/colors.matugen.fish'
     '';
     # force：matugen 首次运行不会自动生成 config.toml，但防止未来其他
     # 工具/手动运行生成同名文件导致 home-manager activation 冲突（与
