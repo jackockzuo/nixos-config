@@ -55,6 +55,14 @@
     #   本文件 = 系统登录会话层；home/source/niri/config.kdl 的 environment =
     #   合成器 spawn 层（niri 官方 wiki：environment 不传给 systemd 启动的应用，
     #   故两处缺一不可）。home.sessionVariables 不再重复（见 home/modules/env.nix）。
+    # 🔴 Qt6 Wayland 双通道（2026-08-21 补全，DMS Spotlight 原皮根因）：
+    #   QT_IM_MODULES="wayland;fcitx" —— Qt 6.7+ 官方变量：合成器 text-input-v3
+    #   优先（niri 支持 → classicui 浮窗主题生效），fcitx 兜底（Qt4/5 走 QT_IM_MODULE）。
+    #   ⚠️ 必须放系统层：niri config.kdl 的 environment **不传给 systemd 启动的
+    #   应用**（niri 官方 wiki）——DMS（quickshell，systemd user 服务）只继承
+    #   登录会话环境，缺此变量就强制 fcitx 内嵌候选框=“原皮”（2026-08-21 实测）。
+    #   两处同步改（STANDARDS §4）。
+    QT_IM_MODULES = "wayland;fcitx";
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
