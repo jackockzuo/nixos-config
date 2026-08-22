@@ -19,4 +19,10 @@
     ./proxy.nix # 代理配置单一来源（options.proxy + sudo env_keep）
     ./secrets.nix # sops-nix 秘密管理（GitHub token/密码，见 STANDARDS §6）
   ];
+
+  # 🎯 [OMEN] 性能全家桶总开关：默认 false（options.omen.performance.enable）
+  #    显式打开——scx/irqbalance/TLP(AC performance + PL 解除)/zram/fd 全部生效。
+  #    2026-08-22：曾因默认 false 未打开 → 满载仅 2.5GHz（PL 墙未解除）+ 68°C。
+  #    整组关闭/故障对比 → 改为 false（STANDARDS §2 🎯 标记）
+  omen.performance.enable = true;
 }

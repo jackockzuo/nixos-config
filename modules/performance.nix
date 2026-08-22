@@ -31,6 +31,12 @@ in
         enable = true;
         settings = {
           CPU_SCALING_GOVERNOR_ON_AC = "performance";
+          # 🔴 解除 AC 插电功耗墙（13900HX 缩缸防护确认：满载仅 68°C，
+          #    余量 30°C，解除安全）。PL1=115W（长时全核）/ PL2=157W（短时睿频）
+          #    为 13900HX 官方建议上限；电池模式不设 PL（TLP 默认保守省电）。
+          # 🎯 [OMEN] 本机散热验证过的值——他机复制需先实测满载温度
+          PL1_LIMIT_AC = "115";
+          PL2_LIMIT_AC = "157";
         };
       };
       power-profiles-daemon.enable = false;
