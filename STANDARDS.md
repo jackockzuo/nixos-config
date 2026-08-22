@@ -57,9 +57,13 @@
 - 🔴 **GTK 输入法只有一条正路（2026-08-21 事故教训）**：Wayland 原生 GTK3/4 走合成器
   text-input-v3，因此 **GTK3/GTK4 任何形式都不设 im-module**——既不放
   `GTK_IM_MODULE` 环境变量，也**不放 `gtk3/gtk4.extraConfig` 的 `gtk-im-module`**
-  （settings.ini 的该键对 Wayland 与 X11 同时生效，写了就会回退应用内嵌候选框=
-  原皮，见 docs/troubleshooting/2026-08-21-...）。GTK2（仅 X11/XWayland）保留
-  `gtk-im-module=fcitx`；XWayland GTK3 由 GTK3 内建 XIM 兜底（XMODIFIERS 已设）。
+  （settings.ini 该键对 Wayland 与 X11 同时生效，写了就回退内嵌候选框=原皮），
+  还要**主动覆盖官方模块的自动注入**：NixOS fcitx5 模块在其 `environment.variables`
+  里写死 `GTK_IM_MODULE = "fcitx"`（经 /etc/profile→set-environment 喂给所有会话，
+  仓库内 grep 不到）——必须 `environment.variables.GTK_IM_MODULE = lib.mkForce ""`
+  （GTK 空串=未设）才真正关掉。GTK2（仅 X11/XWayland）保留 `gtk-im-module=fcitx`；
+  XWayland GTK3 由 GTK3 内建 XIM 兜底（XMODIFIERS 已设）。完整事故链见
+  docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md。
 - 改动 IM 变量时两处同步改（§10 checklist 第 5 项兜底）。
 
 ---

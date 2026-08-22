@@ -6,6 +6,7 @@
 - 涉及文件：
   - `home/modules/desktop/appearance.nix`（gtk3/gtk4.extraConfig）
   - `home/modules/desktop/fcitx5.nix`（注释同步）
+  - `modules/locale.nix`（系统层 `environment.variables.GTK_IM_MODULE = lib.mkForce ""`）
   - `docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md`（本文档）
   - `STANDARDS.md`（§4 防再犯要点）
 
@@ -42,27 +43,50 @@
 
 ## 根因分析
 
-- 直接原因：`gtk3.extraConfig` / `gtk4.extraConfig` 里的 `gtk-im-module = "fcitx"`
-  以 settings.ini 形式全局生效（**不分后端**），强制 Wayland 原生 GTK3/4 应用
-  走 fcitx GTK IM 模块的应用内嵌候选框。
-- 深层原因：对“GTK_IM_MODULE 环境变量不全局设置”的现代写法理解到位，
-  但漏掉了 **settings.ini 级 `gtk-im-module` 是同样的全局通道**——错误地以为
-  extraConfig 只影响 XWayland 应用（fcitx5.nix 注释原文如此表述）。
-- 为什么之前没发现：kitty/终端类应用不走 GTK IM 模块（走 GLFW/合成器通道），
-  主题正常，掩盖了 GTK 应用族的异常；且此类应用此前多在 XWayland 模式下，
-  XWayland 走 fcitx 内嵌是预期行为，切换至 Wayland 原生后才暴露。
+**两层根因（第一层修完“重启后仍复现”，第二层才是最终因）：**
 
-## 修复方案
+- 直接原因（第一层）：`gtk3.extraConfig` / `gtk4.extraConfig` 里的
+  `gtk-im-module = "fcitx"` 以 settings.ini 形式全局生效（**不分后端**），
+  强制 Wayland 原生 GTK3/4 应用走 fcitx GTK IM 模块的内嵌候选框。
+  → 已在 appearance.nix 清除（gtk3/4 置空，gtk2 保留）。
+- 🔴 **深层原因（第二层，重启后仍复现的真正原因）**：**NixOS 官方 fcitx5
+  模块自动注入全局 `GTK_IM_MODULE=fcitx`**——
+  `nixos/modules/i18n/input-method/fcitx5.nix` 的 `environment.variables`：
+  ```nix
+  environment.variables = {
+    XMODIFIERS = "@im=fcitx";
+    GTK_IM_MODULE = "fcitx";   # ← 官方模块写死
+    ...
+  };
+  ```
+  它经 `/etc/profile` → `set-environment` 注入**所有登录会话**，优先级高于
+  HM 层的 settings.ini——即使我们清了 HM 层，系统会话变量仍在，Wayland
+  原生 GTK 应用依旧被强制 fcitx GTK IM 模块。仓库内全量 grep 找不到它
+  （不在本仓库），必须查 `/nix/store/...-set-environment` 才能看到。
+- 为什么之前没发现：只查了本仓库配置（locale.nix/env.nix/config.kdl）与 HM
+  层，未排查系统会话变量生成物（set-environment / pam environment）；fcitx
+  官方 wiki 只指明“合成器不支持 text-input 才需要设置”，而 NixOS 模块的
+  默认注入恰好与该现代建议相悖，是个隐蔽的官方默认行为。
 
-1. `appearance.nix`：
+## 修复方案（两层，缺一不可）
+
+1. `appearance.nix`（HM 层，第一层）：
    - `gtk3.extraConfig = { };`、`gtk4.extraConfig = { };`（**不再写 gtk-im-module**）
      - Wayland 原生 GTK3/4 → 自动走合成器 text-input-v3（niri 支持）→
        classicui 浮窗渲染 → Catppuccin 主题生效
      - XWayland GTK3 → GTK3 内建 XIM（XMODIFIERS 全局 `@im=fcitx` 已在 locale.nix 设置）
    - `gtk2.extraConfig` **保留** `"gtk-im-module=\"fcitx\""`（GTK2 仅 X11/XWayland，无 text-input，必须经 fcitx IM 模块）
-2. `fcitx5.nix`：2b 注释同步为“按后端拆分”表述（不再声称 extraConfig 只影响 XWayland）。
-3. 验证：`nixos-rebuild dry-build --flake .#omen` exit 0；`nix fmt` 0 changed；
-   `git diff --check` 干净。
+2. `modules/locale.nix`（系统层，**第二层——没有它，重启后仍复现**）：
+   - `environment.variables.GTK_IM_MODULE = lib.mkForce "";`
+     - NixOS 官方 fcitx5 模块（`nixos/modules/i18n/input-method/fcitx5.nix`）
+       通过 `environment.variables` 无条件写 `GTK_IM_MODULE = "fcitx"`（见 `environment.variables = { ... GTK_IM_MODULE = "fcitx"; ... }`），
+       经 `/etc/profile → set-environment` 注入**所有登录会话**（本机实测
+       `set-environment` 第 13 行 `export GTK_IM_MODULE="fcitx"`）。
+     - `lib.mkForce ""` 把它覆盖为 unset（GTK 源码空串等同未设）——
+       Wayland 原生 GTK 走 text-input-v3，XWayland GTK3 走内建 XIM。
+3. `fcitx5.nix`：2b 注释同步为“按后端拆分”表述。
+4. 验证：`nixos-rebuild dry-build --flake .#omen` exit 0；`nix fmt` 0 changed；
+   `git diff --check` 干净；`nix eval` 确认 `GTK_IM_MODULE` 求值为空串。
 
 ## 恢复流程（回退本次修复）
 
@@ -79,15 +103,22 @@ gtk3.extraConfig = {
 
 ## 经验教训（防再犯）
 
-1. **GTK 输入法有三条通道，配置时全都要过一遍脑子**：
-   - `GTK_IM_MODULE` 环境变量（全局，Wayland 下禁用）
-   - `settings.ini` 的 `gtk-im-module`（全局，Wayland 下同样生效——本事故）
+1. **GTK 输入法有四条通道，配置时全都要过一遍脑子**：
+   - `GTK_IM_MODULE` **环境变量**（全局）——这里包括两层：
+     a. 我们自己写的（已在 locale.nix 移除）
+     b. **官方模块自动注入的**（NixOS fcitx5 模块 `environment.variables` 写死）
+        — 本事故真正的持久层！查 `set-environment` 运行时文件才能看到，仓库 grep 不到
+   - `settings.ini` 的 `gtk-im-module`（全局，Wayland 下同样生效——本事故第一层）
    - 合成器 text-input-v3（Wayland 原生唯一正路）
-   “只设一处”会给自己留后门，标准应明确：**GTK3/4 任何形式都不设 im-module**。
+   “只设一处”会给自己留后门，标准应明确：**GTK3/4 任何形式都不设 im-module**，
+   且要**主动检查官方模块是否偷偷设了**（fcitx5 官方默认就是设了）。
 2. 现代写法的判断标准是**官方 wiki 的“是否必要”条件句**，不是社区模板的抄写——
    本事故中 fcitx wiki 明示只有合成器不支持 text-input 时才需要 GTK_IM_MODULE。
-3. 排查 IM 问题时按“可达性→装载→通道”三层次取证（本事故：主题可达→插件装载→
-   渲染通道），不要停在“主题名对不对”这一层。
+3. 排查 IM 问题时按“可达性→装载→通道→**运行时注入**”四层次取证（本事故：
+   主题可达→插件装载→渲染通道→**set-environment 里官方模块注入的变量**），
+   不只看仓库文件，要查 `/nix/store/*-set-environment` 实际运行产物。
+4. **“重启后仍复现”= 一定还有某个持久注入源没排掉**——不要重复怀疑已排查过的
+   层，直接沿登录会话链（environ 逐级对比）找第一次出现该变量的进程。
 
 ## 遗留事项（TODO）
 
