@@ -105,16 +105,39 @@
             }).callPackage
               inputs.fcclientPkg
               { };
+
+          # 🔴 pi-coding-agent（AI 编码代理 CLI）：nixpkgs 无此包 → npm tarball 打包
+          #    唯一来源：packages/pi/package.nix（buildNpmPackage → fetchNpmDeps）
+          #    ⚠️ 上游 shrinkwrap 缺 6 个 @earendil-works/* integrity → postPatch 用
+          #    packages/pi/package-lock.json（263 条全齐）替换（方案 A，2026-08-22 实证）
+          #    安装：home/modules/tools/ai.nix 的 home.packages（经 flake.overlays.default）
+          packages.pi-coding-agent =
+            (import inputs.nixpkgs {
+              inherit system;
+            }).callPackage
+              ./packages/pi/package.nix
+              { };
         };
 
       # ---- NixOS 配置（flake-parts 内置 flake.nixosConfigurations）----
       # 注：纯 attrset，不用函数签名；内部 inputs 为顶层闭包捕获
       flake = {
+        # overlay：把 pi-coding-agent 暴露为系统 pkgs（home.packages 直接可用）
+        # 唯一来源 = packages/pi/package.nix；此处仅接线（STANDARDS §0.2）
+        overlays.default = final: prev: {
+          pi-coding-agent = final.callPackage ./packages/pi/package.nix { };
+        };
         nixosConfigurations.omen = inputs.nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
             ./hardware-configuration.nix # 硬件检测 + fileSystems（nixos-generate-config 产物）
+
+            # 🔴 挂载自定义 overlay（pi-coding-agent = packages/pi/package.nix 唯一来源）：
+            #    系统层 pkgs 与 home.packages 共用同一份，经 flake.overlays.default 接线
+            {
+              nixpkgs.overlays = [ inputs.self.overlays.default ];
+            }
 
             # ⚠️ 2026-08-16 回退：disko 声明式分区已移除（test 进紧急模式——
             #    disko 采纳动作未执行，生成的 fileSystems 引用不存在的 .snapshots

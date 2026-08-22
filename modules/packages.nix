@@ -1,8 +1,9 @@
 # ============================================================
-# packages.nix —— 系统级全局二进制
-# 职责：需要 root/全局 PATH 的二进制（按用途分节）
+# packages.nix —— 系统级全局二进制 + 系统字体（曾独立 fonts.nix，并入）
+# 职责：需要 root/全局 PATH 的二进制（按用途分节）+ fonts.packages
 # 修改：装/卸全局包 → 改对应分节，宁删注释不混堆
 # 原则：用户级工具/应用放 home-manager，这里只留系统必需
+# 关联：home-manager/desktop/appearance.nix（fontconfig 渲染规则）
 # ============================================================
 { pkgs, ... }:
 
@@ -89,5 +90,15 @@ in
     # ---- 音频调试工具 ----
     pulseaudio # 虽然禁用了服务端，但我们需要它提供的 `pactl` 命令行工具
     alsa-utils # 提供 `alsamixer` 和 `amixer`，用于底层调试
+  ];
+
+  # ============ 系统字体（曾独立 fonts.nix，并入）============
+  fonts.packages = with pkgs; [
+    maple-mono.NF-CN # "Maple Mono NF CN"（仅终端 kitty 使用）
+    nerd-fonts.jetbrains-mono # 浏览器/等宽代码块（fontconfig monospace 首选）
+    noto-fonts-cjk-sans # 中文默认（浏览器/UI/输入法候选框）
+    noto-fonts
+    inter # DMS UI 字体（Inter Variable，桌面壳运行时使用）
+    fira-code # DMS 等宽字体（Fira Code，桌面壳 mono 使用）
   ];
 }

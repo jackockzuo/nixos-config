@@ -1,45 +1,40 @@
 # ============================================================
-# tools/default.nix —— 开发工具链聚合入口（nix 管理）
-# 架构：按领域分文件夹（terminal/monitoring/dev/theming），
-#       文件夹内按工具分文件（有配置的工具每工具一文件）
-# 原则：
-#   - 工具链由 nix 管理（与发行版解耦）；个体应用不在此列
-#   - 有配置的工具 → 新建 <领域>/<工具>.nix（用 programs.* 现代模块）
-#   - 纯安装包（无配置）→ 在本文件 home.packages 按领域分组
-# 新增 → 建领域文件并在下方 imports 加一行
+# tools/default.nix —— 开发工具链聚合（定位地图，扁平一层）
+# 架构量化规则（STANDARDS §2）：一文件一领域、目录 ≤2 层、
+# 无开关矩阵、无预留空壳；每行 import 带职责注释
 # ============================================================
 { pkgs, ... }:
 
 {
   imports = [
-    ./terminal # 终端体验（fish/starship/fzf/atuin/yazi/...）
-    ./monitoring # 系统监控（btop/cava）
-    ./dev # 开发工具（git/neovim/lazygit/...）
-    ./theming # 主题联动（matugen 壁纸→配色）
-    ./social.nix # 社交（QQ 原生 Wayland 等）
-    # ./wine.nix     # Wine 程序管理（需要时取消注释）
-    ./ai.nix # 本地 AI（Ollama/LM Studio）
-    ./office.nix # 办公效率（Obsidian/PDF 工具）
+    ./fish.nix # fish shell（别名/插件/交互初始化）
+    ./starship.nix # 提示符（Powerline 布局）
+    ./yazi.nix # 终端文件管理器（Catppuccin Mocha）
+    ./shell-utils.nix # 终端小工具合并（atuin/bat/fzf/onefetch/zoxide）
+    ./dev.nix # 开发工具合并（git/gh/lazygit/direnv/tealdeer/topgrade/pass + 编辑器 + LSP）
+    ./neovim.nix # 编辑器（含 fcitx5 状态联动）
+    ./monitoring.nix # 监控合并（btop/cava）
+    ./matugen.nix # 主题联动（壁纸→fish 配色）
+    ./social.nix # 社交（QQ 原生 Wayland / 微信）
+    ./ai.nix # 本地 AI（终端编码代理 opencode）
+    ./office.nix # 办公（WPS/Zotero/Obsidian）
   ];
 
   # 纯安装包（无配置，按领域分组管理）
   home.packages = with pkgs; [
-    # ── terminal 领域：终端图片工具 + git 信息面板 + 录屏 ──
+    # ── 终端领域：终端图片工具 + 信息面板 + 录屏 ──
     timg # 终端图片
     ueberzugpp # 终端图片后端
     onefetch # git 仓库信息面板
     vhs # 终端录屏（把操作录成 GIF/视频）
 
-    # ── monitoring 领域：磁盘分析 + 日志/网络排障 ──
+    # ── 监控领域：磁盘分析 + 日志/网络排障 ──
     duf # 磁盘空间
     dust # 空间树状图
     lnav # 日志文件/日志的 TUI 查看器（时间线+高亮+SQL 过滤）
     bandwhich # 实时网络带宽按进程归因
 
-    # ── theming 领域：主题生成 ──
-    matugen # 主题生成（壁纸→配色，配置见 theming/matugen.nix）
-
-    # ── dev 领域：通用开发小工具 ──
+    # ── 开发领域：通用开发小工具 ──
     ripgrep # 搜索
     fd # 查找
     jq # JSON 处理
@@ -53,8 +48,8 @@
     mcat
     dgop
 
-    # ── dev 领域：密码管理 ──
-    pass # 密码管理（gpg 加密，配置见 dev/pass.nix）
+    # ── 密码管理 ──
+    pass # 密码管理（gpg 加密，配置见 dev.nix）
     pinentry-curses # gpg 主密码输入（终端版 pinentry）
   ];
 }
