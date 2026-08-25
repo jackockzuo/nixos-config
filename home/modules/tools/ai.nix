@@ -10,6 +10,6 @@
   # 终端内的 AI 编码代理
   home.packages = with pkgs; [
     opencode
-    pi-coding-agent # 🔴 自打包（packages/pi/package.nix，经 flake overlay 提供；pi 命令）
+    pi-coding-agent
   ];
 }

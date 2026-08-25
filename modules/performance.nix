@@ -18,7 +18,10 @@ in
     # - scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合友好），与 cachyos BORE 互为补充
     #   （scx 运行在 BPF 层覆盖全局调度）；🔴 若 scx.service 启动失败不影响登录（内核自动回退 CFS）
     # - irqbalance：13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
-    # - TLP：AC = performance governor（恒频发热上升，thermald 兜底），电池 = powersave；
+    # - TLP：AC = powersave governor + balance_performance EPP（🔴 2026-08-25 修复：
+    #   performance governor 让 CPU 持续高频率 → VRM 线圈啸叫（登录桌面后"嗞嗞"声），
+    #   powersave 允许空闲降到 800MHz，实测声音消失；负载时 HWP 仍会睿频到全速，
+    #   性能无损失，PL1/PL2 解锁照常生效），电池 = powersave；
     #   TLP 与 power-profiles-daemon 互斥（NixOS 断言），必须显式关后者
     # - zram：内存 50% 压缩交换（抗 OOM）｜fd 上限 65536（并行编译/大数据）
     services = {
@@ -30,7 +33,17 @@ in
       tlp = {
         enable = true;
         settings = {
-          CPU_SCALING_GOVERNOR_ON_AC = "performance";
+          # 🔴 2026-08-25 修复线圈啸叫：performance → powersave（用户实测验证）
+          CPU_SCALING_GOVERNOR_ON_AC = "powersave";
+          # 配套：EPP 从 performance（TLP 默认）降到 balance_performance，
+          # 轻负载时不再顶高频（防残留啸叫），重负载睿频不受影响
+          CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
+          # 🔴 解除 AC 插电功耗墙（13900HX 缩缸防护确认：满载仅 68°C，
+          #    余量 30°C，解除安全）。PL1=115W（长时全核）/ PL2=157W（短时睿频）
+          #    为 13900HX 官方建议上限；电池模式不设 PL（TLP 默认保守省电）。
+          # 🎯 [OMEN] 本机散热验证过的值——他机复制需先实测满载温度
+          PL1_LIMIT_AC = "115";
+          PL2_LIMIT_AC = "157";
         };
       };
       power-profiles-daemon.enable = false;

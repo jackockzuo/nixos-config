@@ -8,16 +8,19 @@
 ## 一、架构说明
 
 ```
-nixos-config（单仓库，37 个 .nix，目录 ≤2 层 —— STANDARDS §2 量化规则）
+nixos-config（单仓库，44 个 .nix，目录 ≤2 层 —— STANDARDS §2 量化规则）
 ├── flake.nix              # flake-parts 入口：flake.nixosConfigurations.omen + treefmt/git-hooks
 ├── STANDARDS.md           # 配置准则（唯一权威修改依据，含架构量化规则）
 ├── hardware-configuration.nix  # 硬件检测 + fileSystems（nixos-generate-config 产物）
-├── modules/               # 系统级 14 个文件（扁平，default.nix 聚合地图）
+├── modules/               # 系统级 15 个文件 + default.nix（扁平，default.nix 聚合地图）
 │   └── default.nix        # 聚合入口（每行 imports 带职责注释 = 定位地图）
+├── packages/              # 仓库内打包（非 nixpkgs 上游）
+│   └── omencore/          # OmenCore（HP OMEN 控制中心，官方 release 二进制）
+│                          # pi-coding-agent 已改用 nixpkgs 自带（2026-08）
 ├── docs/                  # 文档（troubleshooting/ 疑难杂症记录）
 └── home/                  # 用户级配置（home-manager）
     ├── home.nix           # HM 入口（被 flake.nix 的 users.ran.imports 引用）
-    ├── modules/           # 用户级 23 个文件
+    ├── modules/           # 用户级 22 个文件
     │   ├── desktop/       # 7 个（niri/kitty/fcitx5/dms/appearance/misc/default）
     │   ├── tools/         # 12 个（fish/starship/yazi/shell-utils/dev/neovim/...）
     │   ├── core.nix env.nix network.nix  # 顶层领域文件 + network（代理）
@@ -71,6 +74,7 @@ nixos-install --flake .#omen
 | 桌面 | niri（greetd 直启）+ kitty + hyprlock | modules/desktop.nix + home/ |
 | 输入法 | fcitx5-rime（雾凇）+ catppuccin 主题 | 系统层 + home/ |
 | 联网 | firefox/chromium + wget + 网络诊断 | modules/packages.nix |
+| OMEN 控制 | omercore CLI/GUI（风扇/监控）+ 功耗墙解锁（EC 0xBA=5 开机自动） | modules/omencore.nix + packages/omencore |
 | 工具链 | fastfetch/btop/yazi/neovim 等（home.packages） | home/modules/ |
 | 配置 | niri/kitty/fcitx5 全套 `~/.config` | home/source/ |
 | 双系统 | GRUB + os-prober（Windows 自动识别） | modules/boot.nix |
