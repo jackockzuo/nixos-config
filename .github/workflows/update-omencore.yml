@@ -1,0 +1,52 @@
+# ============================================================
+# update-omencore.yml —— omencore 滚动更新（GitHub Actions 定时）
+# 触发：每周一 UTC 03:00 自动 + 手动 workflow_dispatch
+# 流程：nix run .#omencore-update（packages/omencore/update.sh）
+#       → 改 flake.nix URL 版本号 + package.nix version + 刷新 flake.lock hash
+#       → peter-evans/create-pull-request 开 PR（无改动自动 no-op）
+# 说明：
+#   - 本工作流只改文件并开 PR，不自动 merge，由你 review 后合并。
+#   - 需在 main 分支上运行（CI on 只针对 main）；当前 omencore 工作分支
+#     use-omencore 需先合回 main 本工作流才有意义。
+#   - 依赖的 action 与 ci.yml 同源（官方/社区维护），无外部服务。
+# ============================================================
+name: Update omencore
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 每周一 UTC 03:00
+  workflow_dispatch: { } # 手动触发
+
+permissions:
+  contents: write # 创建分支
+  pull-requests: write # 开 PR
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      # 已是最新版本则脚本 exit 0 且不改任何文件（幂等）
+      - name: Bump omencore to latest release
+        run: nix run .#omencore-update
+
+      # 只有出现改动（flake.nix / package.nix / flake.lock）时才开 PR
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(omencore): 滚动更新 omencore"
+          branch: auto/omencore-update
+          delete-branch: true
+          title: "chore(omencore): 滚动更新 omencore 到最新 release"
+          body: |
+            由 GitHub Actions 自动触发：更新 omencore 版本号 + flake.lock narHash。
+            驱动脚本：`packages/omencore/update.sh`（`nix run .#omencore-update`）。
+          labels: dependencies

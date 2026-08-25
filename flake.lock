@@ -236,6 +236,19 @@
         "type": "github"
       }
     },
+    "omencore": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786840560,
+        "narHash": "sha256-828A9YkQirMpPaOOqoCL8HBrXSuWjGVN48MECQJre88=",
+        "type": "tarball",
+        "url": "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip"
+      }
+    },
     "root": {
       "inputs": {
         "chaotic": "chaotic",
@@ -246,6 +259,7 @@
         "home-manager": "home-manager_2",
         "nix-index-database": "nix-index-database",
         "nixpkgs": "nixpkgs_2",
+        "omencore": "omencore",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix"
       }

@@ -1,39 +1,47 @@
 # ============================================================
 # nix.nix —— Nix 客户端/daemon
-# 职责：镜像源、GC、experimental-features
+# 职责：镜像源、GC、experimental-features、direnv/nix-ld/nix-index
 # 修改：换源/调 GC 策略 → 改这里
 # 关联：modules/secrets.nix（sops 模板注入 github-token 到 NIX_CONFIG）
 # ============================================================
 { config, pkgs, ... }:
 
 {
-  # ============ Nix：国内镜像 + daemon 调优 ============
-  nix.settings = {
-    # 🔴 nyx 缓存放首位：优先获取 CachyOS 预编译内核/nvidia 模块（本地无则避免现场编译）。
-    #    ⚠️ 官方现行缓存是 nyx-cache.chaotic.cx（旧 nyx.cachix.org 已迁移，key 不同！）
-    #    若 chaotic 再次迁移缓存地址：要么改这里，要么删掉本节改回自动（cache.enable=true）
-    substituters = [
-      "https://nyx-cache.chaotic.cx/"
-      "https://mirror.sjtu.edu.cn/nix-channels/store"
-      "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
-      "https://mirrors.ustc.edu.cn/nix-channels/store"
-      "https://cache.nixos.org"
-    ];
-    trusted-public-keys = [
-      "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-    ];
-    trusted-users = [
-      "root"
-      "@wheel"
-    ];
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    auto-optimise-store = true;
-    # 🔴 GitHub token 不在本文件：由 modules/secrets.nix 的 sops 模板
-    #    （NIX_CONFIG env file）注入 nix-daemon 的 access-tokens
+  # ============ Nix：国内镜像 + daemon 调优 + 自动 GC ============
+  nix = {
+    settings = {
+      # 🔴 nyx 缓存放首位：优先获取 CachyOS 预编译内核/nvidia 模块（本地无则避免现场编译）。
+      #    ⚠️ 官方现行缓存是 nyx-cache.chaotic.cx（旧 nyx.cachix.org 已迁移，key 不同！）
+      #    若 chaotic 再次迁移缓存地址：要么改这里，要么删掉本节改回自动（cache.enable=true）
+      substituters = [
+        "https://nyx-cache.chaotic.cx/"
+        "https://mirror.sjtu.edu.cn/nix-channels/store"
+        "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
+        "https://mirrors.ustc.edu.cn/nix-channels/store"
+        "https://cache.nixos.org"
+      ];
+      trusted-public-keys = [
+        "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      ];
+      trusted-users = [
+        "root"
+        "@wheel"
+      ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      auto-optimise-store = true;
+      # 🔴 GitHub token 不在本文件：由 modules/secrets.nix 的 sops 模板
+      #    （NIX_CONFIG env file）注入 nix-daemon 的 access-tokens
+    };
+    # 系统级自动 GC（保留 7 天）
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 7d";
+    };
   };
   # 🔴 nix-daemon 下载走代理（TUN 模式未生效/绕过时兜底）
   # 否则 daemon（root 服务）不继承终端 export，直连 cache.nixos.org 龟速
@@ -43,15 +51,6 @@
     https_proxy = config.proxy.address;
     all_proxy = config.proxy.address;
   };
-  # 系统级自动 GC（保留 7 天）
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 7d";
-  };
-  # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
-  programs.direnv.enable = true;
-  programs.direnv.nix-direnv.enable = true;
 
   # ============ Chaotic-Nyx（CachyOS 高性能包生态）============
   chaotic.nyx = {
@@ -64,83 +63,96 @@
     #    CPU governor 改由 services.tlp.settings 配置（见 services.nix，AC=performance）。
   };
 
-  # ============ nix-ld：运行第三方二进制（曾独立 nix-addons/nix-ld.nix，并入）============
-  programs.nix-ld.enable = true;
-  # 这一套组合拳基本覆盖了 99% 的二进制程序需求
-  programs.nix-ld.libraries = with pkgs; [
-    # 基础系统库
-    stdenv.cc.cc
-    openssl
-    zlib
-    fuse3
-    icu
-    libuuid
-    xz
-    gettext
-    libxml2
+  # ============ 客户端工具（曾独立文件并入）：direnv / nix-ld / nix-index ============
+  programs = {
+    # direnv：目录环境
+    # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
 
-    # 图形界面与 UI 库 (GTK/Qt/Electron 所需)
-    glib
-    nss
-    nspr
-    atk
-    at-spi2-atk
-    at-spi2-core
-    dbus
-    dconf
-    expat
-    fontconfig
-    freetype
-    gdk-pixbuf
-    gtk3
-    pango
-    cairo
-    libdrm
-    mesa # 用于 OpenGL/Vulkan
+    # nix-ld：运行第三方二进制
+    nix-ld = {
+      enable = true;
+      # 这一套组合拳基本覆盖了 99% 的二进制程序需求
+      libraries = with pkgs; [
+        # 基础系统库
+        stdenv.cc.cc
+        openssl
+        zlib
+        fuse3
+        icu
+        libuuid
+        xz
+        gettext
+        libxml2
 
-    # X11 相关库
-    libx11
-    libxcursor
-    libxdamage
-    libxext
-    libxfixes
-    libxi
-    libxrandr
-    libxrender
-    libxtst
-    libxcb
-    libxcomposite
-    libxscrnsaver
-    libxinerama
+        # 图形界面与 UI 库 (GTK/Qt/Electron 所需)
+        glib
+        nss
+        nspr
+        atk
+        at-spi2-atk
+        at-spi2-core
+        dbus
+        dconf
+        expat
+        fontconfig
+        freetype
+        gdk-pixbuf
+        gtk3
+        pango
+        cairo
+        libdrm
+        mesa # 用于 OpenGL/Vulkan
 
-    # Wayland 相关
-    wayland
-    libxkbcommon
+        # X11 相关库
+        libx11
+        libice # Avalonia X11 后端 ICE 会话管理（omercore-gui 依赖 libICE.so.6）
+        libsm # X11 会话管理（omercore-gui 依赖 libSM.so.6）
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrandr
+        libxrender
+        libxtst
+        libxcb
+        libxcomposite
+        libxscrnsaver
+        libxinerama
 
-    # 音频视频处理
-    alsa-lib
-    libpulseaudio
-    libvorbis
-    libogg
-    libopus
-    libvpx
-    ffmpeg
+        # Wayland 相关
+        wayland
+        libxkbcommon
 
-    # 网络与下载
-    curl
-    libidn2
-    libssh2
-    nghttp2
-    rtmpdump
+        # 音频视频处理
+        alsa-lib
+        libpulseaudio
+        libvorbis
+        libogg
+        libopus
+        libvpx
+        ffmpeg
 
-    # 常用开发语言运行时支持
-    python3
-    systemd # 很多 binary 会链接 libsystemd.so
-  ];
+        # 网络与下载
+        curl
+        libidn2
+        libssh2
+        nghttp2
+        rtmpdump
 
-  # ============ nix-index：command-not-found 补全（曾独立 nix-addons/nix-index.nix，并入）============
-  # 开启 nix-index 模块（~/.nix-index 数据库）
-  programs.nix-index.enable = true;
-  # 禁用系统默认 command-not-found（更新慢、经常找不到包）
-  programs.command-not-found.enable = false;
+        # 常用开发语言运行时支持
+        python3
+        systemd # 很多 binary 会链接 libsystemd.so
+      ];
+    };
+
+    # nix-index：command-not-found 补全（曾独立 nix-addons/nix-index.nix，并入）
+    nix-index.enable = true;
+    # 禁用系统默认 command-not-found（更新慢、经常找不到包）
+    command-not-found.enable = false;
+  };
 }

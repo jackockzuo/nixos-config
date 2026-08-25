@@ -12,6 +12,7 @@
     ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）
     ./services.nix # 系统服务（pipewire/snapper/udisks/keyring/thermald）
     ./performance.nix # 🎯 本机性能计算优化（scx/irqbalance/TLP/zram/fd）
+    ./omencore.nix # 🎯 OMEN 控制（omercore CLI/GUI + EC 功耗墙解锁 0xBA=5 + 风扇权限）
     ./locale.nix # 语言/时区/输入法（fcitx5 + IM 变量单一来源）
     ./nix.nix # Nix daemon（镜像源/GC/缓存/chaotic + nix-ld/nix-index）
     ./packages.nix # 系统级二进制 + 系统字体（按用途分节）
@@ -19,4 +20,10 @@
     ./proxy.nix # 代理配置单一来源（options.proxy + sudo env_keep）
     ./secrets.nix # sops-nix 秘密管理（GitHub token/密码，见 STANDARDS §6）
   ];
+
+  # 🎯 [OMEN] 性能全家桶总开关：默认 false（options.omen.performance.enable）
+  #    显式打开——scx/irqbalance/TLP(AC performance + PL 解除)/zram/fd 全部生效。
+  #    2026-08-22：曾因默认 false 未打开 → 满载仅 2.5GHz（PL 墙未解除）+ 68°C。
+  #    整组关闭/故障对比 → 改为 false（STANDARDS §2 🎯 标记）
+  omen.performance.enable = true;
 }

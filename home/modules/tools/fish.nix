@@ -111,7 +111,7 @@
     # 简单的 git 缩写直接用字符串值即可（即现代简化形式）；
     # 需要 position / setCursor 等高级特性时才写成 attrset
     shellAbbrs = {
-      nr = "nixos-rebuild switch --flake ~/nixos-config#omen";
+      nr = "sudo nixos-rebuild switch --flake ~/nixos-config#omen";
       gst = "git status";
       ga = "git add";
       gc = "git commit";

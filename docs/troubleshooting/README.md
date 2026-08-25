@@ -20,6 +20,9 @@
 | 2026-08-17 | DMS 切换壁纸动态主题生成失败 | matugen config.toml 缺 `[config]` 段（matugen 4.x 必须存在，可为空）→ dry-run 直接解析用户配置报 `missing field 'config'` | ✅ 已解决 | [2026-08-17-matugen-config-section-missing.md](./2026-08-17-matugen-config-section-missing.md) |
 | 2026-08-18 | Distrobox 容器内 fish 报 "Unknown command" | HM enableFishIntegration 生成无条件集成脚本，容器挂载 $HOME+ /nix 后"脚本在、工具不在" PATH → 报 Unknown command；改用 `type -q` 守卫（fish 3.3 兼容） | ✅ 已解决 | [2026-08-18-distrobox-container-fish-unknown-command.md](./2026-08-18-distrobox-container-fish-unknown-command.md) |
 | 2026-08-21 | Ctrl+P 等 GTK/Electron 应用候选框显示 fcitx5 原皮 | gtk3/gtk4.extraConfig 写入 settings.ini 的 `gtk-im-module=fcitx` 对 Wayland 与 X11 同时生效——Wayland 原生 GTK 被迫用 fcitx GTK IM 模块 → 应用内嵌候选框（不经合成器 text-input-v3）→ 不受 classicui 主题控制 | ✅ 已解决 | [2026-08-21-fcitx5-gtk-im-module-original-skin.md](./2026-08-21-fcitx5-gtk-im-module-original-skin.md) |
+| 2026-08-23 | 满载锁 2.5GHz（温度仅 68°C，功耗墙没解开） | EC 默认低功耗档（~25W）：TLP 键名错写不进、WMAA 固件假 PASS、RAPL 被 EC 实际供电覆盖；正确通道 = `ec_sys` 直写 EC 寄存器 0xBA=5（OmenCore LinuxEcController） | ✅ 已解决 | [2026-08-23-omen-ec-power-limit-2.5ghz-lock.md](./2026-08-23-omen-ec-power-limit-2.5ghz-lock.md) |
+| 2026-08-25 | 登录桌面后持续"嗞嗞"线圈啸叫（Windows 下无） | TLP AC=performance governor 锁最高频 → CPU VRM 电感高频开关发声；改 powersave + balance_performance（HWP 重载仍睿频 5.2GHz，性能无损） | ✅ 已解决 | [2026-08-25-coil-whine-cpu-governor.md](./2026-08-25-coil-whine-cpu-governor.md) |
+| 2026-08-25 | omencore 守护进程崩溃循环（226/NAMESPACE） | PrivateTmp + ReadWritePaths=/var/tmp/omencore 冲突：namespace 在 ExecStartPre 前搭建、路径不存在必炸；改 StateDirectory=omencore | ✅ 已解决 | [2026-08-25-omencore-namespace-crash.md](./2026-08-25-omencore-namespace-crash.md) |
 
 ## 模板（新增记录时复制）
 

@@ -139,6 +139,17 @@
 
 ---
 
+## 🎯 [OMEN] 本机硬件要点（单机专属；事故背书见 troubleshooting）
+
+- **功耗墙解锁只信 `ec_sys` 直写 EC 寄存器 `0xBA=5`**（`modules/omencore.nix` 的 `omen-power-unlock` 服务开机执行）：
+  TLP 的 PL 配置（键名须 `PL1_LIMIT_ON_AC`，本机仍写不进）、WMAA 固件假 PASS（内核日志
+  `WMAA/WHCM aborts`）、RAPL 被 EC 实际供电覆盖——全是死路（2026-08-23 事故）。
+- **AC 下 CPU 调速器用 `powersave` + EPP `balance_performance`**（`modules/performance.nix`）：
+  `performance` governor 在 intel_pstate 下锁最高频（min=max）→ CPU VRM 电感高频开关 →
+  登录桌面后"嗞嗞"线圈啸叫（2026-08-25 实测）；powersave 才是动态调频，重载时 HWP 仍睿频到
+  5.2GHz，PL1/PL2 解锁与 scx_lavd 均不受影响，性能无损。
+- 改 omencore/功耗/风扇相关配置 → 对照 `docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md`。
+
 ## 文档锚点（有疑问先查这里）
 
 - flake-parts：<https://flake.parts/getting-started>

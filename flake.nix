@@ -49,6 +49,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # 🔴 omencore（HP OMEN 控制中心）：官方 release 二进制 zip，flake=false。
+    #    版本号写在 URL 里；hash（narHash）由 flake.lock 自动管理。
+    #    滚动更新：nix run .#omencore-update（改 URL 版本号 + nix flake lock 刷新 hash）
+    omencore = {
+      url = "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip";
+      flake = false;
+    };
+
   };
 
   outputs =
@@ -65,8 +73,18 @@
       # ---- 按系统：包 / 格式化 / 提交检查（见 STANDARDS.md §6）----
       # 注：函数体内用到的 `inputs`（如 fcclientPkg）是顶层闭包捕获，非 perSystem 参数
       perSystem =
-        { system, ... }:
+        { system, pkgs, ... }:
         {
+          # flake-parts 标准做法：自定义 perSystem pkgs（含 allowUnfree），
+          # 供本 perSystem 所有模块（treefmt/git-hooks/包）共用同一份，
+          # 包统一用 pkgs.callPackage（不再手动 import inputs.nixpkgs）
+          _module.args.pkgs = import inputs.nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = true;
+            };
+          };
+
           treefmt = {
             projectRootFile = "flake.nix";
             programs.nixfmt.enable = true; # nixfmt-rfc-style（官方 RFC 风格），nix fmt 统一入口
@@ -91,41 +109,48 @@
             };
           };
 
-          # 按需运行的包：nix run .#fcclient（不装进系统，不进 systemPackages）
-          # 包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
-          # 🔴 CI 处理：GitHub Actions 无此目录，CI 用 --override-input fcclientPkg
-          #    指向仓库内 .ci/fcclient-placeholder（仅 eval 用占位，见 ci.yml）
-          #    ⚠️ 勿用 builtins.pathExists 条件化（纯求值下恒 false，包会消失）
-          packages.fcclient =
-            (import inputs.nixpkgs {
-              inherit system;
-              config = {
-                allowUnfree = true;
-              };
-            }).callPackage
-              inputs.fcclientPkg
-              { };
+          # ---- 按需运行的包（nix run .#xxx，不装进系统，不进 systemPackages）----
+          # fcclient：包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
+          #   🔴 CI 处理：GitHub Actions 无此目录，CI 用 --override-input fcclientPkg
+          #      指向仓库内 .ci/fcclient-placeholder（仅 eval 用占位，见 ci.yml）
+          #   ⚠️ 勿用 builtins.pathExists 条件化（纯求值下恒 false，包会消失）
+          #  omencore / omencore-update：见 packages/ 下各自 package.nix
+          #  pi-coding-agent：nixpkgs 已有（跟随 nixos-unstable 滚动），直接 pkgs.pi-coding-agent
+          packages = {
+            fcclient = pkgs.callPackage inputs.fcclientPkg { };
 
-          # 🔴 pi-coding-agent（AI 编码代理 CLI）：nixpkgs 无此包 → npm tarball 打包
-          #    唯一来源：packages/pi/package.nix（buildNpmPackage → fetchNpmDeps）
-          #    ⚠️ 上游 shrinkwrap 缺 6 个 @earendil-works/* integrity → postPatch 用
-          #    packages/pi/package-lock.json（263 条全齐）替换（方案 A，2026-08-22 实证）
-          #    安装：home/modules/tools/ai.nix 的 home.packages（经 flake.overlays.default）
-          packages.pi-coding-agent =
-            (import inputs.nixpkgs {
-              inherit system;
-            }).callPackage
-              ./packages/pi/package.nix
-              { };
+            # 🔴 omencore（HP OMEN 控制中心：CLI + GUI）：nixpkgs 无此包 → 官方 release
+            #    self-contained 二进制打包（.NET 8 + Avalonia，源码编译过重）。
+            #    来源：inputs.omencore（flake 输入 = 官方 release zip，hash 在 flake.lock）
+            #    打包逻辑：packages/omencore/package.nix（原样安装，经 nix-ld 运行）
+            #    安装：modules/omencore.nix 的 environment.systemPackages（经 flake.overlays.default）
+            #    滚动更新：nix run .#omencore-update（packages/omencore/update.sh）
+            omencore = pkgs.callPackage ./packages/omencore/package.nix { src = inputs.omencore; };
+
+            # omencore 滚动更新器：查 GitHub 最新 release → 改版本号 → 刷新锁 hash → 构建验证
+            omencore-update = pkgs.writeShellApplication {
+              name = "omencore-update";
+              runtimeInputs = with pkgs; [
+                curl
+                python3
+                nix
+                gnused
+                gnugrep
+                coreutils
+              ];
+              text = builtins.readFile ./packages/omencore/update.sh;
+            };
+          };
         };
 
       # ---- NixOS 配置（flake-parts 内置 flake.nixosConfigurations）----
       # 注：纯 attrset，不用函数签名；内部 inputs 为顶层闭包捕获
       flake = {
-        # overlay：把 pi-coding-agent 暴露为系统 pkgs（home.packages 直接可用）
-        # 唯一来源 = packages/pi/package.nix；此处仅接线（STANDARDS §0.2）
-        overlays.default = final: prev: {
-          pi-coding-agent = final.callPackage ./packages/pi/package.nix { };
+        # overlay：把 omencore 暴露为系统 pkgs（home.packages 直接可用）
+        # 唯一来源 = packages/omencore/package.nix；此处仅接线（STANDARDS §0.2）
+        # pi-coding-agent：nixpkgs 已有，无需 overlay
+        overlays.default = final: _prev: {
+          omencore = final.callPackage ./packages/omencore/package.nix { src = inputs.omencore; };
         };
         nixosConfigurations.omen = inputs.nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
@@ -133,8 +158,9 @@
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
             ./hardware-configuration.nix # 硬件检测 + fileSystems（nixos-generate-config 产物）
 
-            # 🔴 挂载自定义 overlay（pi-coding-agent = packages/pi/package.nix 唯一来源）：
+            # 🔴 挂载自定义 overlay（omencore = packages/omencore/package.nix 唯一来源）：
             #    系统层 pkgs 与 home.packages 共用同一份，经 flake.overlays.default 接线
+            #    pi-coding-agent 已改用 nixpkgs 自带包
             {
               nixpkgs.overlays = [ inputs.self.overlays.default ];
             }
