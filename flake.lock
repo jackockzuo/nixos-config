@@ -43,19 +43,6 @@
         "type": "github"
       }
     },
-    "fcclientPkg": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1786789114,
-        "narHash": "sha256-9OppzmpgicZwaMH7EmbyadpElo7G7rGDIYGpwCOt1BY=",
-        "path": "/home/ran/Documents/nix-packaging/fcclient",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/ran/Documents/nix-packaging/fcclient",
-        "type": "path"
-      }
-    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -253,7 +240,6 @@
       "inputs": {
         "chaotic": "chaotic",
         "dms": "dms",
-        "fcclientPkg": "fcclientPkg",
         "flake-parts": "flake-parts",
         "git-hooks": "git-hooks",
         "home-manager": "home-manager_2",

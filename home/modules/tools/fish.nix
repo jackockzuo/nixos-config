@@ -121,43 +121,31 @@
       gd = "git diff";
       tl = "tldr";
     };
-  };
-  xdg.configFile = {
-    # 🔴 100% 兼容的方式：直接生成 Fish 自动加载函数文件 ~/.config/fish/functions/clean-system.fish
-    "fish/functions/clean-system.fish".text = ''
-      function clean-system
-          echo "🧹 正在清理 Nix 废弃历史版本..."
-          sudo nix-collect-garbage -d
 
-          echo "🧹 正在清理 NixOS 旧系统代（保留最近 5 代）..."
-          sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
+    # ⚙️ fish 自动加载函数（官方模块 programs.fish.functions → ~/.config/fish/functions/）
+    # 注意：值 = 函数体（不含 `function <名> ... end` 外壳，HM 模块自动包裹）；
+    # 布尔/字符串直接写，需要修饰符（description/wraps 等）时用 { body = ...; } 形式
+    functions = {
+      clean-system = ''
+        echo "🧹 正在清理 Nix 废弃历史版本..."
+        sudo nix-collect-garbage -d
 
-          echo "✨ 系统保洁完成，恢复极致清爽！"
-      end
-    '';
+        echo "🧹 正在清理 NixOS 旧系统代（保留最近 5 代）..."
+        sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
 
-    # 迁移自 minimal-niri-dotfiles：y (yazi 退出后 cd 回目录) / lt (eza 树状) / la (eza 长格式)
-    # 注：y.fish 手写在此处（与 yazi.nix 模块的 enableFishIntegration 互斥——
-    # 两者都会生成同一 fish/functions/y.fish，故 yazi.nix 不启用 fish 集成）
-    "fish/functions/y.fish".text = ''
-      function y
-      	set tmp (mktemp -t "yazi-cwd.XXXXXX")
-      	yazi $argv --cwd-file="$tmp"
-      	if read -z cwd < "$tmp"; and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
-      		builtin cd -- "$cwd"
-      	end
-      	rm -f -- "$tmp"
-      end
-    '';
-    "fish/functions/lt.fish".text = ''
-      function lt
-      	command eza --icons=auto --tree --git -- $argv
-      end
-    '';
-    "fish/functions/la.fish".text = ''
-      function la
-      	command eza -l --icons=auto --git -- $argv
-      end
-    '';
+        echo "✨ 系统保洁完成，恢复极致清爽！"
+      '';
+
+      # y (yazi 退出后 cd 回目录)：🔴 由 yazi.nix 模块的 fish 集成生成（默认开启，
+      # 内容更现代：command yazi 写法）——此处不重复定义，避免同名函数体合并冲突
+
+      lt = ''
+        command eza --icons=auto --tree --git -- $argv
+      '';
+
+      la = ''
+        command eza -l --icons=auto --git -- $argv
+      '';
+    };
   };
 }

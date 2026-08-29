@@ -7,7 +7,7 @@
 #    换端口/换客户端 → 改 modules/proxy.nix，本文件自动跟随
 #
 # 三层防御，防止"代理工具没开 → 全网断连"：
-#   第 1 层（niri/config.kdl）：开机自动拉起 fcclient
+#   第 1 层（niri.nix settings 的 spawn-at-startup）：开机自动拉起 fcclient
 #   第 2 层（本文件）：终端启动时探测端口，fcclient 没跑 → 自动清除代理变量
 #   第 3 层（本文件）：fish 手动开关 proxy / noproxy
 #
@@ -54,23 +54,22 @@ in
   '';
 
   # ---- 第 3 层：fish 快捷开关：proxy 开 / noproxy 关（仅当前会话）----
-  xdg.configFile."fish/functions/proxy.fish".text = ''
-    function proxy
-        set -gx http_proxy  ${proxyAddr}
-        set -gx https_proxy ${proxyAddr}
-        set -gx all_proxy   ${proxyAddr}
-        set -gx HTTP_PROXY  ${proxyAddr}
-        set -gx HTTPS_PROXY ${proxyAddr}
-        set -gx ALL_PROXY   ${proxyAddr}
-        echo "🔌 代理已开启 → ${proxyAddr}"
-    end
-  '';
-
-  xdg.configFile."fish/functions/noproxy.fish".text = ''
-    function noproxy
-        set -e http_proxy https_proxy all_proxy
-        set -e HTTP_PROXY HTTPS_PROXY ALL_PROXY
-        echo "🔌 代理已关闭（直连）"
-    end
-  '';
+  # 官方模块 programs.fish.functions（值 = 函数体，HM 自动包裹 function 外壳）
+  # 生成 ~/.config/fish/functions/{proxy,noproxy}.fish
+  programs.fish.functions = {
+    proxy = ''
+      set -gx http_proxy  ${proxyAddr}
+      set -gx https_proxy ${proxyAddr}
+      set -gx all_proxy   ${proxyAddr}
+      set -gx HTTP_PROXY  ${proxyAddr}
+      set -gx HTTPS_PROXY ${proxyAddr}
+      set -gx ALL_PROXY   ${proxyAddr}
+      echo "🔌 代理已开启 → ${proxyAddr}"
+    '';
+    noproxy = ''
+      set -e http_proxy https_proxy all_proxy
+      set -e HTTP_PROXY HTTPS_PROXY ALL_PROXY
+      echo "🔌 代理已关闭（直连）"
+    '';
+  };
 }

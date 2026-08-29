@@ -3,32 +3,48 @@
 # 5 个 <60 行小文件按架构量化规则 §2.6 合并）
 # 职责：通知(swaync)/portal/视频(mpv)/截图标注(satty)/默认应用(mimeapps)
 # ============================================================
-_:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
+let
+  # 结构化生成器（pkgs.formats）：swaync JSON / xdg-desktop-portal INI
+  jsonFormat = pkgs.formats.json { };
+  iniFormat = pkgs.formats.ini { };
+in
 {
   xdg = {
     configFile = {
       # ---- SwayNC 通知（真毛玻璃，ext-background-effect-v1，niri 26.04 原生支持）----
       # 二进制 swaynotificationcenter 由系统层安装（NixOS 版含 background-blur 支持）
-      "swaync/config.json".text = ''
-        {
-          "$schema": "/etc/xdg/swaync/configSchema.json",
-          "positionX": "right",
-          "positionY": "top",
-          "layer": "overlay",
-          "control-center-layer": "top",
-          "layer-shell": true,
-          "cssPriority": "user",
-          "background-blur": true,
-          "timeout": 8,
-          "control-center-width": 480,
-          "control-center-height": 600,
-          "notification-window-width": 480,
-          "transition-time": 200,
-          "notification-grouping": true,
-          "widgets": ["title", "dnd", "notifications"]
-        }
-      '';
+      # config.json 由 pkgs.formats.json 从 attrset 生成（不再手写 JSON 文本）
+      "swaync/config.json" = {
+        source = jsonFormat.generate "swaync-config.json" {
+          "$schema" = "/etc/xdg/swaync/configSchema.json";
+          positionX = "right";
+          positionY = "top";
+          layer = "overlay";
+          "control-center-layer" = "top";
+          "layer-shell" = true;
+          "cssPriority" = "user";
+          "background-blur" = true;
+          timeout = 8;
+          "control-center-width" = 480;
+          "control-center-height" = 600;
+          "notification-window-width" = 480;
+          "transition-time" = 200;
+          "notification-grouping" = true;
+          widgets = [
+            "title"
+            "dnd"
+            "notifications"
+          ];
+        };
+        force = true; # 覆盖 swaync 首次运行自动生成的默认配置
+      };
       "swaync/style.css".text = ''
         /* Catppuccin Mocha 毛玻璃通知 */
         /* blur 区域圆角联动自 --border-radius 变量 */
@@ -96,25 +112,21 @@ _:
         }
       '';
 
-      # ---- mpv（Vulkan 渲染 + auto-safe 硬解）----
-      "mpv/config".text = ''
-        # 使用 vulkan 后端
-        gpu-api=vulkan
-        # 通用自动模式硬解
-        hwdec=auto-safe
-      '';
-
-      # ---- satty 截图标注 ----
-      # 默认画笔、右键直接保存到剪贴板、缩放 1.1、Noto Sans CJK SC + 中文回退字体
-      "satty/config.toml" = {
-        source = ../../source/beautify/satty/config.toml;
-        force = true; # 覆盖原作者旧配置
-      };
-
       # ---- mimeapps 默认应用（原 filemanager.nix）----
       # 图片→imv、视频→mpv、文本→nvim、目录→nautilus、网页→firefox
       # mimeApps 会自动生成 ~/.config/mimeapps.list 与
       # ~/.local/share/applications/mimeapps.list（无需手动 force）
+    };
+    # ---- TomaToDo 菜单入口（2026-08-29）----
+    # 🔴 tomatodo 已移出本仓库（仓库纯净）：由独立 flake 装进用户 profile
+    #    （nix profile install path:~/Documents/tomatodo-nix），此处仅引用其 profile 路径
+    desktopEntries.tomatodo = {
+      name = "TomaToDo";
+      genericName = "番茄ToDo";
+      comment = "番茄ToDo - 待办与番茄钟计时应用";
+      exec = "${config.home.homeDirectory}/.nix-profile/bin/tomatodo %U";
+      terminal = false;
+      categories = [ "Utility" ];
     };
     mimeApps = {
       enable = true;
@@ -150,14 +162,64 @@ _:
 
   # ---- xdg-desktop-portal（原 portal.nix）----
   # 截屏/录屏走 gnome portal、文件选择器用 gtk（修复屏幕分享/录屏）
-  xdg.configFile."xdg-desktop-portal/niri-portals.conf".text = ''
-    [preferred]
-    default=gnome;gtk;
-    org.freedesktop.impl.portal.Access=gtk;
-    org.freedesktop.impl.portal.Notification=gtk;
-    org.freedesktop.impl.portal.FileChooser=gtk;
-    org.freedesktop.impl.portal.Secret=gnome-keyring;
-    org.freedesktop.impl.portal.ScreenCast=gnome
-    org.freedesktop.impl.portal.Screenshot=gnome
+  # niri-portals.conf 由 pkgs.formats.ini 从 attrset 生成（值含分号分隔符，逐项保留）
+  xdg.configFile."xdg-desktop-portal/niri-portals.conf" = {
+    source = iniFormat.generate "niri-portals.conf" {
+      preferred = {
+        default = "gnome;gtk;";
+        "org.freedesktop.impl.portal.Access" = "gtk;";
+        "org.freedesktop.impl.portal.Notification" = "gtk;";
+        "org.freedesktop.impl.portal.FileChooser" = "gtk;";
+        "org.freedesktop.impl.portal.Secret" = "gnome-keyring;";
+        "org.freedesktop.impl.portal.ScreenCast" = "gnome";
+        "org.freedesktop.impl.portal.Screenshot" = "gnome";
+      };
+    };
+  };
+
+  # ---- 迁移清理（2026-08-28）：删除旧 xdg.configFile "mpv/config" 部署的 config ----
+  # 旧条目写入 ~/.config/mpv/config；programs.mpv 模块写入 mpv.conf（mpv 主配置名），
+  # 旧 config 不再被读取，GC 后为悬空链接
+  home.activation.cleanStaleMpvConfig = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+    if [ -L "$HOME/.config/mpv/config" ]; then
+      $DRY_RUN_CMD rm "$HOME/.config/mpv/config"
+    fi
   '';
+
+  # ---- mpv（官方模块 programs.mpv，Vulkan 渲染 + auto-safe 硬解）----
+  # 二进制 mpv 由系统层安装（packages.nix）；模块将 mpv.conf 以 key=value 序列化，
+  # 字符串原样输出不加引号、布尔转 yes/no（HM 模块实现，见 mpv.nix renderOptionValue）
+  programs.mpv = {
+    enable = true;
+    config = {
+      "gpu-api" = "vulkan"; # Vulkan 渲染后端
+      hwdec = "auto-safe"; # 通用自动模式硬解
+    };
+  };
+
+  # ---- satty 截图标注（官方模块 programs.satty，settings 为 TOML 生成器）----
+  # 默认画笔、右键直接保存到剪贴板、缩放 1.1、Noto Sans CJK SC + 中文回退字体
+  # 注：2026-08-29 起模块自装 satty 二进制（package 默认），系统层不再安装
+  programs.satty = {
+    enable = true;
+    settings = {
+      general = {
+        "copy-command" = "wl-copy";
+        "focus-toggles-toolbars" = true;
+        "initial-tool" = "brush";
+        "zoom-factor" = 1.1;
+        "actions-on-right-click" = [ "save-to-clipboard" ];
+      };
+      font = {
+        family = "Noto Sans CJK SC";
+        style = "Regular";
+        fallback = [
+          "Noto Sans CJK SC"
+          "Noto Sans CJK JP"
+          "Noto Sans CJK TC"
+          "Noto Sans CJK KR"
+        ];
+      };
+    };
+  };
 }

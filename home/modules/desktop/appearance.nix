@@ -1,12 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 let
-  # fastfetch 配置文件模板：部署时把 logo 占位符替换为 Nix 路径引用的 store 路径。
+  # fastfetch logo：store 路径引用（见下方 programs.fastfetch 注释）
   # 🔴 不用相对路径：fastfetch 的 source 相对路径按 cwd 解析，从其他目录运行会
   #    "Failed to resolve logo source" → 回退内置 ASCII logo。
   #    `${../../source/...}` 在 Nix 求值时自动转为 /nix/store/... 绝对路径，
   #    不依赖用户名/home 目录，迁移或换用户也不用改。
-  fastfetchConfig = builtins.readFile ../../source/beautify/fastfetch/config.jsonc;
   logoPath = toString ../../source/beautify/fastfetch/nixos-logo.png;
 in
 {
@@ -16,24 +15,148 @@ in
   # ============================================================
 
   xdg.configFile = {
-    # ---- 1. fastfetch 定制系统信息面板 ----
-    # 效果：终端启动时显示彩色键名的树状信息面板（OS/KER/PAK/AGE/USR/WM/DES/SHE/TER/PC/CPU/MEM/SWP/GPU/MON/DIS）
-    # logo：kitty-direct 原生协议渲染官方 NixOS 彩色雪花（store 路径注入，见上方 let）
-    "fastfetch/config.jsonc" = {
-      text = builtins.replaceStrings [ "@NIXOS_LOGO_PATH@" ] [ logoPath ] fastfetchConfig;
-      force = true; # 覆盖原作者旧配置
-    };
-    "fastfetch/nixos-logo.png" = {
-      source = ../../source/beautify/fastfetch/nixos-logo.png;
-      force = true;
-    };
-
     # ---- 2. fontconfig 字体渲染 ----
     # 效果：全局抗锯齿 + hintslight 微调 + 中文回退（Noto Sans CJK SC）
     # 字体分工：终端 Maple Mono（kitty 显式指定）、等宽代码 JetBrainsMono、UI/中文 Noto Sans CJK SC
+    # （fontconfig 无结构化模块接口，fonts.conf 保留 source 文件声明）
     "fontconfig/fonts.conf" = {
       source = ../../source/beautify/fontconfig/fonts.conf;
       force = true; # 覆盖原作者旧配置
+    };
+  };
+
+  # ---- 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png ----
+  # 旧 config.jsonc 引用 ~/.config/fastfetch/nixos-logo.png；新 settings.logo.source
+  # 直接引用 store 路径（logoPath），此文件不再被引用，GC 后为悬空链接
+  home.activation.cleanStaleFastfetchLogo = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+    if [ -L "$HOME/.config/fastfetch/nixos-logo.png" ]; then
+      $DRY_RUN_CMD rm "$HOME/.config/fastfetch/nixos-logo.png"
+    fi
+  '';
+
+  # ---- 1. fastfetch 定制系统信息面板（官方模块 programs.fastfetch）----
+  # 效果：终端启动时显示彩色键名的树状信息面板（OS/KER/PAK/AGE/USR/WM/DES/SHE/TER/PC/CPU/MEM/SWP/GPU/MON/DIS）
+  # logo：kitty-direct 原生协议渲染官方 NixOS 彩色雪花（settings.logo.source 直接引用 store 路径）
+  # 说明：原 config.jsonc 手写文本（含 @NIXOS_LOGO_PATH@ 占位符注入）迁移为
+  #   settings attrset（jsonFormat 生成），占位符机制不再需要；模块同时安装 fastfetch 二进制
+  #   （原配置因未安装 fastfetch 实际未生效，fish.nix 的 type -q 守卫已备好）
+  programs.fastfetch = {
+    enable = true;
+    settings = {
+      logo = {
+        type = "kitty-direct"; # kitty 原生图片协议(24bit)，比 sixel 锐利无抖动
+        source = logoPath; # 官方彩色雪花（store 绝对路径）
+        width = 34; # 宽度 34：图片约 16 行高，匹配右侧完整文本(15 行信息)高度
+        padding = {
+          top = 3; # logo 上移 1 行
+          left = 1;
+          right = 1;
+        };
+      };
+      display = {
+        separator = " "; # 键与值之间分隔符
+        color = {
+          title = "#bfc9c3"; # Title color 主机名的颜色
+          output = "#bfc9c3";
+        };
+      };
+      modules = [
+        "break"
+        {
+          type = "os";
+          key = "OS";
+          keyColor = "#88d6bb";
+        }
+        {
+          type = "kernel";
+          key = " ├  KER ";
+          keyColor = "#88d6bb";
+        }
+        {
+          type = "packages";
+          key = " ├  PAK ";
+          format = "{all}";
+          keyColor = "#88d6bb";
+        }
+        {
+          type = "command";
+          key = " ├  AGE ";
+          text = "birth_install=$(stat -c %W / 2>/dev/null || stat -f %B /); current=$(date +%s); days_difference=$(( (current - birth_install) / 86400 )); echo $days_difference days";
+          keyColor = "#88d6bb";
+        }
+        {
+          type = "title";
+          key = " └  USR ";
+          keyColor = "#88d6bb";
+        }
+        "break"
+        {
+          type = "wm";
+          key = "WM";
+          keyColor = "#a8cbe2";
+        }
+        {
+          type = "de";
+          key = " ├  DES ";
+          keyColor = "#a8cbe2";
+        }
+        {
+          type = "shell";
+          key = " ├  SHE ";
+          keyColor = "#a8cbe2";
+        }
+        {
+          type = "terminal";
+          key = " ├  TER ";
+          keyColor = "#a8cbe2";
+        }
+        {
+          type = "terminalfont";
+          key = " └  TFO ";
+          keyColor = "#a8cbe2";
+        }
+        "break"
+        {
+          type = "host";
+          key = "PC ";
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "cpu";
+          key = " ├  CPU ";
+          format = "{1} @ {7}"; # 完整型号 + 睿频（不截断内容）
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "memory";
+          key = " ├  MEM ";
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "swap";
+          key = " ├  SWP ";
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "gpu";
+          key = " ├  GPU ";
+          format = "{1} {2}"; # 完整 GPU 型号（不截断）
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "monitor";
+          key = " ├  MON ";
+          format = "{width}x{height}@{refresh-rate}"; # 分辨率 + 刷新率
+          keyColor = "#cee9dd";
+        }
+        {
+          type = "disk";
+          key = " └  DIS ";
+          keyColor = "#cee9dd";
+        }
+        "break"
+        "colors"
+      ];
     };
   };
 
@@ -68,7 +191,7 @@ in
   };
 
   # ---- 3b. QT 全局主题（Qt6 应用跟随 GTK 主题）----
-  # niri 环境变量已设 QT_QPA_PLATFORMTHEME=gtk3（source/niri/config.kdl），
+  # niri 环境变量已设 QT_QPA_PLATFORMTHEME=gtk3（niri.nix 的 settings.environment），
   # 这里声明式补全 Qt6 的 platformTheme，纯 Qt6 应用（如部分 KDE 系工具）也能跟主题。
   # 注意：platformTheme.name = "gtk3" 是原生 Qt GTK3 插件（新版 HM 的 "gtk" 已弃用）
   qt = {

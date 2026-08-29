@@ -88,9 +88,9 @@
 3. **系统层 Qt（第三层——DMS Spotlight 原皮真根因）** `modules/locale.nix`：
    - `environment.sessionVariables.QT_IM_MODULES = "wayland;fcitx";`
      - 用户按 Mod+P 唤起的 **DMS Spotlight = quickshell = Qt6 应用**，由 **systemd user
-       服务**启动，**只继承登录会话环境**——niri config.kdl 的 environment 块
+       服务**启动，**只继承登录会话环境**——niri.nix 的 settings.environment 块
        **喂不到它**（niri 官方 wiki《Application-Specific Issues》原文）。
-     - 此前 `QT_IM_MODULES="wayland;fcitx"` 只写在 niri config.kdl（合成器 spawn 层），
+     - 此前 `QT_IM_MODULES="wayland;fcitx"` 只写在 niri.nix（settings.environment，合成器 spawn 层），
        系统层只有 `QT_IM_MODULE=fcitx` → Qt6 加载 fcitx-qt IM 模块 → **应用内嵌
        候选框**（不经合成器 text-input-v3 → classicui 浮窗）→ 原皮。
      - `QT_IM_MODULES`（Qt 6.7+ 官方变量）放系统层后：合成器 text-input-v3 优先
