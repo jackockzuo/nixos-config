@@ -16,7 +16,9 @@
 ## 环境
 
 - niri 26.04（支持 ext-background-effect）、kitty 0.48.2（支持 blur ≥0.46.2）
-- niri 配置由 home-manager 管理（config.kdl 拆分 + 各 include 片段，`force = true`）
+- niri 配置由 home-manager 的 `wayland.windowManager.niri` 模块生成
+  （2026-08-28 起：settings attrset → 单文件 config.kdl，构建期 `niri validate` 校验，
+  部署为 store 只读 symlink；事故发生时仍是"拆分 include + force=true"旧架构）
 - DMS（DankMaterialShell）greeter 配置了 `configHome = "/home/ran"`（同步用户 DMS 设置到 greeter）
 
 ## 排查过程（时间线 + 关键证据）
@@ -40,15 +42,19 @@ niri 的 `config.kdl` 被某进程（无用户会话期间）覆盖为**默认�
 1. 从 HM store 恢复 config.kdl 原版（8676 字节，含全部 include）；
 2. 恢复为 **store 只读 symlink**（目标只读，open-for-write 类误写会失败；之前被"mv symlink → .bak + 新建文件"绕过）；
 3. 清理残留的 `config.kdl.bak`；
-4. **自愈机制**：每次 `nixos-rebuild switch`，HM `force = true` 重新部署整个 `~/.config/niri`，被覆盖自动复原。
+4. **自愈机制**：每次 `nixos-rebuild switch`，HM 重新部署 `~/.config/niri`，被覆盖自动复原。
+5. **2026-08-28 架构升级**：config.kdl 改为 `wayland.windowManager.niri` 模块生成
+   （单文件 + 构建期 `niri validate`），毛玻璃规则内联进 settings（不再有 include 可丢）；
+   "被覆盖成默认模板" 的故障形态变为"整文件被替换"——HM 自愈机制不变。
 
-验证：`head -20 ~/.config/niri/config.kdl` 应看到 `include "blur.kdl"`；重启 niri 会话后毛玻璃恢复。
+验证：`head -5 ~/.config/niri/config.kdl` 应看到 home-manager 生成头注释（Automatically generated…）；
+重启 niri 会话后毛玻璃恢复。
 
 ## 恢复流程（一条命令）
 
 ```bash
 # 从当前部署的 HM files 恢复（路径随构建变化，用 readlink 定位）
-HMF=$(readlink ~/.config/niri/blur.kdl | sed 's|/blur.kdl$||')
+HMF=$(readlink ~/.config/niri/config.kdl | sed 's|/config.kdl$||')
 rm -f ~/.config/niri/config.kdl ~/.config/niri/config.kdl.bak
 ln -s "$HMF/config.kdl" ~/.config/niri/config.kdl
 niri msg action quit   # 重启 niri 会话生效
@@ -56,7 +62,7 @@ niri msg action quit   # 重启 niri 会话生效
 
 ## 经验教训（防再犯）
 
-1. **窗口特效"配置文件正常但效果没了" → 先查合成器配置**（niri config.kdl 是否被覆盖、include 是否还在）；
+1. **窗口特效"配置文件正常但效果没了" → 先查合成器配置**（niri config.kdl 是否被覆盖、内容是否还是模块生成版）；
 2. **HM 管理的文件从 symlink 变成真实文件 = 被外部覆盖的信号**（对比 `ls -la` 与 store 原版）；
 3. 排查覆盖者：先查时间窗口内有哪些进程有写权限（用户会话？root 服务？greeter？），再对照各组件源码的写路径。
 

@@ -33,6 +33,12 @@
         "flakes"
       ];
       auto-optimise-store = true;
+      # 🔴 防止 GC 误伤（2026-08-29 事故）：--no-link 构建的 toplevel 无 gc root，
+      #    自动 GC 清掉后 switch 需重新下载（曾撞 nyx 缓存网络故障）。
+      #    keep-outputs 保留构建产物；min-free/max-free 磁盘将满自动提前清理
+      keep-outputs = true;
+      min-free = "2G"; # 剩余 <2G 时自动触发 GC
+      max-free = "8G"; # GC 清理到剩 8G 为止
       # 🔴 GitHub token 不在本文件：由 modules/secrets.nix 的 sops 模板
       #    （NIX_CONFIG env file）注入 nix-daemon 的 access-tokens
     };

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # =================配置区域=================
-SOUND="/usr/share/sounds/freedesktop/stereo/camera-shutter.oga"
+# NixOS 无 /usr/share：系统包统一链接到 /run/current-system/sw/share
+SOUND="/run/current-system/sw/share/sounds/freedesktop/stereo/camera-shutter.oga"
 # 这是一个“扳机”文件，存于内存中 (/dev/shm)，读写极快
 TRIGGER_FILE="/dev/shm/niri_screenshot_armed"
 # 有效期：按下截图键后，多少秒内产生了图片才响？(防止你取消截图后，下次复制图片误响)

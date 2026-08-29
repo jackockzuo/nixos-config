@@ -3,7 +3,7 @@
 # 职责：用户专属会话变量（Wayland/桌面/工具链）的唯一落点
 # ⚠️ 输入法变量（QT_IM_MODULE/XMODIFIERS/SDL_IM_MODULE/GLFW_IM_MODULE）
 #    与 NIXOS_OZONE_WL 不在此重复：单一来源 = 系统层 modules/locale.nix
-#    （会话作用域）+ home/source/niri/config.kdl（合成器作用域），
+#    （会话作用域）+ home/modules/desktop/niri.nix 的 settings.environment（合成器作用域），
 #    双作用域为 fcitx/niri 官方推荐（见 STANDARDS §4）
 # ============================================================
 _:

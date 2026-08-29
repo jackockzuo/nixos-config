@@ -35,12 +35,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # 用户级配置已并入本仓库（home/ 目录），不再单独引用外部仓库
-    # 肥猫云_Lite 打包目录（仓库外 ~/Documents/nix-packaging/，保持本仓库纯净）
-    # path 输入不受"纯求值禁止仓库外绝对路径"限制，flake.lock 会记录路径
-    fcclientPkg = {
-      url = "path:/home/ran/Documents/nix-packaging/fcclient";
-      flake = false; # 纯源文件目录（default.nix + .deb），不当作独立 flake
-    };
+    # 🔴 私有包（fcclient/tomatodo）2026-08-29 起完全移出本仓库：
+    #    不再有 path 输入 / overlay / 引用，仓库纯净化（CI 无需占位包，任意机器可 eval）。
+    #    安装改由独立 flake + 用户 profile：
+    #      nix profile install path:~/Documents/nix-packaging/fcclient
+    #      nix profile install path:~/Documents/tomatodo-nix
     # 🔴 GitHub token 已迁移至 sops-nix（secrets/secrets.yaml 加密，见 modules/secrets.nix），
     #    原仓库外 secrets path 输入已删除（token 不再明文进 /nix/store）
 
@@ -71,7 +70,7 @@
       ];
 
       # ---- 按系统：包 / 格式化 / 提交检查（见 STANDARDS.md §6）----
-      # 注：函数体内用到的 `inputs`（如 fcclientPkg）是顶层闭包捕获，非 perSystem 参数
+      # 注：函数体内用到的 `inputs`（如 omencore）是顶层闭包捕获，非 perSystem 参数
       perSystem =
         { system, pkgs, ... }:
         {
@@ -110,14 +109,11 @@
           };
 
           # ---- 按需运行的包（nix run .#xxx，不装进系统，不进 systemPackages）----
-          # fcclient：包定义在仓库外 ~/Documents/nix-packaging/fcclient，经 path 输入引入
-          #   🔴 CI 处理：GitHub Actions 无此目录，CI 用 --override-input fcclientPkg
-          #      指向仓库内 .ci/fcclient-placeholder（仅 eval 用占位，见 ci.yml）
-          #   ⚠️ 勿用 builtins.pathExists 条件化（纯求值下恒 false，包会消失）
-          #  omencore / omencore-update：见 packages/ 下各自 package.nix
-          #  pi-coding-agent：nixpkgs 已有（跟随 nixos-unstable 滚动），直接 pkgs.pi-coding-agent
+          # 🔴 fcclient/tomatodo 已移出本仓库（2026-08-29，见输入区注释）：
+          #    由独立 flake + 用户 profile 管理，此处不再打包
+          # omencore / omencore-update：见 packages/ 下各自 package.nix
+          # pi-coding-agent：nixpkgs 已有（跟随 nixos-unstable 滚动），直接 pkgs.pi-coding-agent
           packages = {
-            fcclient = pkgs.callPackage inputs.fcclientPkg { };
 
             # 🔴 omencore（HP OMEN 控制中心：CLI + GUI）：nixpkgs 无此包 → 官方 release
             #    self-contained 二进制打包（.NET 8 + Avalonia，源码编译过重）。
@@ -206,6 +202,12 @@
                 # i18n.inputMethod——NixOS 上系统层已管理，设 true 让 HM 跳过，避免双份配置
                 useGlobalPkgs = true;
                 useUserPackages = true;
+                # 🔴 VS Code 竞态防线（2026-08-29）：programs.vscode 的 settings.json 是
+                #    store 只读 symlink，但 VS Code 运行时把配置加载进内存、关闭时写回真实
+                #    文件（HM 模块文档警告的已知行为）→ 下次激活 checkLinkTargets 会报
+                #    "would be clobbered" 失败。backupFileExtension 让 HM 自动备份冲突文件
+                #    再覆盖（旧文件保留为 *.hm-bak），激活永不因 VS Code 写回而中断。
+                backupFileExtension = "hm-bak";
                 # 🔴 修复：HM 在开机早期（system service，Before=systemd-user-sessions）激活时，
                 # hm-setup-env 会临时拉起 dbus-daemon 抢占 /run/user/1000/bus，
                 # 导致真正的 dbus-broker 启动失败 → 用户 systemd --user 无 DBus →

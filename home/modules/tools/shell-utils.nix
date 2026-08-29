@@ -3,8 +3,13 @@
 # 职责：历史搜索(atuin) / 增强 cat(bat) / 模糊查找(fzf) / 仓库面板(onefetch) / 智能 cd(zoxide)
 # 注释约定：fish 集成统一用 type -q 守卫（容器兼容，见 troubleshooting 档）
 # ============================================================
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
+let
+  # 结构化生成器：onefetch 无 HM 模块（已核对），用 pkgs.formats.yaml 把纯数据配置
+  # 转为 nix attrset 生成，不再手写 YAML 文本
+  yamlFormat = pkgs.formats.yaml { };
+in
 {
   programs = {
     # ---- atuin：终端历史搜索（SQLite + TUI，接管 Ctrl-R / ↑）----
@@ -87,28 +92,30 @@
   };
 
   # ---- onefetch：git 仓库信息面板（Catppuccin Mocha）----
-  # 无 HM 模块（已核对），xdg.configFile 即正确做法
-  xdg.configFile."onefetch/config.yml".text = ''
-    # Catppuccin Mocha
-    color:
-      title: "#cba6f7"
-      diagonal: "#313244"
-      underscores: "#313244"
-      punctuation: "#a6adc8"
-      description: "#cdd6f4"
-      info: "#89b4fa"
-      hash: "#f5c2e7"
-      author: "#a6e3a1"
-      email: "#94e2d5"
-      branch: "#fab387"
-      language: "#cdd6f4"
-      languages: "#cdd6f4"
-      license: "#cdd6f4"
-      commits: "#f9e2af"
-      performers: "#cdd6f4"
-      statistics: "#cdd6f4"
-      style: "#cdd6f4"
-      all_commits: "#cdd6f4"
-      block: "#cdd6f4"
-  '';
+  # 无 HM 模块（已核对），pkgs.formats.yaml 生成器即 nix 接口化做法（纯颜色数据）
+  xdg.configFile."onefetch/config.yml" = {
+    source = yamlFormat.generate "onefetch-config.yml" {
+      color = {
+        title = "#cba6f7";
+        diagonal = "#313244";
+        underscores = "#313244";
+        punctuation = "#a6adc8";
+        description = "#cdd6f4";
+        info = "#89b4fa";
+        hash = "#f5c2e7";
+        author = "#a6e3a1";
+        email = "#94e2d5";
+        branch = "#fab387";
+        language = "#cdd6f4";
+        languages = "#cdd6f4";
+        license = "#cdd6f4";
+        commits = "#f9e2af";
+        performers = "#cdd6f4";
+        statistics = "#cdd6f4";
+        style = "#cdd6f4";
+        all_commits = "#cdd6f4";
+        block = "#cdd6f4";
+      };
+    };
+  };
 }

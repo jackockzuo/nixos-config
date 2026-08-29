@@ -55,6 +55,11 @@
     dconf.enable = true;
   };
 
+  # ============ hyprlock 锁屏 PAM 认证 ============
+  # hyprlock 解锁需要 PAM 服务（home-manager 安装的包不会自动配置），
+  # 缺失时锁屏后无法认证解锁（配置见 home/modules/desktop/hyprlock.nix）
+  security.pam.services.hyprlock = { };
+
   # 独立 greeter 系统用户（greetd 标准做法）：登录界面以最小权限运行，
   # 用户认证通过后才以目标用户（ran）启动桌面会话。
   # 参考 DMS greeter 模块测试（distro/nix/tests/greeter-niri-module.nix）

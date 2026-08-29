@@ -32,12 +32,14 @@
 - `modules/` = 系统级（需要 root/常驻服务/全局 PATH）；`home/` = 用户级（配置/会话环境）。职责不颠倒。
 - 一目录一领域、一文件一关注点；`default.nix` 只做 imports（每行带职责注释 = 定位地图）。
 - 新增配置 → 领域内新建文件 + 所在目录 `default.nix` 的 imports 加一行；**不留空壳文件**（预留 = 注释一行，用时取消注释）。
+- 桌面合成器配置 = `home/modules/desktop/niri*.nix`（`wayland.windowManager.niri` 模块的 settings/binds/_children），**禁止手写 kdl**（2026-08-28 迁移，构建期 `niri validate` 兜底）。
 - 真实事故记录进 `docs/troubleshooting/`（有事故才写，不预写）。
 
 ### 架构量化规则（平衡：快速定位 / 不杂乱 / 文件不长）
 
 1. **一文件 = 一领域**；单文件 **40–200 行**——<40 行的同领域小文件合并进领域文件；>200 行在领域内再拆。
-   - 💡 **豁免**：配置密集的领域主体文件（如 starship 提示符模块集、neovim initLua）允许 ≤300 行——强拆会破坏"一工具一文件"直觉、反而增加认知负担（本仓库实测 starship 299 / neovim 249）。
+   - 💡 **豁免一（配置密集）**：配置密集的领域主体文件（如 starship 提示符模块集、neovim initLua）允许 ≤300 行——强拆会破坏"一工具一文件"直觉、反而增加认知负担（本仓库实测 starship 299 / neovim 249）。
+   - 💡 **豁免二（纯数据声明）**：声明式规则/键位表（如 niri 窗口规则 niri-rules.nix 698 行、键位 niri-binds.nix 324 行）**不设行数上限**——这类文件是"顺序即语义"的匹配列表，机械拆分（按 app-id 分段）会割裂可读性、破坏顺序可追踪性；行数增长只来自数据条目，不增加认知复杂度（2026-08-28 实测：强行拆分得不偿失，已在 STANDARDS 记录）。
 2. **目录 ≤2 层**；聚合链固定为「flake → 目录 default.nix → 文件」。
 3. **一个目录文件数 ≤16**（一屏可扫完）。
 4. **无预留空壳、无开关矩阵**（options 矩阵一律不建；需要时直接写配置）。
@@ -64,7 +66,7 @@
   因此合成器作用域与系统会话作用域**两者都需要，缺一不可**——这正是本仓库保留两处的原因。
 - 落点固定：
   1. **系统会话作用域** → `modules/locale.nix` 的 `environment.sessionVariables`（统一收 XMODIFIERS / QT_IM_MODULE / SDL_IM_MODULE / GLFW_IM_MODULE）。
-  2. **合成器作用域** → `home/source/niri/config.kdl` 的 `environment` 块。
+  2. **合成器作用域** → `home/modules/desktop/niri.nix` 的 `settings.environment`（原 home/source/niri/config.kdl，2026-08-28 迁移入 niri 模块）。
   3. `home.sessionVariables` **不重复** IM 变量（与 /etc/profile 作用域重叠），只留用户专属变量。
 - 🔴 **GTK 输入法只有一条正路（2026-08-21 事故教训）**：Wayland 原生 GTK3/4 走合成器
   text-input-v3，因此 **GTK3/GTK4 任何形式都不设 im-module**——既不放
@@ -77,12 +79,12 @@
   XWayland GTK3 由 GTK3 内建 XIM 兜底（XMODIFIERS 已设）。完整事故链见
   docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md。
 - 🔴 **Qt 输入法双通道（2026-08-21 DMS Spotlight 原皮真根因）**：Qt6 Wayland 应用
-  （quickshell 等 systemd user 服务启动的）**只继承系统会话环境**，niri config.kdl
-  的 environment 块喂不到它（niri 官方 wiki）——因此 `QT_IM_MODULES = "wayland;fcitx"`
+  （quickshell 等 systemd user 服务启动的）**只继承系统会话环境**，niri 的
+  environment 块喂不到它（niri 官方 wiki）——因此 `QT_IM_MODULES = "wayland;fcitx"`
   （Qt 6.7+ 官方变量，合成器 text-input-v3 优先 → classicui 主题生效）**必须放系统层**
   `modules/locale.nix`；`QT_IM_MODULE = "fcitx"` 仅兜底 Qt4/5。缺 `QT_IM_MODULES`
-  时 Qt6 强制走 fcitx-qt 应用内嵌候选框=原皮（本次事故）。niri config.kdl 的
-  `QT_IM_MODULES` 保留为合成器 spawn 层。
+  时 Qt6 强制走 fcitx-qt 应用内嵌候选框=原皮（本次事故）。niri.nix 的
+  `settings.environment.QT_IM_MODULES` 保留为合成器 spawn 层。
 - 改动 IM 变量时两处同步改（§10 checklist 第 5 项兜底）。
 
 ---
