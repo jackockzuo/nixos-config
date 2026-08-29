@@ -42,6 +42,9 @@ in
         # 🎨 GRUB 主题：catppuccin-mocha 风格 + NixOS 雪花 logo（logo 已替换，
         # 主题文件在仓库 assets/grub-theme/，由 NixOS 声明式管理，不再手装）
         theme = ../assets/grub-theme;
+        # 🔴 菜单只保留最近 10 代：当前 grub.cfg 41 个 menuentry（39 代系统）
+        #    → 菜单巨长 + 配置文件膨胀；10 代足够回滚（配合 snapper 快照体系）
+        configurationLimit = 10;
       };
     };
 

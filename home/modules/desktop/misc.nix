@@ -128,6 +128,21 @@ in
       terminal = false;
       categories = [ "Utility" ];
     };
+    # ---- 用户目录（统一英文，2026-08-29 决策）----
+    # 🔴 原 ~/下载（空）与 ~/Documents/Downloads/Pictures 并存（xdg 未声明导致混乱）；
+    #    统一为 xdg 标准英文名，应用保存路径一致（浏览器/截图/下载全部指向同一处）
+    userDirs = {
+      enable = true;
+      createDirectories = true; # 缺失目录自动创建（Desktop/Templates 等）
+      desktop = "Desktop";
+      documents = "Documents";
+      download = "Downloads";
+      music = "Music";
+      pictures = "Pictures";
+      publicShare = "Public";
+      templates = "Templates";
+      videos = "Videos";
+    };
     mimeApps = {
       enable = true;
       defaultApplications = {

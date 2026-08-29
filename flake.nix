@@ -60,6 +60,23 @@
 
   outputs =
     inputs@{ flake-parts, ... }:
+    let
+      # ---- 单一来源聚合（STANDARDS §0.2）----
+      # 主机名/用户名/stateVersion 全仓库唯一定义点（顶层 let，mkFlake 体内均可引用）：
+      #   改这里 → nixosConfigurations 键名、networking.hostName、home-manager users、
+      #   nixd 补全 expr、topgrade/fish 命令全部自动跟随（经 specialArgs 注入）
+      # 用途说明：
+      #   hostname      → flake 配置键名 + networking.hostName + `nixos-rebuild .#<hostname>`
+      #   username      → users.users.<name> + home-manager.users.<name> + home.username
+      #   homeDirectory → 由 /home/username 推导（改用户名自动跟随）
+      #   stateVersion  → home.stateVersion（首次使用值，不随 NixOS 版本升，见 STANDARDS §3）
+      my = rec {
+        hostname = "omen";
+        username = "ran";
+        homeDirectory = "/home/${username}"; # 推导：改 username 自动跟随
+        stateVersion = "24.05";
+      };
+    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       # 单机架构（多主机扩展见 STANDARDS.md §1.2）
       systems = [ "x86_64-linux" ];
@@ -82,6 +99,19 @@
             config = {
               allowUnfree = true;
             };
+          };
+
+          # ---- 开发环境（nix develop / direnv）：写配置的工具链随 flake.lock 锁定 ----
+          # 配合仓库根 .envrc（use flake）：cd ~/nixos-config 或 VS Code 打开仓库自动激活，
+          # 不依赖全局 PATH 的版本漂移（nixd/nixfmt/statix/deadnix 与 CI 同一版本）
+          devShells.default = pkgs.mkShell {
+            packages = [
+              pkgs.nixd # Nix LSP（VS Code nix-ide 与 CLI 共用）
+              pkgs.nixfmt # 格式化（nix fmt 同源）
+              pkgs.statix # 反模式检查（flake check 同源）
+              pkgs.deadnix # 死代码检测（flake check 同源）
+              pkgs.treefmt # treefmt 统一入口（nix fmt 底层）
+            ];
           };
 
           treefmt = {
@@ -148,8 +178,10 @@
         overlays.default = final: _prev: {
           omencore = final.callPackage ./packages/omencore/package.nix { src = inputs.omencore; };
         };
-        nixosConfigurations.omen = inputs.nixpkgs.lib.nixosSystem {
+        nixosConfigurations.${my.hostname} = inputs.nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
+          # 注入 my 聚合（主机名/用户名/stateVersion 单一来源，见顶部定义）
+          specialArgs = { inherit my; };
           modules = [
             ./modules # 系统配置聚合（boot/hardware/network/users/desktop/...）
             ./hardware-configuration.nix # 硬件检测 + fileSystems（nixos-generate-config 产物）
@@ -220,10 +252,12 @@
                 #    无替代修复（#3405 未合并），移除会回归登录失败。勿改！
                 startAsUserService = true;
                 # 🔴 代理地址单一来源注入：HM 模块经 extraSpecialArgs 拿到 config.proxy
+                #  + my 聚合（用户名/主机名/stateVersion 单一来源，与系统层 specialArgs 同源）
                 extraSpecialArgs = {
                   inherit (config) proxy;
+                  inherit my;
                 };
-                users.ran = {
+                users.${my.username} = {
                   # 用户级配置已并入本仓库 home/ 目录（home.nix 的相对 imports 自动解析）
                   imports = [ ./home/home.nix ];
                 };
