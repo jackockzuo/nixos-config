@@ -8,19 +8,20 @@
 # - useGlobalPkgs = true：二进制由系统层管理，HM 只管配置文件
 # - 系统层已管理：nixpkgs.config.allowUnfree / nix.gc
 # - 本模块只保留"用户级"职责，避免与系统层重复
+# - 🔴 用户身份单一来源：flake.nix 顶部 my（username/homeDirectory/stateVersion），
+#   经 extraSpecialArgs 注入，此处只引用
 # ============================================================
 {
   pkgs,
   lib,
+  my,
   ...
 }:
 
 {
-  # ---------- 用户 ----------
+  # ---------- 用户（单一来源 flake.nix 顶部 my，见文件头注释）----------
   home = {
-    username = "ran";
-    homeDirectory = "/home/ran";
-    stateVersion = "24.05";
+    inherit (my) username homeDirectory stateVersion;
   };
 
   programs.home-manager.enable = true;

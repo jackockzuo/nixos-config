@@ -7,6 +7,7 @@
   config,
   lib,
   pkgs,
+  my,
   ...
 }:
 
@@ -98,8 +99,9 @@
           # ② 质量门禁
           "NixOS flake check" = "cd ${config.home.homeDirectory}/nixos-config && nix fmt && nix flake check";
           # ③ 预构建验证 + ④ 确认无误才切换（&& 短路保证）
+          # 🔴 rebuild 前自动 snapper 快照（/ + /home）：改配置翻车可一条命令回滚（snapper rollback/undochange）
           "NixOS rebuild" =
-            "cd ${config.home.homeDirectory}/nixos-config && nix build .#nixosConfigurations.omen.config.system.build.toplevel && sudo nixos-rebuild switch --flake ${config.home.homeDirectory}/nixos-config#omen";
+            "sudo snapper -c root create -t single -d 'nixos-rebuild before' && sudo snapper -c home create -t single -d 'nixos-rebuild before' && cd ${config.home.homeDirectory}/nixos-config && nix build .#nixosConfigurations.${my.hostname}.config.system.build.toplevel && sudo nixos-rebuild switch --flake ${config.home.homeDirectory}/nixos-config#${my.hostname}";
         };
       };
     };
@@ -118,7 +120,7 @@
     # ~/.vscode/extensions 为 store 只读链接，升级走 flake lock，不再手工装扩展。
     # nixd 选项补全（NixOS + Home Manager 双选项集）由 nix-ide 扩展经
     # nix.serverSettings 传给 nixd，expr 用 builtins.getFlake 指向本仓库
-    # （单一来源，见 STANDARDS §0.2），与 `nixos-rebuild switch --flake .#omen` 完全一致。
+    # （单一来源，见 STANDARDS §0.2），与 `nixos-rebuild switch --flake .#${my.hostname}` 完全一致。
     vscode = {
       enable = true;
       # 扩展目录 store 只读（禁止手工装扩展，全部声明式）
@@ -143,6 +145,10 @@
           "git.enableSmartCommit" = true;
 
           # ---- Nix IDE（nixd）----
+          "[nix]" = {
+            # 保存时自动格式化（走 nixd formatting.command = nixfmt，与仓库 `nix fmt` 同源）
+            "editor.formatOnSave" = true;
+          };
           "nix.enableLanguageServer" = true; # 用 nixd LSP（替代旧的 nix-instantiate）
           "nix.serverSettings" = {
             nixd = {
@@ -153,8 +159,9 @@
               # 配置项补全（本机 = nixos-rebuild 集成式 HM，nixd 官方文档 B 方案）：
               # NixOS 选项 + Home Manager 选项两组，输入时自动补全可配置项
               options = {
-                nixos.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.omen.options";
-                home-manager.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.omen.options.home-manager.users.type.getSubOptions []";
+                # 🔴 expr 为字符串但经 nix 插值：改 flake.nix 顶部 my.hostname 自动跟随
+                nixos.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.${my.hostname}.options";
+                home-manager.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.${my.hostname}.options.home-manager.users.type.getSubOptions []";
               };
             };
           };

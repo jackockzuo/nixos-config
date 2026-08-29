@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, my, ... }:
 
 {
   # 1. Fish Shell 基础配置
@@ -111,7 +111,10 @@
     # 简单的 git 缩写直接用字符串值即可（即现代简化形式）；
     # 需要 position / setCursor 等高级特性时才写成 attrset
     shellAbbrs = {
-      nr = "sudo nixos-rebuild switch --flake ~/nixos-config#omen";
+      nr = "sudo snapper -c root create -t single -d nr && sudo snapper -c home create -t single -d nr && sudo nixos-rebuild switch --flake ~/nixos-config#${my.hostname}";
+      # nrd：预览变更（dry-build 构建不切换；dry-run 显示将执行的激活步骤）
+      nrd = "sudo nixos-rebuild dry-run --flake ~/nixos-config#${my.hostname}";
+      nf = "nix fmt"; # 格式化仓库（nixfmt RFC 风格，需在 ~/nixos-config 内）
       gst = "git status";
       ga = "git add";
       gc = "git commit";

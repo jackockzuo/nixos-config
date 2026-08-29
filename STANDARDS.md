@@ -94,6 +94,9 @@
 - fileSystems 由 `hardware-configuration.nix` 管理（by-uuid）——现状，稳定，不折腾。
 - disko 是可选目标：**重新接入顺序 = 重建 `disko.nix`（分区编号/大小/类型与现有盘一致）→ 备份 → `--mode format,mount` 采纳 → 再启用模块**。顺序颠倒会进紧急模式（2026-08-16 实踩）。
 - ⚠️ `.snapshots` 禁止声明为"不挂载"子卷（snapper 会报 IO Error）。
+- 🔴 `.snapshots` 必须是真正的 btrfs 子卷（2026-08-29 实测：普通空目录同样报
+  `IO Error (.snapshots is not a btrfs subvolume)`，timeline/快照全部静默失败）——
+  建子卷：`rmdir /.snapshots /home/.snapshots && sudo btrfs subvolume create /.snapshots /home/.snapshots`。
 
 ---
 
