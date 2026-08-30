@@ -56,7 +56,16 @@
     http_proxy = config.proxy.address;
     https_proxy = config.proxy.address;
     all_proxy = config.proxy.address;
+    # 🔴 Go 模块国内代理（2026-08-30 修复）：nixpkgs buildGoModule 的 go-modules 派生
+    #    impureEnvVars 含 GOPROXY（继承 daemon 环境）→ 这里设置后 Go 构建走 goproxy.cn，
+    #    不再直连 proxy.golang.org（国内 TLS 超时 → sops-install-secrets/DMS 现场编译必失败）
+    GOPROXY = "https://goproxy.cn,direct";
   };
+
+  # 🔴 nix 客户端构建也走 Go 国内代理（nix develop / nix shell 内 buildGoModule 场景）
+  nix.settings.extra-sandbox-paths = [ ];
+  # 客户端侧 GOPROXY：供 nix 单机/本地构建继承（daemon 构建由上方环境变量覆盖）
+  environment.sessionVariables.GOPROXY = "https://goproxy.cn,direct";
 
   # ============ Chaotic-Nyx（CachyOS 高性能包生态）============
   chaotic.nyx = {

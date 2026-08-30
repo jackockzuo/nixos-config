@@ -94,6 +94,8 @@ sudo omencore-cli perf --mode performance --power-limit 5   # 写 EC 0xBA=5
 
 ## 遗留事项（TODO）
 
-- [ ] **0x95 性能模式寄存器**：本板（8BAB）未验证，当前服务不写（避免副作用）；如后续发现性能档切换异常可再实测。
+- [ ] **0x95 性能模式寄存器**：🔴 2026-08-30 已实证有效（0x30=default→0x31=performance，写入后满载 2.16→2.44GHz），
+  **但完整生效必须走 `omencore-cli perf` 的 platform_profile 后端**（3.44GHz，见 2026-08-30 事故档）；
+  仅手动写 0x95/0xBA 两个寄存器只触发部分效果（固件性能模式是多寄存器协同序列）。
 - [ ] **96°C 满载是解锁后的常态**：散热在 TjMax(100°C) 内且稳态不涨；想降温可把 `omen-power-unlock` 里的 0xBA 从 5 降到 3/4，或 RAPL PL1 从 115W 调低。
 - [ ] **GPU 遥测 unavailable**：混合显卡 dGPU 休眠时无 hwmon 温度源（`nvidia-smi` 可用，49°C），非缺陷。

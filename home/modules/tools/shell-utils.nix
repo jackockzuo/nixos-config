@@ -42,7 +42,9 @@ in
     bat = {
       enable = true;
       config = {
-        theme = "Catppuccin-Mocha"; # bat >= 0.24 内置，无需下载
+        # 🔴 主题名必须带空格（bat 内置名大小写敏感）：Catppuccin Mocha，
+        #    写 Catppuccin-Mocha 会找不到主题回退默认（2026-08-30 修复）
+        theme = "Catppuccin Mocha";
         paging = "never"; # 不分页直接输出
       };
     };

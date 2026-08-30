@@ -38,12 +38,9 @@ in
           # 配套：EPP 从 performance（TLP 默认）降到 balance_performance，
           # 轻负载时不再顶高频（防残留啸叫），重负载睿频不受影响
           CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
-          # 🔴 解除 AC 插电功耗墙（13900HX 缩缸防护确认：满载仅 68°C，
-          #    余量 30°C，解除安全）。PL1=115W（长时全核）/ PL2=157W（短时睿频）
-          #    为 13900HX 官方建议上限；电池模式不设 PL（TLP 默认保守省电）。
-          # 🎯 [OMEN] 本机散热验证过的值——他机复制需先实测满载温度
-          PL1_LIMIT_AC = "115";
-          PL2_LIMIT_AC = "157";
+          # 🔴 PL1/PL2 不在 TLP 设置（2026-08-30 实证）：platform_profile=performance 时
+          #    固件强制 PL1=130W（写 115W 被覆盖回 130W），TLP 的 PL 配置是无效摆设；
+          #    真实功耗墙由 omen-power-unlock 的 omencore-cli perf 固件序列决定。
         };
       };
       power-profiles-daemon.enable = false;

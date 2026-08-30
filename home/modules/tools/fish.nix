@@ -111,10 +111,11 @@
     # 简单的 git 缩写直接用字符串值即可（即现代简化形式）；
     # 需要 position / setCursor 等高级特性时才写成 attrset
     shellAbbrs = {
+      # ── NixOS 高频 ──
       nr = "sudo snapper -c root create -t single -d nr && sudo snapper -c home create -t single -d nr && sudo nixos-rebuild switch --flake ~/nixos-config#${my.hostname}";
-      # nrd：预览变更（dry-build 构建不切换；dry-run 显示将执行的激活步骤）
-      nrd = "sudo nixos-rebuild dry-run --flake ~/nixos-config#${my.hostname}";
-      nf = "nix fmt"; # 格式化仓库（nixfmt RFC 风格，需在 ~/nixos-config 内）
+      tg = "topgrade"; # 一键更新链（flake update + 检查 + 预构建切换）
+
+      # ── git 高频 ──
       gst = "git status";
       ga = "git add";
       gc = "git commit";
@@ -122,7 +123,14 @@
       gpl = "git pull";
       gl = "git log --oneline --graph";
       gd = "git diff";
-      tl = "tldr";
+
+      # ── 目录导航（极高频）──
+      ".." = "cd ..";
+      "..." = "cd ../..";
+
+      # ── 终端高频 ──
+      ll = "eza -l --icons=auto --git"; # 长格式列表（替代原 la 函数）
+      clip = "wl-copy"; # 剪贴板（配合 cliphist）
     };
 
     # ⚙️ fish 自动加载函数（官方模块 programs.fish.functions → ~/.config/fish/functions/）
@@ -142,12 +150,69 @@
       # y (yazi 退出后 cd 回目录)：🔴 由 yazi.nix 模块的 fish 集成生成（默认开启，
       # 内容更现代：command yazi 写法）——此处不重复定义，避免同名函数体合并冲突
 
-      lt = ''
-        command eza --icons=auto --tree --git -- $argv
+      # ============ 性能诊断/切换（13900HX 功耗墙体系）============
+      # 原理速查：解锁链路 = omencore-cli perf（hp-wmi platform_profile 固件序列）
+      #   → 固件强制 PL1≈130W → 满载 ~3.4GHz。governor/EPP 只影响轻载（8-25 啸叫修复）。
+
+      # perf-status：查看性能状态（只读，无副作用）
+      perf-status = ''
+        set -l gov (cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)
+        set -l epp (cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null)
+        set -l pp (cat /sys/firmware/acpi/platform_profile 2>/dev/null)
+        set -l pl1 (cat /sys/class/powercap/intel-rapl:0/constraint_0_power_limit_uw 2>/dev/null)
+        set -l pl2 (cat /sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw 2>/dev/null)
+        echo "── 性能状态 ──"
+        echo "platform_profile : $pp (固件性能模式; performance=解锁)"
+        echo "governor         : $gov"
+        echo "EPP              : $epp"
+        echo "── 功耗墙 ──"
+        echo "RAPL PL1/PL2     : "(math $pl1 / 1000000)"W / "(math $pl2 / 1000000)"W (固件 performance 模式强制 ~130W)"
+        echo "── EC 功耗档 0xBA (只读) ──"
+        set -l ec_raw (sudo dd if=/sys/kernel/debug/ec/ec0/io bs=1 skip=186 count=1 2>/dev/null)
+        set -l ec (echo $ec_raw | od -An -tu1 | string trim)
+        echo "EC 0xBA          : $ec (5=已解锁)"
+        if test "$pp" = "performance"; and test "$ec" = "5"
+            echo "✅ 性能已解锁 (满载应 ~3.4GHz，跑 perf-test 验证)"
+        else
+            echo "❌ 未解锁 → 跑 perf-unlock"
+        end
       '';
 
-      la = ''
-        command eza -l --icons=auto --git -- $argv
+      # perf-boost：临时拉满（只调 EPP，无啸叫风险；重负载睿频更激进）
+      perf-boost = ''
+        echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference >/dev/null
+        echo "⚡ EPP → performance (需要时贴着顶跑；用 perf-economy 恢复)"
+      '';
+
+      # perf-economy：恢复平衡（日常推荐，轻载省电静音）
+      perf-economy = ''
+        echo balance_performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference >/dev/null
+        echo "🌿 EPP → balance_performance (平衡模式)"
+      '';
+
+      # perf-test：32 核满载测频率（验证解锁是否生效）
+      perf-test = ''
+        echo "🏋️  32 核满载 6 秒采样..."
+        for i in (seq 32)
+            yes >/dev/null &
+        end
+        sleep 6
+        awk -F: '/MHz/{s+=$2; n++} END{printf "满载平均: %.0f MHz (上限 5200)\n", s/n}' /proc/cpuinfo
+        jobs -p | xargs -r kill 2>/dev/null
+        echo "参考: 已解锁(固件 130W) → ~3400 MHz；未解锁(55W) → ~2000 MHz"
+      '';
+
+      # perf-unlock：用 OmenCore 官方接口解锁（零裸 hex 写，hp-wmi platform_profile + EC 0xBA）
+      # 🔴 2026-08-30 优化：不再手动 dd 写 EC（安全性），一切走 omencore-cli；开机由 omen-power-unlock 自动做
+      perf-unlock = ''
+        echo "🔓 用 OmenCore 官方接口解锁性能..."
+        sudo omencore-cli perf --mode performance --power-limit 5
+        set -l pp (cat /sys/firmware/acpi/platform_profile 2>/dev/null)
+        echo "platform_profile = $pp (期望 performance)"
+        set -l ec_raw (sudo dd if=/sys/kernel/debug/ec/ec0/io bs=1 skip=186 count=1 2>/dev/null)
+        set -l ec (echo $ec_raw | od -An -tu1 | string trim)
+        echo "EC 0xBA = $ec (期望 5，只读确认)"
+        perf-test
       '';
     };
   };
