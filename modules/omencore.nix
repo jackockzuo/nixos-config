@@ -54,57 +54,27 @@
       description = "Unlock HP OMEN EC power limits (0xBA=5 + WMAA + RAPL) — 13900HX";
       wantedBy = [ "multi-user.target" ];
       # 🔴 2026-08-23 教训：曾加 after=["tlp.service"]，与 tlp 自身对 multi-user.target
-      #    的排序冲突 → systemd 报 ordering cycle 并删除本服务启动任务（PL 停在 130W）。
-      #    TLP 的 PL 配置本机写不进 rapl（无效摆设），无需排序保护，直接去掉。
+      #    的排序冲突 → systemd 报 ordering cycle 并删除本服务启动任务。无需排序保护。
+      # 🔴 2026-08-30 架构优化：零裸 hex 写 EC（安全性），一切走厂商官方接口。
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "omen-power-unlock" ''
           set -euo pipefail
-          PL1_W=115   # PL1 长时全核功耗上限（W），13900HX 官方建议上限，本机散热实测有余量
-          PL2_W=157   # PL2 短时睿频功耗上限（W）
+
+          # ══ 核心：OmenCore 官方接口（内部封装 hp-wmi / EC，含读回验证）══
+          #   perf --mode performance  → ACPI platform_profile（固件完整性能序列）+ EC 0x95
+          #   perf --power-limit 5     → EC 0xBA（热功耗倍率，OmenCore 内部验证）
+          # 实测（2026-08-30）：此组合 = 满载 3.44GHz / 84°C
+          ${pkgs.omencore}/bin/omencore-cli perf --mode performance --power-limit 5
+
+          # ══ 只读确认（无副作用，仅诊断日志）══
+          [ "$(cat /sys/firmware/acpi/platform_profile 2>/dev/null)" = "performance" ] \
+            || echo "⚠️ platform_profile 非 performance，性能解锁可能未生效" >&2
           EC=/sys/kernel/debug/ec/ec0/io
-
-          # ── 1. EC 寄存器直写（ec_sys，真正的 EC 功耗通道）──
-          #    REG_THERMAL_POWER=0xBA（0-5，5=最高）。🔴 2026-08-23 实证：
-          #    满载锁 2.5GHz 根因是 EC 默认低功耗档（~25W）；写 0xBA=5 后
-          #    P 核 2.5→3.4GHz / E 核 2.2→2.8GHz（96°C 稳态，未降频）。
-          #    （0x95 性能模式寄存器在本板 8BAB 未验证，先不写，避免副作用）
-          if [ -w "$EC" ]; then
-            printf '\x05' | dd of="$EC" bs=1 seek=$((0xBA)) conv=notrunc 2>/dev/null || echo "EC 0xBA 写入失败" >&2
-          else
-            echo "ec_sys 未加载或不可写，跳过 EC 寄存器（modprobe ec_sys write_support=1）" >&2
-          fi
-
-          # ── 2. EC 功耗限制：HP WMI WMAA 0x29（cmd_id=0x00020008, type=0x29）
-          #    缓冲 = "SECU" + cmd_id(LE32) + type(1B) + 3 pad + size(LE32=4) + payload
-          #    payload: PL1={FF,FF,FF,W}  PL2={W,W,FF,FF}（PL2 双字节同值，HP 固件习惯）
-          #    成功判据：返回值含 0x50(P) 0x41(A) 0x53(S)。⚠️ 本机固件假 PASS（见事故档）
-          send_wmaa() {
-            local buf out
-            buf="0x53, 0x45, 0x43, 0x55, 0x08, 0x00, 0x02, 0x00, 0x29, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, $1"
-            printf '\\_SB.WMID.WMAA 0x00 0x02 {%s}' "$buf" > /proc/acpi/call 2>/dev/null || return 1
-            out="$(cat /proc/acpi/call 2>/dev/null)"
-            case "$out" in *0x50*) ;; *) return 1 ;; esac
-            case "$out" in *0x41*) ;; *) return 1 ;; esac
-            case "$out" in *0x53*) ;; *) return 1 ;; esac
-            return 0
-          }
-
-          if [ -e /proc/acpi/call ]; then
-            pl1_hex="$(printf '0x%02X' "$PL1_W")"
-            pl2_hex="$(printf '0x%02X' "$PL2_W")"
-            send_wmaa "0xFF, 0xFF, 0xFF, ''${pl1_hex}" || echo "WMAA PL1 失败（继续 rapl）" >&2
-            send_wmaa "''${pl2_hex}, ''${pl2_hex}, 0xFF, 0xFF" || echo "WMAA PL2 失败（继续 rapl）" >&2
-          else
-            echo "/proc/acpi/call 不存在（acpi_call 未加载），跳过 WMAA" >&2
-          fi
-
-          # ── 3. RAPL（EC 允许后不再被钳回）
-          R=/sys/class/powercap/intel-rapl:0
-          if [ -w "$R/constraint_0_power_limit_uw" ]; then
-            echo $((PL1_W * 1000000)) > "$R/constraint_0_power_limit_uw"
-            echo $((PL2_W * 1000000)) > "$R/constraint_1_power_limit_uw"
+          if [ -r "$EC" ]; then
+            v="$(dd if="$EC" bs=1 skip=$((0xBA)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ')"
+            [ "$v" = "5" ] || echo "⚠️ EC 0xBA=$v（期望 5），功耗档未生效" >&2
           fi
         '';
       };

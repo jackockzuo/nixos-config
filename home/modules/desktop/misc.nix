@@ -134,6 +134,9 @@ in
     userDirs = {
       enable = true;
       createDirectories = true; # 缺失目录自动创建（Desktop/Templates 等）
+      # 🔴 消除弃用警告（2026-08-30）：stateVersion < 26.05 时 legacy 默认 true，
+      #    显式声明保持旧行为（设 XDG_*_DIR 会话变量，与现有应用行为一致）
+      setSessionVariables = true;
       desktop = "Desktop";
       documents = "Documents";
       download = "Downloads";

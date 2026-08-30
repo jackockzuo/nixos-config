@@ -89,6 +89,8 @@
           disable = [
             "system"
             "pi"
+            "nix" # 🔴 2026-08-30：nix 步骤用 nix-env --upgrade，与 nix profile 不兼容报错；
+            #    包更新由本仓库 flake 管理（NixOS rebuild 步骤），禁用
           ];
           pre_sudo = true; # 提前 sudo -v 预热，末尾 sudo switch 免输入
           set_title = false;
