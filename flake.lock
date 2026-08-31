@@ -226,14 +226,14 @@
     "omencore": {
       "flake": false,
       "locked": {
-        "lastModified": 1786840560,
-        "narHash": "sha256-828A9YkQirMpPaOOqoCL8HBrXSuWjGVN48MECQJre88=",
+        "lastModified": 1787622680,
+        "narHash": "sha256-+LPLwUoIlXyBD6rI7oII7777xmqXbUQvZ7gKi9f2eoI=",
         "type": "tarball",
-        "url": "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip"
+        "url": "https://github.com/theantipopau/omencore/releases/download/v4.2.0/OmenCore-4.2.0-linux-x64.zip"
       },
       "original": {
         "type": "tarball",
-        "url": "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip"
+        "url": "https://github.com/theantipopau/omencore/releases/download/v4.2.0/OmenCore-4.2.0-linux-x64.zip"
       }
     },
     "root": {

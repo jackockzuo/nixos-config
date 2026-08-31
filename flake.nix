@@ -52,7 +52,7 @@
     #    版本号写在 URL 里；hash（narHash）由 flake.lock 自动管理。
     #    滚动更新：nix run .#omencore-update（改 URL 版本号 + nix flake lock 刷新 hash）
     omencore = {
-      url = "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip";
+      url = "https://github.com/theantipopau/omencore/releases/download/v4.2.0/OmenCore-4.2.0-linux-x64.zip";
       flake = false;
     };
 

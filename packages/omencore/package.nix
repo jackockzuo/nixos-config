@@ -25,7 +25,7 @@
 }:
 
 let
-  version = "4.1.7"; # 滚动更新时由 update.sh 自动改
+  version = "4.2.0"; # 滚动更新时由 update.sh 自动改
 in
 stdenvNoCC.mkDerivation {
   pname = "omencore";
