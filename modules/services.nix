@@ -50,8 +50,9 @@ _:
     fwupd.enable = true;
     # GNOME Keyring：portal Secret=gnome-keyring 依赖（VSCode/Chrome 登录态）
     gnome.gnome-keyring.enable = true;
-    # Intel CPU 散热管理：防止过热降频（与 TLP 互补）
-    thermald.enable = true;
+    # 注：thermald 已于 2026-09-03 移除——OMEN 16 固件无 DPTF(INT3400/INT3403 参与者)，
+    #     它启动即 fail（"couldn't create any zones"，EC 风扇 + HWP + TLP 已覆盖，纯冗余）；
+    #     若某机器 BIOS 有完整 DPTF，在对应 hosts/<machine>/ 主机剖面里单独启用。
   };
 
   # .snapshots 目录（tmpfiles 创建，disko 回退后保留此规则）
