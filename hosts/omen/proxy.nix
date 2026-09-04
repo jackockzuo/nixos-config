@@ -88,6 +88,7 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Environment = [ "PATH=/run/current-system/sw/bin:/usr/bin:/bin" ];
       ExecStart = pkgs.writeShellScript "dae-host-addr" ''
         set -e
         # 等 dae0 出现（dae 建网卡有竞态）
