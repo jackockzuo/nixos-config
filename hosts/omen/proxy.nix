@@ -35,7 +35,7 @@
       group {
         proxy {
           filter: name(fc_backend)
-          policy: fixed
+          policy: fixed(0)
         }
       }
 
