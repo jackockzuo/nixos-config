@@ -44,6 +44,11 @@
   };
 
   # hyprlock 锁屏 PAM 认证（配置见 home/modules/desktop/hyprlock.nix）
+  # pkexec setuid wrapper（NixOS 26.x 默认关，2026-09-03 通用化）：
+  #   GUI 提权类工具（私有 flake 的 fcclient-root 等）依赖 pkexec 弹系统密码框以 root 运行，
+  #   不加此项 pkexec 直接报 "must be setuid root"。平台通用能力，与具体第三方无关。
+  security.polkit.enablePkexecWrapper = true;
+
   security.pam.services.hyprlock = { };
 
   # greeter 系统用户（greetd 标准做法）
