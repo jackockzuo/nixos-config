@@ -1,10 +1,9 @@
-# ============================================================
-# omencore.nix —— HP OMEN 控制中心 + 功耗墙解锁（本机专属）
+# omencore.nix —— HP OMEN 控制中心 + 功耗墙解锁
 # 一、omercore 应用（CLI + GUI）：
 #   包 packages/omencore/package.nix（官方 release 二进制，经 overlay → pkgs.omencore）
 #   用途：风扇档位/占空比、RGB、性能模式、监控（hp-wmi 通道，root 写 EC）
 # 二、功耗墙解锁（事故：2026-08-23 满载锁 2.5GHz，见
-#     docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md）：
+#     docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md）(REF:2026-08-23-omen-ec)：
 #   - 真根因：EC 默认低功耗档（~25W TDP），RAPL 寄存器只是"纸面数字"，
 #     WMAA（\_SB.WMID.WMAA）固件假 PASS（内核日志 WMAA aborts）
 #   - 唯一实证通道：ec_sys 直写 EC 寄存器 REG_THERMAL_POWER=0xBA（0-5，5=最高）
@@ -17,9 +16,14 @@
   # hp-wmi：omercore 的 EC 控制通道（平台 profile + hwmon 风扇/PWM）。
   # 内核通常按 ACPI/WMI 设备自动加载，这里显式声明保证开机必载。
   # acpi_call：WMAA 写 EC 需要 /proc/acpi/call，独立模块包需 extraModulePackages 打包进
-  #   当前内核（cachyos）再加载；🔴 教训（2026-08-22）：只写 kernelModules 不生效。
+  #   当前内核（cachyos）再加载；教训（2026-08-22）：只写 kernelModules 不生效 (REF:2026-08-22-acpi-call)
   # ec_sys：真正的 EC 功耗/性能寄存器通道（debugfs io），需 write_support=1 才能写。
-  #   🔴 2026-08-23 关键修复：之前没加载 ec_sys → EC 一直按默认低功耗档（~25W）→ 满载锁 2.5GHz。
+  #   2026-08-23 关键修复：之前没加载 ec_sys → EC 一直按默认低功耗档（~25W）→ 满载锁 2.5GHz (REF:2026-08-23-omen-ec)
+  # pkexec setuid wrapper：omencore-gui-root 依赖 pkexec 弹系统密码框以 root 运行 GUI。
+  # 🔴 NixOS 26.x 起 polkit 模块默认不启用 pkexec wrapper（enablePkexecWrapper 默认 false）→
+  #   不加此项 omencore 桌面项直接报 "pkexec must be setuid root"。
+  security.polkit.enablePkexecWrapper = true;
+
   boot = {
     extraModulePackages = [ config.boot.kernelPackages.acpi_call ];
     extraModprobeConfig = "options ec_sys write_support=1";
@@ -53,9 +57,9 @@
     omen-power-unlock = {
       description = "Unlock HP OMEN EC power limits (0xBA=5 + WMAA + RAPL) — 13900HX";
       wantedBy = [ "multi-user.target" ];
-      # 🔴 2026-08-23 教训：曾加 after=["tlp.service"]，与 tlp 自身对 multi-user.target
-      #    的排序冲突 → systemd 报 ordering cycle 并删除本服务启动任务。无需排序保护。
-      # 🔴 2026-08-30 架构优化：零裸 hex 写 EC（安全性），一切走厂商官方接口。
+      # 2026-08-23 教训：曾加 after=["tlp.service"]，与 tlp 自身对 multi-user.target
+      #    的排序冲突 → systemd 报 ordering cycle 并删除本服务启动任务 (REF:2026-08-23-omen-tlp-cycle)
+      # 2026-08-30 架构优化：零裸 hex 写 EC（安全性），一切走厂商官方接口 (REF:2026-08-30-omen-ec-safety)
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -68,14 +72,14 @@
           # 实测（2026-08-30）：此组合 = 满载 3.44GHz / 84°C
           ${pkgs.omencore}/bin/omencore-cli perf --mode performance --power-limit 5
 
-          # ══ 只读确认（无副作用，仅诊断日志）══
-          [ "$(cat /sys/firmware/acpi/platform_profile 2>/dev/null)" = "performance" ] \
-            || echo "⚠️ platform_profile 非 performance，性能解锁可能未生效" >&2
-          EC=/sys/kernel/debug/ec/ec0/io
-          if [ -r "$EC" ]; then
-            v="$(dd if="$EC" bs=1 skip=$((0xBA)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ')"
-            [ "$v" = "5" ] || echo "⚠️ EC 0xBA=$v（期望 5），功耗档未生效" >&2
-          fi
+          # ══ 只读确认（omencore-cli status，无副作用，仅诊断日志）══
+          status=$(${pkgs.omencore}/bin/omencore-cli status --json 2>/dev/null)
+          pp=$(echo "$status" | ${pkgs.jq}/bin/jq -r '.access.has_acpi_platform_profile_path // false')
+          tl=$(echo "$status" | ${pkgs.jq}/bin/jq -r '.performance.thermal_power_limit // "unknown"')
+          mode=$(echo "$status" | ${pkgs.jq}/bin/jq -r '.performance.mode // "unknown"')
+          [ "$mode" = "performance" ] \
+            || echo "⚠️ performance mode 非 performance（当前: $mode），性能解锁可能未生效" >&2
+          [ "$tl" = "5" ] || echo "⚠️ thermal_power_limit=$tl（期望 5），功耗档未生效" >&2
         '';
       };
       restartIfChanged = false;
@@ -103,10 +107,10 @@
         # Security hardening（上游模板）
         ProtectSystem = "strict";
         ProtectHome = "read-only";
-        # 🔴 2026-08-25 修复 226/NAMESPACE 崩溃循环：
+        # 2026-08-25 修复 226/NAMESPACE 崩溃循环：
         #   旧配置 PrivateTmp=true + ReadWritePaths=/var/tmp/omencore + ExecStartPre mkdir。
         #   systemd 在 ExecStartPre 运行【之前】就要 bind-mount ReadWritePaths 的路径，
-        #   而 /var/tmp/omencore 尚不存在 → "Failed to set up mount namespacing" → 226/NAMESPACE，
+        #   而 /var/tmp/omencore 尚不存在 → "Failed to set up mount namespacing" → 226/NAMESPACE (REF:2026-08-25-omen-namespace)
         #   服务自 32 次重启失败，EC 看门狗/风扇控制从未生效。
         #   改为 StateDirectory=omencore：systemd 在命名空间搭建前自动创建
         #   /var/lib/omencore（root 所有、namespace 内可写），无需手工 mkdir，也不依赖 PrivateTmp。

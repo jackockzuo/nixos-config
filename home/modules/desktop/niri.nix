@@ -2,9 +2,6 @@
 # niri.nix —— 合成器（wayland.windowManager.niri 官方模块）
 # 职责：niri 核心配置（环境/输入/光标/布局/动画/启动项）
 # 拆分：binds → niri-binds.nix；窗口/图层规则+输出+毛玻璃 → niri-rules.nix
-# 说明：二进制由系统层 modules/desktop.nix 的 programs.niri.enable 安装，
-#       本模块管配置（settings attrset → config.kdl，构建时 niri validate 校验）
-#       原 7 个手写 kdl 文件已内联为 nix attrset（见 git 历史 source/niri/）
 # ============================================================
 {
   config,
@@ -16,45 +13,42 @@
   wayland.windowManager.niri = {
     enable = true;
 
-    # package 保留默认（pkgs.niri）：启用构建期 `niri validate` 校验（checkConfig），
-    # 转换错误在构建时暴露，不会带着坏配置上桌面
+    # package 保留默认（pkgs.niri）：启用构建期 `niri validate` 校验
 
     settings = {
-      # ---- 截图保存位置 ----
+      # 截图保存位置
       "screenshot-path" = "~/Pictures/Screenshots/Niri-screenshots/%Y-%m-%d %H-%M-%S.png";
 
-      # ---- 环境变量（合成器作用域，喂给 spawn 的应用）----
-      # 🔴 STANDARDS §4：IM 变量双作用域，此处 = 合成器层（DMS 等 systemd 服务
-      #    不继承此块，Qt6 变量在系统层 locale.nix 再设一份，缺一不可）
+      # 环境变量（合成器作用域，喂给 spawn 的应用）
+      # STANDARDS §4：IM 变量双作用域，此处 = 合成器层(REF:2026-08-21-fcitx5-gtk)
       environment = {
         LANGUAGE = "zh_CN:en";
         LANG = "zh_CN.UTF-8";
         # 解决漏字问题（副作用：steam 等 X11 应用可能无法用中文输入法）
         LC_CTYPE = "en_US.UTF-8";
         XMODIFIERS = "@im=fcitx";
-        # 🔴 现代推荐（fcitx wiki 2025-09 + niri#3099）：Qt6 原生 text-input-v3 优先，
-        #    fcitx 兜底；Qt4/5 走 QT_IM_MODULE（QT_IM_MODULES 仅 Qt 6.7+ 生效）
+        # 🔴 现代推荐（fcitx wiki 2025-09 + niri#3099）：Qt6 原生 text-input-v3 优先，fcitx 兜底
         QT_IM_MODULES = "wayland;fcitx";
         QT_IM_MODULE = "fcitx";
-        # qt 主题（appearance.nix 的 qt.platformTheme 也设置，这里供 niri spawn 层）
+        # qt 主题（appearance.nix qt.platformTheme 也设置，这里供 niri spawn 层）
         QT_QPA_PLATFORMTHEME = "gtk3";
         QT_QPA_PLATFORMTHEME_QT6 = "gtk3";
-        # 解决 quickshell 图标主题缺失
-        QS_ICON_THEME = "Adwaita";
+        # quickshell 图标主题（DMS 外壳跟随）：papirus-icon-theme 已装进用户 profile
+        QS_ICON_THEME = "Papirus-Dark";
         # GTK 渲染器：n 卡双显卡导致 GTK 应用启动缓慢的修复（AMD/Intel 可去掉）
         GSK_RENDERER = "gl";
         # 默认文本编辑器
         EDITOR = "vim";
       };
 
-      # ---- 光标（Catppuccin Mocha Mauve，appearance.nix 同款）----
+      # 光标（Catppuccin Mocha Mauve，appearance.nix 同款）
       cursor = {
         "xcursor-theme" = "catppuccin-mocha-mauve-cursors";
         "xcursor-size" = 30;
         "hide-after-inactive-ms" = 15000; # 闲置 15s 自动隐藏
       };
 
-      # ---- 带缩略图的窗口切换（Mod+Tab 唤出）----
+      # 带缩略图的窗口切换（Mod+Tab 唤出）
       "recent-windows" = {
         "debounce-ms" = 750;
         "open-delay-ms" = 150;
@@ -102,7 +96,7 @@
         };
       };
 
-      # ---- 输入（键盘/触摸板/鼠标）----
+      # 输入（键盘/触摸板/鼠标）
       input = {
         keyboard = {
           # 留空 = niri 从 org.freedesktop.locale1 取 xkb 设置（localectl 管理）
@@ -121,17 +115,16 @@
         trackpoint = { };
       };
 
-      # ---- overview（工作区总览）----
+      # overview（工作区总览）
       overview = {
-        # 关掉 overview 里的工作区阴影：配合 layout 透明背景，让工作区和
-        # overview 共用同一个壁纸背景（DMS 壁纸层）
+        # 关掉工作区阴影：配合 layout 透明背景，共用 DMS 壁纸层
         "workspace-shadow" = { };
         zoom = 0.5;
       };
 
-      # ---- 布局（窗口间距/宽度预设/焦点环/边框/阴影）----
+      # 布局（窗口间距/宽度预设/焦点环/边框/阴影）
       layout = {
-        # 工作区背景透明 → 透出 DMS 壁纸层（overview 里才能显示壁纸）
+        # 工作区背景透明 → 透出 DMS 壁纸层
         "background-color" = "transparent";
         gaps = 12; # 窗口间距（逻辑像素）
         "center-focused-column" = "never";
@@ -181,7 +174,7 @@
         struts = { };
       };
 
-      # ---- 动画（spring 弹簧动画族）----
+      # 动画（spring 弹簧动画族）
       animations = {
         slowdown = 0.98114514; # <1 加快，>1 减慢
         "workspace-switch" = {
@@ -253,10 +246,10 @@
         };
       };
 
-      # ---- 启动项（spawn-at-startup，_children 保证逐条独立节点）----
+      # 启动项（spawn-at-startup，_children 保证逐条独立节点）
       # 🔴 原 /home/ran 硬编码改为 ${config.home.homeDirectory} 声明式引用（STANDARDS §0.2）
       _children = [
-        # 询问管理员权限（polkit-gnome 在系统 PATH，用名字解析而非硬编码路径）
+        # 询问管理员权限（polkit-gnome 在系统 PATH）
         {
           "spawn-at-startup" = [ "polkit-gnome-authentication-agent-1" ];
         }
@@ -300,6 +293,14 @@
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/toggle-wlsunset" ];
         }
+        # 登录时恢复上次暗/亮模式（持久化在 ~/.local/state/theme-mode，
+        # 手动切换：Mod+Shift+L 或 theme-switch toggle，见 appearance.nix）
+        {
+          "spawn-at-startup" = [
+            "${config.home.homeDirectory}/.config/niri/scripts/theme-switch"
+            "--apply-current"
+          ];
+        }
         # 截图音效守护进程
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/screenshot-sound.sh" ];
@@ -311,15 +312,10 @@
             "+si:localuser:root"
           ];
         }
-        # 代理客户端（肥猫云）：开机自动拉起，保证全局代理环境变量始终有效
-        # 🔴 fcclient 已移出本仓库（2026-08-29，仓库纯净）：由独立 flake 装进用户 profile
-        #    （nix profile install path:~/Documents/nix-packaging/fcclient），此处仅引用其路径
-        {
-          "spawn-at-startup" = [ "${config.home.homeDirectory}/.nix-profile/bin/fcclient" ];
-        }
+
       ];
 
-      # ---- 快捷键教程浮层：跳过启动提示 + 隐藏未绑定 action ----
+      # 快捷键教程浮层：跳过启动提示 + 隐藏未绑定 action
       "hotkey-overlay" = {
         "skip-at-startup" = { };
         "hide-not-bound" = { };
@@ -338,20 +334,15 @@
     };
   };
 
-  # ---- 启动脚本目录（swayidle/toggle-wlsunset/screenshot-sound 等可执行文件）----
-  # 脚本无 nix 接口，保留 source 声明式映射
+  # 启动脚本目录（swayidle/toggle-wlsunset/screenshot-sound 等）
   xdg.configFile."niri/scripts" = {
     source = ../../source/niri/scripts;
     recursive = true;
     force = true; # 覆盖旧版本散落文件
   };
 
-  # ---- 迁移清理（2026-08-28）：删除旧拆分架构遗留的 7 个 store symlink ----
-  # 旧 config.kdl 时代：binds/rule/output/layout/blur/animations.kdl + hyprlock*.conf
-  # 以独立 symlink 部署在 ~/.config/niri，现已被模块单文件 config.kdl 取代。
-  # 🔴 不清除的真实后果：niri-binds 脚本递归 grep *.kdl 会重复读到旧键位
-  #    （Mod+F1 菜单双重条目）；GC 后这些链接悬空。dms/ 子目录是 DMS 运行时
-  #    生成的碎片（有活 mtime），不在此清理范围。
+  # 迁移清理（2026-08-28）：删除旧拆分架构遗留的 7 个 store symlink
+  # 不清除的后果：niri-binds 脚本递归 grep *.kdl 会重复读到旧键位(REF:2026-08-28-niri-cleanup)
   home.activation.cleanStaleNiriLinks = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     for f in animations.kdl binds.kdl blur.kdl hyprlock-colors.conf hyprlock.conf layout.kdl output.kdl rule.kdl; do
       if [ -L "$HOME/.config/niri/$f" ]; then

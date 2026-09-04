@@ -1,9 +1,7 @@
 # ============================================================
 # hyprlock.nix —— 锁屏（官方模块 programs.hyprlock）
-# 原 source/niri/hyprlock.conf + hyprlock-colors.conf 迁移：
-# 颜色 $vars 直接内联为 settings 顶层键（原 source = 引入文件的机制不再需要）
-# 说明：hyprlock 二进制由系统层安装（packages.nix），package = null 只管配置；
-#       PAM 认证在系统层 modules/desktop.nix 的 security.pam.services.hyprlock
+# 颜色 $vars 直接内联为 settings 顶层键
+# 说明：hyprlock 二进制由系统层安装（packages.nix），package = null 只管配置
 # ============================================================
 _:
 
@@ -13,7 +11,7 @@ _:
     package = null; # 系统层已装（packages.nix），HM 只管配置
 
     settings = {
-      # ---- Material 调色板（原 hyprlock-colors.conf，rgba 为 matugen 色值）----
+      # Material 调色板（rgba 为 matugen 色值）
       "$background" = "rgba(131318ff)";
       "$error" = "rgba(ffb4abff)";
       "$error_container" = "rgba(93000aff)";
@@ -65,8 +63,7 @@ _:
       "$tertiary_fixed" = "rgba(ffd8eeff)";
       "$tertiary_fixed_dim" = "rgba(e7b9d5ff)";
 
-      # ---- 字体变量（原 hyprlock.conf 顶部）----
-      # 锁屏是 UI 组件，用系统默认中文字体（Maple Mono 仅终端使用）
+      # 字体变量（锁屏是 UI 组件，用系统默认中文字体）
       "$font" = "Noto Sans CJK SC";
       "$font_clock" = "Noto Sans CJK SC";
 
@@ -85,7 +82,7 @@ _:
         ];
       };
 
-      # ---- 背景：当前屏幕截图 + 磨砂玻璃质感 ----
+      # 背景：当前屏幕截图 + 磨砂玻璃质感
       background = [
         {
           monitor = ""; # 应用到所有显示器
@@ -101,7 +98,7 @@ _:
         }
       ];
 
-      # ---- 视觉重心上移：时间占屏幕上方 1/3，中下部留白 ----
+      # 视觉重心上移：时间占屏幕上方 1/3，中下部留白
       # 小时（大字，带阴影立体感）
       label = [
         {
@@ -153,7 +150,7 @@ _:
         }
       ];
 
-      # ---- 底部交互区：密码输入框 ----
+      # 底部交互区：密码输入框
       "input-field" = [
         {
           monitor = "";

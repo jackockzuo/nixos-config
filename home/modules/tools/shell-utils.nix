@@ -1,20 +1,16 @@
-# ============================================================
-# shell-utils.nix —— 终端实用工具（并入 terminal/{atuin,bat,fzf,onefetch,zoxide}）
-# 职责：历史搜索(atuin) / 增强 cat(bat) / 模糊查找(fzf) / 仓库面板(onefetch) / 智能 cd(zoxide)
-# 注释约定：fish 集成统一用 type -q 守卫（容器兼容，见 troubleshooting 档）
+# shell-utils.nix —— 终端实用工具（atuin/bat/fzf/onefetch/zoxide）
+# 注释约定：fish 集成统一用 type -q 守卫（容器兼容）
 # ============================================================
 { lib, pkgs, ... }:
 
 let
-  # 结构化生成器：onefetch 无 HM 模块（已核对），用 pkgs.formats.yaml 把纯数据配置
-  # 转为 nix attrset 生成，不再手写 YAML 文本
+  # onefetch 无 HM 模块，用 pkgs.formats.yaml 生成器
   yamlFormat = pkgs.formats.yaml { };
 in
 {
   programs = {
-    # ---- atuin：终端历史搜索（SQLite + TUI，接管 Ctrl-R / ↑）----
-    # 🔴 fish 集成用 type -q 守卫：HM enableFishIntegration 无条件 source，
-    #    容器内（Distrobox 挂载 $HOME）报 Unknown command（2026-08-18 故障）
+    # atuin：终端历史搜索（SQLite + TUI，接管 Ctrl-R / ↑）
+    # fish 集成用 type -q 守卫（容器兼容）(REF:2026-08-18-distrobox-nc)
     atuin = {
       enable = true;
       enableFishIntegration = false; # 集成交给下方守卫块
@@ -37,20 +33,17 @@ in
       };
     };
 
-    # ---- bat：cat 增强（语法高亮，Catppuccin Mocha）----
-    # 注：MANPAGER = "bat --paging=never" 在 env.nix 管理
+    # bat：cat 增强（语法高亮，Catppuccin Mocha）
     bat = {
       enable = true;
       config = {
-        # 🔴 主题名必须带空格（bat 内置名大小写敏感）：Catppuccin Mocha，
-        #    写 Catppuccin-Mocha 会找不到主题回退默认（2026-08-30 修复）
+        # 主题名必须带空格（bat 内置名大小写敏感）：Catppuccin Mocha (REF:2026-08-30-bat-theme)
         theme = "Catppuccin Mocha";
         paging = "never"; # 不分页直接输出
       };
     };
 
-    # ---- fzf：模糊查找（Ctrl-T 文件 / Alt-C 目录）----
-    # 🔴 历史搜索 Ctrl-R 让给 atuin（historyWidget.command = ""，官方让位方式）
+    # fzf：模糊查找（Ctrl-T 文件 / Alt-C 目录，Ctrl-R 让给 atuin）(REF:2026-08-18-fzf-atuin)
     fzf = {
       enable = true;
       enableFishIntegration = false; # 集成交给下方守卫块
@@ -71,13 +64,13 @@ in
       historyWidget.command = "";
     };
 
-    # ---- zoxide：智能 cd（高频目录直达）----
+    # zoxide：智能 cd
     zoxide = {
       enable = true;
       enableFishIntegration = false; # 集成交给下方守卫块
     };
 
-    # ---- 统一 fish 集成守卫块（atuin/fzf/zoxide）----
+    # 统一 fish 集成守卫块（atuin/fzf/zoxide）
     # 容器内工具不在 PATH → type -q 守卫静默跳过
     # ⚠️ 容器内 fish 3.3.1：必须用 type -q（command -q 需 fish 3.4+）
     fish.interactiveShellInit = lib.mkAfter ''
@@ -93,8 +86,8 @@ in
     '';
   };
 
-  # ---- onefetch：git 仓库信息面板（Catppuccin Mocha）----
-  # 无 HM 模块（已核对），pkgs.formats.yaml 生成器即 nix 接口化做法（纯颜色数据）
+  # onefetch：git 仓库信息面板（Catppuccin Mocha）
+  # 无 HM 模块，用 pkgs.formats.yaml 生成器
   xdg.configFile."onefetch/config.yml" = {
     source = yamlFormat.generate "onefetch-config.yml" {
       color = {

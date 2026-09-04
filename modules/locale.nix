@@ -1,18 +1,12 @@
 # ============================================================
 # locale.nix —— 语言/时区/输入法
 # 职责：locale 生成、时区、双系统时钟、fcitx5 输入法
-# 修改：语言/时区/输入法方案 → 改这里
-# 关联：home-manager/desktop/fcitx5.nix（用户级外观/词库）
 # ============================================================
 { pkgs, lib, ... }:
 
 {
   i18n = {
-    # ============ 语言与地区 ============
-    # 🔴 必须显式声明并生成 zh_CN locale：niri 会话设置了 LANG=zh_CN.UTF-8
-    # （home/modules/desktop/niri.nix 的 settings.environment），若不生成，bash 启动报
-    # "setlocale: LC_COLLATE: cannot change locale (zh_CN.UTF-8)"。
-    # defaultLocale 会自动加入 supportedLocales，但显式写出更清晰。
+    # 必须显式声明 zh_CN locale：niri 会话设置了 LANG=zh_CN.UTF-8
     defaultLocale = "zh_CN.UTF-8";
     supportedLocales = [
       "zh_CN.UTF-8/UTF-8"
@@ -20,18 +14,12 @@
       "C.UTF-8/UTF-8"
     ];
 
-    # ============ 输入法：fcitx5（系统级）============
-    # 注意：.enable/.type 是新式写法（旧 .enabled 已弃用）
+    # 输入法：fcitx5（系统级）
     inputMethod = {
       enable = true;
       type = "fcitx5";
       fcitx5.addons = with pkgs; [
-        # 🔴 必须 override fcitx5-rime 的 rimeDataPkgs 加入 rime-ice！
-        # nixpkgs 默认 rimeDataPkgs 只有 [ rime-data ]（基础包，不含 rime_ice schema），
-        # 导致 fcitx5-rime 的共享数据目录 share/rime-data 里没有 rime_ice.schema.yaml，
-        # rime 引擎启动部署时报 "missing input schema: rime_ice" → 输入法失效。
-        # 之前 HM 用 xdg.dataFile 往用户目录塞 symlink 是错误方案：
-        # rime 的 SyncUserData 部署任务会把共享目录里不存在的文件从用户目录删除。
+        # 必须 override rimeDataPkgs 加入 rime-ice，否则 "missing input schema: rime_ice"
         (fcitx5-rime.override {
           rimeDataPkgs = [
             pkgs.rime-data
@@ -45,38 +33,21 @@
       ];
     };
   };
-  # 时区：上海（CST, UTC+8）
   time.timeZone = "Asia/Shanghai";
-  # 🔴 双系统时钟修复：Windows 按本地时间读 RTC，Linux 按 UTC。
-  # 不设的话，两系统切换后时钟各错 8 小时。设 true 让 Linux 也按本地时间读 RTC。
   time.hardwareClockInLocalTime = true;
+
   environment.sessionVariables = {
-    # 🔴 IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）：
-    #   本文件 = 系统登录会话层；home/modules/desktop/niri.nix 的 settings.environment =
-    #   合成器 spawn 层（niri 官方 wiki：environment 不传给 systemd 启动的应用，
-    #   故两处缺一不可）。home.sessionVariables 不再重复（见 home/modules/env.nix）。
-    # 🔴 Qt6 Wayland 双通道（2026-08-21 补全，DMS Spotlight 原皮根因）：
-    #   QT_IM_MODULES="wayland;fcitx" —— Qt 6.7+ 官方变量：合成器 text-input-v3
-    #   优先（niri 支持 → classicui 浮窗主题生效），fcitx 兜底（Qt4/5 走 QT_IM_MODULE）。
-    #   ⚠️ 必须放系统层：niri 的 environment 块 **不传给 systemd 启动的
-    #   应用**（niri 官方 wiki）——DMS（quickshell，systemd user 服务）只继承
-    #   登录会话环境，缺此变量就强制 fcitx 内嵌候选框=“原皮”（2026-08-21 实测）。
-    #   两处同步改（STANDARDS §4）。
+    # IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）
+    # Qt6 Wayland 双通道：QT_IM_MODULES="wayland;fcitx" 必须放系统层
+    # niri 的 environment 不传给 systemd 启动的应用（DMS 等）(REF:2026-08-21-fcitx5-gtk)
     QT_IM_MODULES = "wayland;fcitx";
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";
     SDL_IM_MODULE = "fcitx";
-    # 🔴 kitty 源码（glfw/ibus_glfw.c）只认 ibus 值，fcitx5 提供 ibus 协议兼容；
-    # 这一条是 Kitty 专属的关键变量，缺少它 Kitty 一定无法激活输入法
+    # kitty 只认 ibus 值，fcitx5 提供 ibus 协议兼容 (REF:2026-08-21-fcitx5-gtk)
     GLFW_IM_MODULE = "ibus";
   };
-  # 🔴 NixOS 官方 fcitx5 模块会把 GTK_IM_MODULE 写死为 "fcitx"
-  #   （nixos/modules/i18n/input-method/fcitx5.nix 的 environment.variables，
-  #   经 /etc/profile 的 set-environment 注入所有登录会话）——与 fcitx 官方
-  #   wiki 现代写法相悖（Wayland 原生 GTK3/4 应走 text-input-v3，不设全局
-  #   GTK_IM_MODULE，否则强制 fcitx GTK IM 模块 → 应用内嵌候选框=“原皮”）。
-  #   用 lib.mkForce "" 覆盖为 unset（GTK 源码空串等同未设）：Wayland 原生
-  #   GTK 自动走 text-input-v3；XWayland GTK3 走 GTK 内建 XIM（见 STANDARDS §4
-  #   与 docs/troubleshooting/2026-08-21-fcitx5-gtk-im-module-original-skin.md）。
+  # Wayland 原生 GTK3/4 走 text-input-v3，不设全局 GTK_IM_MODULE
+  # NixOS fcitx5 模块会写死 "fcitx"，必须 mkForce "" 覆盖 (REF:2026-08-21-fcitx5-gtk)
   environment.variables.GTK_IM_MODULE = lib.mkForce "";
 }

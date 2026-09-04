@@ -1,10 +1,6 @@
-# ============================================================
 # fcitx5.nix —— 输入法用户级配置（fcitx5 + rime 雾凇）
-# 系统层（modules/locale.nix）已负责：
-#   - i18n.inputMethod.enable/type = fcitx5（含 rime-ice addons 与 override）
-#   - QT/XMODIFIERS 等 IM 环境变量（单一来源，见 STANDARDS §4）
+# 系统层（modules/locale.nix）已负责 i18n.inputMethod + QT/XMODIFIERS 等 IM 环境变量
 # 本模块只写用户级配置（~/.config/fcitx5、~/.local/share/fcitx5/rime）
-# ============================================================
 _:
 
 {
@@ -34,11 +30,9 @@ _:
         '';
       };
 
-      # 2b. GTK IM 模块按后端拆分（现代写法，fcitx wiki 2025-09 + STANDARDS §4）：
-      # Wayland 原生 GTK3/4 → 合成器 text-input-v3（niri 支持）→ classicui 浮窗主题生效；
-      # 因此 gtk3/gtk4 settings.ini **不再写** gtk-im-module（写了会退回应用内嵌候选框=“原皮”，
-      # 2026-08-21 实测根因）。XWayland GTK3 走 GTK 内建 XIM（XMODIFIERS 全局已设）；
-      # GTK2（仅 X11）保留 gtk-im-module=fcitx。详见 appearance.nix 的 gtk 段注释。
+      # 2b. GTK IM 模块按后端拆分（fcitx wiki 2025-09 + STANDARDS §4）：
+      #  GTK3/4 settings.ini 不再写 gtk-im-module（写了会退回应用内嵌候选框="原皮"）(REF:2026-08-21-fcitx5-gtk)
+      #  GTK2 保留 gtk-im-module=fcitx（仅 X11/XWayland）
 
       # 4. 默认输入法 Profile：开机默认加载美式键盘 + Rime 雾凇拼音
       "fcitx5/profile".text = ''
@@ -152,28 +146,12 @@ _:
       };
     };
     dataFile = {
-      # 3. 声明式配置 Rime 引擎：强制使用"雾凇拼音" (rime_ice) 词库方案
-      # 注意：rime-ice 数据由系统层 fcitx5-rime override 提供（共享数据目录），
-      # 用户目录只需保留 .custom.yaml 打补丁，不要塞词库文件（会被 rime SyncUserData 清理）。
       "fcitx5/rime/default.custom.yaml".text = ''
         patch:
           "schema_list":
             - schema: rime_ice
       '';
-      # 3b. 雾凇自定义（禁用 llm_translator：脚本缺失导致 rime 报错提示）
-      "fcitx5/rime/rime_ice.custom.yaml".text = ''
-        patch:
-
-          # 1. 扩充允许输入的字符集：允许在拼音中直接输入指定的标点符号，阻止其直接上屏
-          "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>\\/"
-
-          # llm_translator（AI 翻译）已禁用：脚本缺失导致 rime 报错
-          # "engine/translators/@before 0": lua_translator@llm_translator
-          # "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\]*$"
-
-          # grammar 数据库缺失（wanxiang-lts-zh-hans.gram 不存在），禁用避免报错
-          # "grammar/language": wanxiang-lts-zh-hans
-      '';
+      # 3b. 雾凇自定义（禁用 llm_translator：脚本缺失导致 rime 报错）
       # 3c. rime.lua（llm_translator 已禁用）
       "fcitx5/rime/rime.lua".text = ''
         -- llm_translator = require("llm_translator")  -- 已禁用（脚本缺失）

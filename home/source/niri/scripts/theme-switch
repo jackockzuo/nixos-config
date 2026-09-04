@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# ===============================================================
+# theme-switch —— 暗/亮主题一键切换（DMS + GTK + Qt + 图标 + 光标全套跟随）
+#
+# 用法: theme-switch dark|light|toggle|--apply-current
+#
+# 切换内容:
+#  - DMS 模式（dms ipc call theme）→ 自动重跑 matugen 重新生成壁纸配色
+#    （含 ~/.config/fish/colors.matugen.fish，DMS 换壁纸同一条链路）
+#  - GTK 3/4 settings.ini（主题名/图标主题/光标 + prefer-dark）
+#  - gsettings color-scheme（GTK4/portal 感知）
+#  - Qt：platformTheme=gtk3（niri.nix 环境变量）→ 读 GTK settings.ini 自动跟随
+#  - 图标：Papirus-Dark / Papirus（Tela-circle 兜底链，见 appearance.nix 合并包）
+#  - 当前模式持久化到 ~/.local/state/theme-mode（niri 登录时 --apply-current 恢复）
+#
+# 键位: Mod+Shift+L（niri-binds.nix）· 登录时自动恢复上次模式（niri spawn-at-startup）
+# ===============================================================
+set -euo pipefail
+
+MODE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/theme-mode"
+GTK3="$HOME/.config/gtk-3.0/settings.ini"
+GTK4="$HOME/.config/gtk-4.0/settings.ini"
+
+apply() {
+  local mode="$1"
+  local gtk_theme gtk_icon cursor color_scheme dms_mode prefer
+
+  if [ "$mode" = "dark" ]; then
+    gtk_theme="Catppuccin-Mocha-Standard-Mauve-Dark"
+    gtk_icon="Papirus-Dark"
+    cursor="catppuccin-mocha-mauve-cursors"
+    color_scheme="prefer-dark"
+    dms_mode="dark"
+    prefer=1
+  else
+    gtk_theme="Catppuccin-Latte-Standard-Mauve-Light"
+    gtk_icon="Papirus"
+    cursor="catppuccin-latte-mauve-cursors"
+    color_scheme="prefer-light"
+    dms_mode="light"
+    prefer=0
+  fi
+
+  # 1) GTK 3/4 settings.ini（先做：无外部依赖，立即可见）
+  for f in "$GTK3" "$GTK4"; do
+    mkdir -p "$(dirname "$f")"
+    cat > "$f" <<EOF
+[Settings]
+gtk-application-prefer-dark-theme=$prefer
+gtk-cursor-theme-name=$cursor
+gtk-cursor-theme-size=24
+gtk-icon-theme-name=$gtk_icon
+gtk-theme-name=$gtk_theme
+EOF
+  done
+
+  # 2) gsettings（GTK4 原生 / xdg-desktop-portal 感知）
+  gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface icon-theme "$gtk_icon" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface cursor-theme "$cursor" 2>/dev/null || true
+
+  # 3) DMS 模式 + DMS 图标按模式跟随（dms.service 未就绪时重试 20s）
+  #    DMS 模式切换会重跑 matugen → 壁纸配色/fish 颜色整套重新生成
+  for _ in $(seq 1 20); do
+    if dms ipc call theme "$dms_mode" >/dev/null 2>&1; then
+      dms ipc call settings set iconThemeDark Papirus-Dark >/dev/null 2>&1 || true
+      dms ipc call settings set iconThemeLight Papirus >/dev/null 2>&1 || true
+      dms ipc call settings set iconThemePerMode true >/dev/null 2>&1 || true
+      break
+    fi
+    sleep 1
+  done
+
+  # 4) 持久化当前模式
+  mkdir -p "$(dirname "$MODE_FILE")"
+  echo "$mode" > "$MODE_FILE"
+
+  notify-send -t 2000 -a "Theme" "主题模式" "${mode}" 2>/dev/null || true
+}
+
+case "${1:-}" in
+  dark) apply dark ;;
+  light) apply light ;;
+  toggle)
+    current="$(cat "$MODE_FILE" 2>/dev/null || echo dark)"
+    [ "$current" = "dark" ] && apply light || apply dark
+    ;;
+  --apply-current)
+    apply "$(cat "$MODE_FILE" 2>/dev/null || echo dark)"
+    ;;
+  *)
+    echo "用法: theme-switch dark|light|toggle|--apply-current" >&2
+    exit 1
+    ;;
+esac
