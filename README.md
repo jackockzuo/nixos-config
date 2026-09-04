@@ -1,21 +1,23 @@
-# NixOS 配置 —— HP OMEN 16-wf0xxx (ran)
+# NixOS 配置（多主机可移植；现仅 omen：HP OMEN 16-wf0xxx，ran）
 
 > 单仓库架构（2026-08 合并）：
 > - **本仓库**（nixos-config）：系统级配置 + 用户级配置（home/ 目录）一体化
 > - 用户级配置原独立仓库 [home-manager-ran](https://github.com/jackockzuo/home-manager-ran) 已并入 `home/` 子目录
 > - 配置修改**唯一权威依据**：`STANDARDS.md`（准则文档，含架构/目录/格式/秘密/磁盘规范）
+> - 多主机可移植（2026-09-03）：共享层（modules/ + home/）平台无关，机器专属收进 `hosts/<machine>/`
 
 ## 一、架构说明
 
 ```
 nixos-config（单仓库，44 个 .nix，目录 ≤2 层 —— STANDARDS §2 量化规则）
-├── flake.nix              # flake-parts 入口：flake.nixosConfigurations.omen + treefmt/git-hooks
+├── flake.nix              # flake-parts 入口：hosts 清单生成 nixosConfigurations（现 #omen）
 ├── STANDARDS.md           # 配置准则（唯一权威修改依据，含架构量化规则）
-├── hardware-configuration.nix  # 硬件检测 + fileSystems（nixos-generate-config 产物）
-├── modules/               # 系统级 15 个文件 + default.nix（扁平，default.nix 聚合地图）
+├── hosts/                 # ★ 主机剖面（机器专属，每机一个目录，2026-09-03 起）
+│   └── omen/              # HP OMEN 16-wf0xxx：hardware-config + 硬件/性能解锁/主机 home
+├── modules/               # 通用层 11 个文件 + default.nix（扁平，default.nix 聚合地图）
 │   └── default.nix        # 聚合入口（每行 imports 带职责注释 = 定位地图）
 ├── packages/              # 仓库内打包（非 nixpkgs 上游）
-│   └── omencore/          # OmenCore（HP OMEN 控制中心，官方 release 二进制）
+│   └── omencore/          # OmenCore CLI（HP OMEN 性能解锁，CLI-only）
 │                          # pi-coding-agent 已改用 nixpkgs 自带（2026-08）
 ├── docs/                  # 文档（troubleshooting/ 疑难杂症记录）
 └── home/                  # 用户级配置（home-manager）
@@ -23,7 +25,7 @@ nixos-config（单仓库，44 个 .nix，目录 ≤2 层 —— STANDARDS §2 �
     ├── modules/           # 用户级 22 个文件
     │   ├── desktop/       # 7 个（niri/kitty/fcitx5/dms/appearance/misc/default）
     │   ├── tools/         # 12 个（fish/starship/yazi/shell-utils/dev/neovim/...）
-    │   ├── core.nix env.nix network.nix  # 顶层领域文件 + network（代理）
+    │   ├── core.nix env.nix   # 顶层领域文件
     └── source/            # 配置源文件（niri/dms/beautify）
 ```
 
@@ -35,6 +37,9 @@ nixos-config（单仓库，44 个 .nix，目录 ≤2 层 —— STANDARDS §2 �
 > nix profile upgrade fcclient tomatodo-nix                     # 一键升级
 > ```
 >
+> 2026-09-03：系统层 dae 透明代理/fcclient 配置（modules/proxy.nix）已一并移出仓库，
+> 全局限由 fcclient 自身接管（其带全局代理能力）；本机 rebuild 后如需恢复代理：
+> `nix profile upgrade fcclient && fcclient` 启动其全局代理即可。
 > 仓库本身不再引用它们（无 path 输入/overlay/占位包），任意机器可 eval。
 > 代码质量门禁：`nix fmt`（nixfmt RFC 风格）+ `nix flake check`（statix/deadnix/treefmt 全量校验）。
 > disko 声明式分区已回退（2026-08）：fileSystems 由 hardware-configuration.nix 管理；
@@ -68,7 +73,7 @@ mount /dev/nvme1n1p1 /mnt/boot
 # 3. 生成硬件配置（真实 UUID）+ 拉取配置（单仓库，只需克隆一次）
 nixos-generate-config --root /mnt
 git clone https://github.com/jackockzuo/nixos-config.git /mnt/dotfiles
-cp /mnt/etc/nixos/hardware-configuration.nix /mnt/dotfiles/
+cp /mnt/etc/nixos/hardware-configuration.nix /mnt/dotfiles/hosts/omen/
 
 # 4. 安装
 cd /mnt/dotfiles
@@ -82,7 +87,7 @@ nixos-install --flake .#omen
 | 桌面 | niri（greetd 直启）+ kitty + hyprlock | modules/desktop.nix + home/ |
 | 输入法 | fcitx5-rime（雾凇）+ catppuccin 主题 | 系统层 + home/ |
 | 联网 | firefox/chromium + wget + 网络诊断 | modules/packages.nix |
-| OMEN 控制 | omercore CLI/GUI（风扇/监控）+ 功耗墙解锁（EC 0xBA=5 开机自动） | modules/omencore.nix + packages/omencore |
+| OMEN 性能解锁 | omencore CLI 功耗墙解锁（EC 0xBA=5 开机自动；CLI-only，无 GUI） | hosts/omen/omencore.nix + packages/omencore |
 | 工具链 | fastfetch/btop/yazi/neovim 等（home.packages） | home/modules/ |
 | 配置 | niri/kitty/fcitx5 全套 `~/.config` | home/source/ |
 | 双系统 | GRUB + os-prober（Windows 自动识别） | modules/boot.nix |
@@ -117,7 +122,8 @@ nix shell nixpkgs#sops -c sops secrets/secrets.yaml
 ## 五、验证状态（2026-08）
 
 - ✅ `nix flake check` 通过（含 treefmt/statix/deadnix 质量门禁）
-- ✅ flake-parts 架构：`flake.nixosConfigurations.omen` + `nix fmt` 统一格式化
+- ✅ flake-parts 架构：`flake.nixosConfigurations` 由 hosts 清单生成（现 `#omen`）+ `nix fmt` 统一格式化
+- ✅ 多主机/可移植重构（2026-09-03）：机器专属收进 hosts/omen/，共享层零 fcclient/dae/OMEN 痕迹
 - ⏸ disko 已回退（2026-08）：`disko.nix` 已删除，fileSystems 由 `hardware-configuration.nix`（by-uuid）管理；重新接入须先重建 disko.nix 并 `--mode format,mount` 采纳（见 STANDARDS §5）
 - ✅ `nixos build omen` 成功（含 firefox/chromium/kitty/网络诊断）
 - ✅ home-manager 集成：用户 profile 含 fastfetch/btop/yazi/nvim

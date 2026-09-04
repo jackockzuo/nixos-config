@@ -18,29 +18,8 @@ _:
     };
 
     _children = [
-      # ================ 输出（原 output.kdl）================
-      # eDP-1（笔记本内屏）：关闭（外接 HDMI 为主屏）
-      {
-        output = {
-          _args = [ "eDP-1" ];
-          off = { };
-        };
-      }
-      # HDMI-A-1（主显示器）
-      {
-        output = {
-          _args = [ "HDMI-A-1" ];
-          mode = "1920x1080@144";
-          scale = 1;
-          position = {
-            _props = {
-              x = 0;
-              y = 0;
-            };
-          };
-          "focus-at-startup" = { };
-        };
-      }
+      # 输出段（eDP-1 关 / HDMI 主屏）已迁至 hosts/omen/hm.nix（2026-09-03）：
+      # 桌面形态属机器专属，共享层不配置输出 → 其他机器 niri 默认自动布局
 
       # ================ 图层规则（原 rule.kdl）================
       # 放进 overview 的壁纸程序（DMS 壁纸层，Quickshell namespace = quickshell）

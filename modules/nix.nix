@@ -2,7 +2,7 @@
 # nix.nix —— Nix 客户端/daemon
 # 职责：镜像源、GC、experimental-features、nix-ld/nix-index
 # ============================================================
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   nix = {
@@ -52,12 +52,9 @@
     };
   };
 
-  # nix-daemon 下载走代理（地址单一来源：modules/proxy.nix）
+  # nix-daemon 环境（2026-09-03：http(s)_proxy 随 fcclient/dae 清理移除）
+  # Go 模块国内代理：sops-install-secrets/DMS 现场编译需要 (REF:2026-08-30-goproxy)
   systemd.services.nix-daemon.environment = {
-    http_proxy = config.proxy.address;
-    https_proxy = config.proxy.address;
-    all_proxy = config.proxy.address;
-    # Go 模块国内代理：sops-install-secrets/DMS 现场编译需要 (REF:2026-08-30-goproxy)
     GOPROXY = "https://goproxy.cn,direct";
   };
 
@@ -107,8 +104,8 @@
 
         # X11 相关库
         libx11
-        libice # omencore-gui 依赖
-        libsm # omencore-gui 依赖
+        libice # X11 session 管理（老 GUI/nix-ld 程序）
+        libsm # X11 session 管理（老 GUI/nix-ld 程序）
         libxcursor
         libxdamage
         libxext
