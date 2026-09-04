@@ -29,7 +29,7 @@
       }
 
       node {
-        fc_backend: 'socks5://127.0.0.1:7892'
+        fc_backend: 'socks5://169.254.0.1:7892'
       }
 
       group {
@@ -42,7 +42,7 @@
       dns {
         upstream {
           alidns: 'udp://223.5.5.5:53'
-          googledns: 'tcp+udp://8.8.8.8:53'
+          googledns: 'tcp://8.8.8.8:53'
         }
         routing {
           request {
@@ -70,5 +70,11 @@
     "net.ipv4.ip_forward" = 1;
     "net.ipv4.conf.all.forwarding" = 1;
     "net.ipv6.conf.all.forwarding" = 1;
+  };
+
+  # 后端 fcclient 在宿主机监听 *:7892：仅放行 dae 虚拟网卡(dae0)到达它，不暴露到局域网
+  networking.firewall.interfaces.dae0 = {
+    allowedTCPPorts = [ 7892 ];
+    allowedUDPPorts = [ 7892 ];
   };
 }
