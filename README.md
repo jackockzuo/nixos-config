@@ -32,8 +32,10 @@ nix fmt                  # 统一格式化（RFC 风格）
 | 对象 | 机制 | 备注 |
 |---|---|---|
 | fcclient | 菜单原样启动即可 | 想代理就开，不想就关 |
-| Chrome | 用户级桌面项固定 `--proxy-server=http://127.0.0.1:7892` + 国内域名白名单 | fcclient 开=外网通；关=国内直连、外网不可达（本无代理） |
+| Chrome | 用户级启动器 `~/.local/bin/chrome-fcclient` 每次启动时探测 7892：在跑→全量走代理（国内/国外分流交给 fcclient 自身规则，无名单遗漏）；未跑→直连 | 每次打开 Chrome 时按 fcclient 状态决定；中途开关 fcclient 需重开 Chrome 生效 |
 | 终端 CLI | fish `proxy on [port] / off / status` | 只影响当前 shell，端口可自定义并记忆 |
+
+> 端口改法：`FCCLIENT_PROXY_PORT=8080` 前缀启动 chrome-fcclient，或改脚本内 PORT。
 
 > 这些均为用户级/私有实现（`~/.local/share/applications/`、`~/.config/fish/functions/`、
 > `~/Documents/nix-packaging/fcclient`），不进本仓库 —— 保持系统配置纯净可移植。
