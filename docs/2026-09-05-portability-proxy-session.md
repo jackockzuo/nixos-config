@@ -34,7 +34,9 @@
 
 ## 3. 已完成：fcclient 代理模型定型（最终形态，非 TUN）
 
-**最终采用：内核透明代理（dae，hosts/omen/proxy.nix）** —— 所有应用零配置，geoip/geosite 国内直连（无名单遗漏），非国内走 fcclient(socks5://127.0.0.1:7892) 后端。
+**最终采用：内核透明代理（dae，hosts/omen/proxy.nix）** —— 所有应用零配置，geoip/geosite 国内直连（无名单遗漏），非国内走 fcclient(socks5://169.254.0.1:7892) 后端。
+关键修复链（2026-09-05 实测）：dae group 需 `policy: fixed(0)`；daens 无法访问宿主 127.0.0.1/局域网(回环缺失+rp_filter)；宿主侧 dae0 需配 169.254.0.1/30（systemd dae-host-addr 固化）后后端拨通（google 204 / github 200 / baidu 直连 200）。
+当前该机浏览器/CLI 均零配置透明代理；fcclient 关 = 外网不可达、国内照常。
 曾试过的 TUN/系统代理/静态名单等方案结论保留于 §4。
 
 | 对象 | 机制（均为用户级/私有，不进 nixos-config） | 行为 |
