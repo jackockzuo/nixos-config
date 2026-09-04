@@ -61,7 +61,26 @@
 - fcclient"系统代理"开关：不写 gsettings、不写 env → 对 Chrome 无效。
 - Chrome+gsettings（manual + XDG_CURRENT_DESKTOP=GNOME）：headless 验证可行，但依赖"启动时机/菜单条目"，体验脆弱 → 改为固定 flag。
 
-## 5. 待办 / 待你决策
+## 5. 增补（2026-09-05 dae 上线收尾）
+
+**上线后两项改进 + 两个坑（均已进 main `9879d24`）**
+- DNS：`optimistic_cache=true`（陈旧窗口 300s）+ `max_cache_size=4096` → google 冷 2.6s → 暖 1.5s；
+  注意 dae `fallback:` 不支持逗号多上游（会被当单个 tag → FATAL not found）。
+- 豁免预置：`openvpn/wireguard/wg-quick/tailscaled/tailscale/zerotier-one/chronyd/ntpd/syncthing -> direct`
+  （VPN 隧道必须直连防套娃；新增需直连程序在该 pname 列表追加）。
+- `dae-host-addr` 加 `PartOf=dae.service`：dae 重启会重建 dae0、丢掉 169.254.0.1 → 必须随 dae 联动重启补配（曾因缺 PartOf 导致切换后外网 DNS 全超时）。
+
+**排障经验速查（他机复刻 dae 方案时对照）**
+1. group `policy: fixed` 非法 → `fixed(0)`。
+2. daens（dae 网络命名空间）访问不到宿主 `127.0.0.1`；宿主侧 dae0 需配 IPv4 `169.254.0.1/30`
+   （= daens 默认网关，稳定不随 wifi 变化）；fcclient 需监听 `*:7892`；防火墙仅放行 dae0。
+3. 从 daens 手动 curl 不可作为后端测试（会被 dae 再捕获）；正确验证 = 宿主机正常请求看 dae 日志
+   `dialer=fc_backend` + HTTP 204。
+4. nixpkgs 该快照 dae 模块 `disableTxChecksumIpGeneric` 分支有 bug（getExe 参数错位），保持默认关。
+5. 多 switch 并发会导致 eval-cache busy & 旧配置 dae 重启风暴 → 先 `pkill nixos-rebuild` + `systemctl stop dae` 再单跑。
+
+## 6. 待办 / 待你决策
+
 
 - [ ] 在 omen 机上验收通过后：`git checkout main && git merge feat/portability-cleanup && git tag vX.Y.Z`
 - [ ] Chrome 菜单重开后验证外网/国内行为（若菜单未刷新，注销一次）
