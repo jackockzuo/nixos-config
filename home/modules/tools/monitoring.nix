@@ -1,14 +1,10 @@
-# ============================================================
-# monitoring.nix —— 系统监控（并入 monitoring/{btop,cava}）
-# 职责：进程监控(btop, Catppuccin Mocha) / 音频可视化(cava)
+# monitoring.nix —— 系统监控（btop/cava）
 # ============================================================
 _:
 
 {
-  # ---- btop：进程/CPU/内存/网络监控 ----
-  # 🔴 btop 0.27+ 主题语法从旧 `theme_xxx=#hex` 改为新 `theme[xxx]="#hex"`，
-  #    旧格式在当前 btop 1.4.7 上完全失效；themes 选项原样写入
-  #    ~/.config/btop/themes/catppuccin_mocha.theme
+  # btop：进程/CPU/内存/网络监控
+  # 🔴 btop 0.27+ 主题语法：theme[xxx]="#hex"（旧 theme_xxx= 已失效）
   programs.btop = {
     enable = true;
 
@@ -68,12 +64,11 @@ _:
       theme[process_end]="#f9e2af"
     '';
   };
-  # 🔴 btop 首次运行自动生成默认 btop.conf → 不设 force 会 checkLinkTargets 报
-  #    "would be clobbered"，连带其他 HM 配置全部无法部署
+  # 🔴 btop 首次运行自动生成默认 btop.conf → 不设 force 会 checkLinkTargets 报错
   xdg.configFile."btop/btop.conf".force = true;
 
-  # ---- cava：音频可视化（Catppuccin Mocha 渐变）----
-  # 注意：cava 配置为 ini 格式（pkgs.formats.ini），hex 颜色值必须带单引号写字符串
+  # cava：音频可视化（Catppuccin Mocha 渐变）
+  # hex 颜色值必须带单引号写字符串（pkgs.formats.ini 格式）
   programs.cava = {
     enable = true;
     settings = {

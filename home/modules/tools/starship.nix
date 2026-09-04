@@ -2,36 +2,25 @@
 
 {
   # 极简双行布局 Starship 配置
-  # 设计原则：
-  #   1. 极简主义：纯前景色文本 + 符号，无任何背景色块（移除全部 Powerline bg 样式）
-  #   2. 高性能：只保留必要模块 + 目录扫描/外部命令双重超时
-  #   3. 信息丰富：OS 图标 + 用户名 + 路径 + git 状态 + 多语言环境 + 命令耗时
-  #   4. 双行布局：第一行 = 状态信息，第二行 = 输入提示符
   programs.starship = {
     enable = true;
-    # 🐚 fish 集成在下方 lib.mkAfter 守卫块（type -q starship），
-    # 关闭 HM 无条件生成（Distrobox 挂载 $HOME 时容器内报 Unknown command）
+    # type -q 守卫：容器内 starship 不存在时静默跳过 (REF:2026-08-18-distrobox-nc)
     enableFishIntegration = false;
     enableBashIntegration = true;
 
     settings = {
       "$schema" = "https://starship.rs/config-schema.json";
 
-      # ── 左右分栏布局（spaceship 风格）──
-      # 第一行：左侧导航（OS/用户/目录/git/nix）+ 右侧环境（语言链/耗时/任务/退出码）
-      # 第二行：输入提示符。语言链右对齐不占左侧空间，多语言项目也不冗杂
+      # 左右分栏布局：第一行 = 导航 + 环境，第二行 = 输入提示符
       format = "$os$username$directory$git_branch$git_status\${custom.nix}$nix_shell$line_break$character";
       right_format = "$package$c$cpp$fortran$rust$java$haskell$python$go$nodejs$ruby$lua$perl$php$cmake$pixi$cmd_duration$jobs$status";
 
-      # ── 性能优化 ──
-      # add_newline = false：紧凑布局，提示符之间不插入空行
       add_newline = false;
-      # command_timeout = 500：等待外部命令（python --version / go version / node --version 等）返回版本的最大毫秒数，防止个别命令卡住
       command_timeout = 500;
 
       palette = "catppuccin_mocha";
 
-      # ── OS 图标：红色符号，标志系统身份 ──
+      # ── OS 图标 ──
       os = {
         disabled = false;
         style = "fg:red";
@@ -60,7 +49,7 @@
         };
       };
 
-      # ── 用户名：常显（root 红色警示，普通用户桃色）──
+      # ── 用户名 ──
       username = {
         show_always = true;
         style_user = "fg:peach";
@@ -68,13 +57,13 @@
         format = "[$user]($style) ";
       };
 
-      # ── 目录：青色路径，截断至 3 级，常用目录替换为图标 ──
+      # ── 目录 ──
       directory = {
         style = "fg:teal";
         format = "in· [$path]($style)$read_only ";
         truncation_length = 3;
         truncation_symbol = "…/";
-        # 🔒 目录只读（无写权限）时后缀显示锁图标（spaceship DIR_LOCK 同款）
+        # 🔒 目录只读时显示锁图标
         read_only = "🔒 ";
         # ⚠️ 2026-08-17：scan_for_workdir_files / scan_timeout 已在 starship 1.26 移除
         #   （schema 无此键，配置会触发 "Unknown key" 警告）→ 已删除，性能由 command_timeout 兜底
@@ -87,7 +76,6 @@
         };
       };
 
-      # ── git 状态：黄色分支 + 变更标记 ──
       git_branch = {
         symbol = " ";
         style = "fg:yellow";
@@ -98,21 +86,20 @@
         format = "[$all_status$ahead_behind]($style) ";
       };
 
-      # ── 后台任务数：有后台任务时显示 ⚙ N（spaceship jobs 同款）──
+      # ── 后台任务数 ──
       jobs = {
         symbol = "⚙ ";
         format = "[$symbol$number]($style) ";
         style = "fg:blue";
       };
 
-      # ── 退出码：上次命令非零时显示红色 ✘（starship 模块名是 status，非 exit_code）──
+      # ── 退出码 ──
       status = {
         format = "[$symbol$status]($style) ";
         style = "fg:red";
       };
 
       # ── 语言版本链：仅当项目含对应文件时显示 ──
-      # 颜色使用各语言的经典色（无背景）；前 7 个模块走 starship 默认 detect 规则
       c = {
         symbol = " ";
         style = "fg:green";
@@ -150,9 +137,8 @@
         format = "[$symbol$version]($style) ";
       };
 
-      # 以下模块用 detect_files / detect_extensions 精确指定触发文件，避免扫描无关目录（性能优化）
-      # 🔴 2026-08-17：starship 1.26 起模块名 `go` 改名为 `golang`（schema 顶层键 golang → $defs/GoConfig），
-      #    旧键 `go` 触发 "Unknown key" 警告且不生效
+      # 以下模块用 detect_files / detect_extensions 指定触发文件（性能优化）
+      # starship 1.26 起模块名 `go` 改名为 `golang` (REF:2026-08-17-starship-golang)
       golang = {
         symbol = " ";
         style = "fg:sky";
@@ -214,9 +200,7 @@
         format = "via· [$symbol$version]($style) ";
       };
 
-      # ── Nix 项目目录标识（flake.nix/default.nix/shell.nix 检测）──
-      # 与 nix_shell（环境状态 pure/impure）区分：目录是 Nix 项目显示 ❄ nix，进入 nix develop 则右侧显示 ❄ pure
-      # 性能：每次提示符渲染只跑一次 `test -f`（微秒级），command_timeout = 500 已兜底，无感知开销
+      # ── Nix 项目目录标识（flake.nix/default.nix/shell.nix）──
       custom.nix = {
         command = "test -f flake.nix -o -f default.nix -o -f shell.nix && echo nix";
         when = true;
@@ -232,7 +216,7 @@
         format = "via· [$symbol$state]($style) ";
       };
 
-      # ── 命令耗时：min_time = 200ms 几乎每条命令都记录；overlay0 灰色不抢注意力 ──
+      # ── 命令耗时 ──
       cmd_duration = {
         min_time = 200;
         show_milliseconds = true;
@@ -241,12 +225,12 @@
         disabled = false;
       };
 
-      # ── 换行：第一行状态 → 第二行输入提示符 ──
+      # ── 换行 ──
       line_break = {
         disabled = false;
       };
 
-      # ── 输入提示符：成功绿色 ❯ / 失败红色 ❯ ──
+      # ── 输入提示符 ──
       character = {
         disabled = false;
         success_symbol = "[❯](bold fg:green)";
@@ -285,10 +269,7 @@
     };
   };
 
-  # 🐚 fish 集成（type -q 守卫，2026-08-18 Distrobox 容器报错修复）：
-  #   保留 HM 原有 TERM != dumb 兜底，新增 type -q starship 存在性守卫——
-  #   容器内 starship 不存在时静默跳过，避免 "Unknown command: starship"。
-  #   宿主（kitty 终端）行为与 HM 原生集成完全一致（starship init fish | source）。
+  # fish 集成（type -q 守卫，容器兼容）(REF:2026-08-18-distrobox-nc)
   programs.fish.interactiveShellInit = lib.mkAfter ''
     if type -q starship
         if test "$TERM" != dumb

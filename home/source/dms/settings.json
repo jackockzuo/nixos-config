@@ -309,9 +309,9 @@
     }
   ],
   "networkPreference": "auto",
-  "iconThemeDark": "System Default",
-  "iconThemeLight": "System Default",
-  "iconThemePerMode": false,
+  "iconThemeDark": "Papirus-Dark",
+  "iconThemeLight": "Papirus",
+  "iconThemePerMode": true,
   "lastAppliedIconTheme": "",
   "cursorSettings": {
     "theme": "catppuccin-mocha-mauve-cursors",

@@ -1,23 +1,16 @@
 # ============================================================
 # nix.nix —— Nix 客户端/daemon
-# 职责：镜像源、GC、experimental-features、direnv/nix-ld/nix-index
-# 修改：换源/调 GC 策略 → 改这里
-# 关联：modules/secrets.nix（sops 模板注入 github-token 到 NIX_CONFIG）
+# 职责：镜像源、GC、experimental-features、nix-ld/nix-index
 # ============================================================
 { config, pkgs, ... }:
 
 {
-  # ============ Nix：国内镜像 + daemon 调优 + 自动 GC ============
   nix = {
     settings = {
-      # 🔴 nyx 缓存放首位：优先获取 CachyOS 预编译内核/nvidia 模块（本地无则避免现场编译）。
-      #    ⚠️ 官方现行缓存是 nyx-cache.chaotic.cx（旧 nyx.cachix.org 已迁移，key 不同！）
-      #    若 chaotic 再次迁移缓存地址：要么改这里，要么删掉本节改回自动（cache.enable=true）
+      # 二进制缓存：nyx（CachyOS）+ SJTU（国内）+ cache.nixos.org（兜底）
       substituters = [
         "https://nyx-cache.chaotic.cx/"
         "https://mirror.sjtu.edu.cn/nix-channels/store"
-        "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
-        "https://mirrors.ustc.edu.cn/nix-channels/store"
         "https://cache.nixos.org"
       ];
       trusted-public-keys = [
@@ -33,64 +26,54 @@
         "flakes"
       ];
       auto-optimise-store = true;
-      # 🔴 防止 GC 误伤（2026-08-29 事故）：--no-link 构建的 toplevel 无 gc root，
-      #    自动 GC 清掉后 switch 需重新下载（曾撞 nyx 缓存网络故障）。
-      #    keep-outputs 保留构建产物；min-free/max-free 磁盘将满自动提前清理
+      # GC 误伤防护：keep-outputs 保留构建产物；min-free/max-free 磁盘将满自动提前清理
+      # (REF:2026-08-29-gc-missing-toplevel)
       keep-outputs = true;
-      min-free = "2G"; # 剩余 <2G 时自动触发 GC
-      max-free = "8G"; # GC 清理到剩 8G 为止
-      # 🔴 GitHub token 不在本文件：由 modules/secrets.nix 的 sops 模板
-      #    （NIX_CONFIG env file）注入 nix-daemon 的 access-tokens
+      min-free = "2G";
+      max-free = "8G";
+      # GitHub token 由 modules/secrets.nix 的 sops 模板注入（NIX_CONFIG env file）
     };
-    # 系统级自动 GC（保留 7 天）
     gc = {
       automatic = true;
       dates = "weekly";
       options = "--delete-older-than 7d";
     };
+    settings = {
+      connect-timeout = 5;
+      stalled-download-timeout = 10;
+      http-connections = 50;
+      max-substitution-jobs = 20;
+      warn-dirty = false;
+    };
+    registry.nixpkgs.to = {
+      type = "git";
+      url = "https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git";
+      ref = "nixos-unstable";
+    };
   };
-  # 🔴 nix-daemon 下载走代理（TUN 模式未生效/绕过时兜底）
-  # 否则 daemon（root 服务）不继承终端 export，直连 cache.nixos.org 龟速
-  # 地址单一来源：modules/proxy.nix 的 options.proxy
+
+  # nix-daemon 下载走代理（地址单一来源：modules/proxy.nix）
   systemd.services.nix-daemon.environment = {
     http_proxy = config.proxy.address;
     https_proxy = config.proxy.address;
     all_proxy = config.proxy.address;
-    # 🔴 Go 模块国内代理（2026-08-30 修复）：nixpkgs buildGoModule 的 go-modules 派生
-    #    impureEnvVars 含 GOPROXY（继承 daemon 环境）→ 这里设置后 Go 构建走 goproxy.cn，
-    #    不再直连 proxy.golang.org（国内 TLS 超时 → sops-install-secrets/DMS 现场编译必失败）
+    # Go 模块国内代理：sops-install-secrets/DMS 现场编译需要 (REF:2026-08-30-goproxy)
     GOPROXY = "https://goproxy.cn,direct";
   };
 
-  # 🔴 nix 客户端构建也走 Go 国内代理（nix develop / nix shell 内 buildGoModule 场景）
-  nix.settings.extra-sandbox-paths = [ ];
-  # 客户端侧 GOPROXY：供 nix 单机/本地构建继承（daemon 构建由上方环境变量覆盖）
+  # 客户端侧 GOPROXY（nix develop / nix shell 内 buildGoModule 场景）
   environment.sessionVariables.GOPROXY = "https://goproxy.cn,direct";
 
-  # ============ Chaotic-Nyx（CachyOS 高性能包生态）============
+  # Chaotic-Nyx（CachyOS 高性能包）
   chaotic.nyx = {
-    # CachyOS 包 overlay：提供 linuxPackages_cachyos 等高性能包（boot.nix 内核切换依赖它）
     overlay.enable = true;
-    # ❌ cache.enable 默认 true 会自动追加 nyx 缓存配置到 nix.settings（顺序不可控），
-    #    与上方手动配置（nyx 首位 + 国内镜像）冲突/重复 → 显式关闭，缓存由本文件全权管理。
-    cache.enable = false;
-    # ❌ cpu-set 选项在本版本 chaotic 中不存在（仅 cache/nixPath/overlay/registry）；
-    #    CPU governor 改由 services.tlp.settings 配置（见 services.nix，AC=performance）。
+    cache.enable = false; # 缓存由本文件 substituters 全权管理，避免重复
   };
 
-  # ============ 客户端工具（曾独立文件并入）：direnv / nix-ld / nix-index ============
+  # 客户端工具：nix-ld / nix-index
   programs = {
-    # direnv：目录环境
-    # 允许 unfree：单一来源在 modules/system.nix（此处不再重复声明）
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
-
-    # nix-ld：运行第三方二进制
     nix-ld = {
       enable = true;
-      # 这一套组合拳基本覆盖了 99% 的二进制程序需求
       libraries = with pkgs; [
         # 基础系统库
         stdenv.cc.cc
@@ -120,12 +103,12 @@
         pango
         cairo
         libdrm
-        mesa # 用于 OpenGL/Vulkan
+        mesa
 
         # X11 相关库
         libx11
-        libice # Avalonia X11 后端 ICE 会话管理（omercore-gui 依赖 libICE.so.6）
-        libsm # X11 会话管理（omercore-gui 依赖 libSM.so.6）
+        libice # omencore-gui 依赖
+        libsm # omencore-gui 依赖
         libxcursor
         libxdamage
         libxext
@@ -159,15 +142,12 @@
         nghttp2
         rtmpdump
 
-        # 常用开发语言运行时支持
+        # 开发语言运行时
         python3
-        systemd # 很多 binary 会链接 libsystemd.so
+        systemd
       ];
     };
-
-    # nix-index：command-not-found 补全（曾独立 nix-addons/nix-index.nix，并入）
     nix-index.enable = true;
-    # 禁用系统默认 command-not-found（更新慢、经常找不到包）
     command-not-found.enable = false;
   };
 }

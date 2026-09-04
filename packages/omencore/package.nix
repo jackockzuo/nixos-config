@@ -1,20 +1,10 @@
 # ============================================================
 # omencore 打包定义（唯一来源）
 # 来源：flake.nix inputs.omencore（官方 release 二进制 zip，v${version}）
-# 原理：.NET 8 + Avalonia（C#），上游发布 self-contained 单文件二进制：
-#       omencore-cli（控制台，InvariantGlobalization）+ omencore-gui（GUI）
-#       + 3 个 SkiaSharp/HarfBuzzSharp/MonoPosix 原生 .so。
-# 为什么不 buildDotnetModule 源码编译：Avalonia + 大量 NuGet 依赖在 Nix 下
-#       极重（SkiaSharp 原生库/ICU/X11 依赖链），上游官方 release 即为自包含
-#       产物，本文件与 Arch AUR 的 omencore-bin 包同思路（仅 x86_64-linux）。
-# 🔴 为什么不做 autoPatchelf/patchelf：
-#   - .NET 单文件 apphost 是"ELF + 内嵌 bundle"，bundle 头记录文件尾偏移；
-#     patchelf 追加段（写 interpreter/rpath）会破坏该偏移 → 启动即
-#     "Arithmetic overflow while reading bundle"（2026-08-23 实测）。
-#   - 本机已启用 programs.nix-ld（modules/nix.nix），/lib64/ld-linux-x86-64.so.2
-#     → nix-ld，且 libraries 已含 zlib/icu/fontconfig/libx11/libxext/libxi/
-#     libxrandr/gtk3 等全部运行时依赖 → 原生二进制直接可跑，无需打补丁。
-#   - 单机配置（STANDARDS §1：单机 omen），nix-ld 即本仓库"跑第三方二进制"通道。
+# 原理：.NET 8 + Avalonia（C#），上游发布 self-contained 单文件二进制
+# 为什么不做 autoPatchelf/patchelf：
+#   .NET 单文件 apphost 是"ELF + 内嵌 bundle"，patchelf 会破坏 bundle 偏移
+#   (REF:2026-08-23-omencore-patchelf)。本机已启用 nix-ld，原生二进制直接可跑
 # 滚动更新：nix run .#omencore-update（见 packages/omencore/update.sh）
 # 接入：flake.nix overlays.default → pkgs.omencore → modules/omencore.nix
 # ============================================================

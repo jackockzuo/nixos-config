@@ -27,18 +27,17 @@ nixos-config（单仓库，44 个 .nix，目录 ≤2 层 —— STANDARDS §2 �
     └── source/            # 配置源文件（niri/dms/beautify）
 ```
 
-> 注意：`fcclientPkg`（肥猫云客户端）在仓库外，通过 `path:` 输入引用（保持本仓库纯净）。
-> 🔴 **私有包已完全移出本仓库（2026-08-29）**：fcclient（肥猫云）/ tomatodo（番茄钟）由独立 flake 管理：
+> 注意：私有包（fcclient/tomatodo）已完全移出本仓库（2026-08-29），由独立 flake 管理：
 >
 > ```bash
 > nix profile install path:~/Documents/nix-packaging/fcclient   # 安装/更新
 > nix profile install path:~/Documents/tomatodo-nix
-> nix profile upgrade fcclient tomatodo-nix                     # 一键升级（打包目录改动后）
+> nix profile upgrade fcclient tomatodo-nix                     # 一键升级
 > ```
 >
 > 仓库本身不再引用它们（无 path 输入/overlay/占位包），任意机器可 eval。
 > 代码质量门禁：`nix fmt`（nixfmt RFC 风格）+ `nix flake check`（statix/deadnix/treefmt 全量校验）。
-> ⚠️ disko 声明式分区已回退（2026-08）：fileSystems 由 hardware-configuration.nix 管理；
+> disko 声明式分区已回退（2026-08）：fileSystems 由 hardware-configuration.nix 管理；
 > 未来接入 disko 须先 `--mode format,mount` 采纳（见 STANDARDS §5）。
 
 ## 二、毛坯房快速搭建（全新 NixOS → 完整系统）

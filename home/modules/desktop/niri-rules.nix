@@ -320,13 +320,6 @@ _:
             {
               match = {
                 _props = {
-                  "app-id" = "btrfs-assistant";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
                   "app-id" = "markpix";
                 };
               };

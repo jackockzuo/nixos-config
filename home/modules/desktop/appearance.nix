@@ -1,45 +1,58 @@
 { pkgs, lib, ... }:
 
 let
-  # fastfetch logo：store 路径引用（见下方 programs.fastfetch 注释）
-  # 🔴 不用相对路径：fastfetch 的 source 相对路径按 cwd 解析，从其他目录运行会
-  #    "Failed to resolve logo source" → 回退内置 ASCII logo。
-  #    `${../../source/...}` 在 Nix 求值时自动转为 /nix/store/... 绝对路径，
-  #    不依赖用户名/home 目录，迁移或换用户也不用改。
+  # fastfetch logo：store 路径引用（不用相对路径，fastfetch 按 cwd 解析会失败）
   logoPath = toString ../../source/beautify/fastfetch/nixos-logo.png;
+
+  # 图标主题合并包：Papirus 为主 + Tela-circle 兜底
+  # 图标主题按 index.theme Inherits 链回退查找（GTK/Qt/Quickshell 同一机制）
+  papirusWithTelaFallback = pkgs.runCommand "papirus-icon-theme-with-tela-fallback" { } ''
+    mkdir -p $out/share/icons
+    for t in Papirus Papirus-Dark Papirus-Light; do
+      case $t in
+        Papirus)       fb=Tela-circle ;;
+        Papirus-Dark)  fb=Tela-circle-dark ;;
+        Papirus-Light) fb=Tela-circle-light ;;
+      esac
+      mkdir -p $out/share/icons/$t
+      ln -s ${pkgs.papirus-icon-theme}/share/icons/$t/* $out/share/icons/$t/
+      # index.theme 替换为真实文件并改写 Inherits（其余子目录保持 store symlink，不复制体积）
+      rm $out/share/icons/$t/index.theme
+      cp ${pkgs.papirus-icon-theme}/share/icons/$t/index.theme $out/share/icons/$t/index.theme
+      sed -i "s|^Inherits=.*|Inherits=$fb,hicolor|" $out/share/icons/$t/index.theme
+    done
+    for t in Tela-circle Tela-circle-dark Tela-circle-light; do
+      ln -s ${pkgs.tela-circle-icon-theme}/share/icons/$t $out/share/icons/$t
+    done
+    # hicolor 终极兜底（papirus 自带同名目录）
+    ln -s ${pkgs.papirus-icon-theme}/share/icons/hicolor $out/share/icons/hicolor
+  '';
 in
 {
   # ============================================================
   # appearance.nix —— 桌面外观（fastfetch/字体渲染/GTK 主题/光标）
-  # 注意：source 相对路径基于本文件位置（modules/desktop/）
   # ============================================================
 
   xdg.configFile = {
-    # ---- 2. fontconfig 字体渲染 ----
-    # 效果：全局抗锯齿 + hintslight 微调 + 中文回退（Noto Sans CJK SC）
-    # 字体分工：终端 Maple Mono（kitty 显式指定）、等宽代码 JetBrainsMono、UI/中文 Noto Sans CJK SC
-    # （fontconfig 无结构化模块接口，fonts.conf 保留 source 文件声明）
+    # fontconfig 字体渲染（全局抗锯齿 + hintslight + 中文回退 Noto Sans CJK SC）
+    # fontconfig 无结构化模块接口，fonts.conf 保留 source 文件声明
     "fontconfig/fonts.conf" = {
       source = ../../source/beautify/fontconfig/fonts.conf;
       force = true; # 覆盖原作者旧配置
     };
   };
 
-  # ---- 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png ----
-  # 旧 config.jsonc 引用 ~/.config/fastfetch/nixos-logo.png；新 settings.logo.source
-  # 直接引用 store 路径（logoPath），此文件不再被引用，GC 后为悬空链接
+  # 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png
+  # 新 settings.logo.source 直接引用 store 路径，此文件不再被引用(REF:2026-08-28-fastfetch-cleanup)
   home.activation.cleanStaleFastfetchLogo = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     if [ -L "$HOME/.config/fastfetch/nixos-logo.png" ]; then
       $DRY_RUN_CMD rm "$HOME/.config/fastfetch/nixos-logo.png"
     fi
   '';
 
-  # ---- 1. fastfetch 定制系统信息面板（官方模块 programs.fastfetch）----
-  # 效果：终端启动时显示彩色键名的树状信息面板（OS/KER/PAK/AGE/USR/WM/DES/SHE/TER/PC/CPU/MEM/SWP/GPU/MON/DIS）
-  # logo：kitty-direct 原生协议渲染官方 NixOS 彩色雪花（settings.logo.source 直接引用 store 路径）
-  # 说明：原 config.jsonc 手写文本（含 @NIXOS_LOGO_PATH@ 占位符注入）迁移为
-  #   settings attrset（jsonFormat 生成），占位符机制不再需要；模块同时安装 fastfetch 二进制
-  #   （原配置因未安装 fastfetch 实际未生效，fish.nix 的 type -q 守卫已备好）
+  # fastfetch 定制系统信息面板
+  # logo：kitty-direct 原生协议渲染 NixOS 彩色雪花（store 绝对路径）
+  # 模块同时安装 fastfetch 二进制
   programs.fastfetch = {
     enable = true;
     settings = {
@@ -160,9 +173,8 @@ in
     };
   };
 
-  # ---- 3. GTK 全局统一主题 (Catppuccin Mocha) ----
-  # gtk4.theme = null：显式采用 HM 26.05+ 新默认（gtk4 不再跟随 gtk3 主题），
-  # 消除 stateVersion < 26.05 时的弃用警告
+  # GTK 全局统一主题 (Catppuccin Mocha)
+  # gtk4.theme = null：显式采用 HM 26.05+ 新默认，消除弃用警告
   gtk = {
     enable = true;
     gtk4.theme = null;
@@ -175,32 +187,28 @@ in
     };
     iconTheme = {
       name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
+      package = papirusWithTelaFallback; # Papirus 主 + Tela-circle 兜底（见上方 let）
     };
-    # 🔴 输入法 IM 模块按后端拆分（fcitx wiki 2025-09 现代写法 + STANDARDS §4）：
-    #  - GTK3/4 settings.ini 不再写 gtk-im-module：这行【Wayland 与 X11 都会读】，
-    #    写了会让 Wayland 原生 GTK3/4（Chromium/Electron 等）被迫加载 fcitx GTK IM 模块，
-    #    改用应用内嵌候选框（不过合成器 text-input-v3 通道）→ 显示 GTK 内嵌默认样式
-    #    （“原皮”），而不是 classicui 浮窗的 Catppuccin 主题（2026-08-21 实测修复）。
-    #    niri 支持 text-input-v3 → 原生 Wayland GTK 应用自动走合成器通道，主题生效。
-    #  - GTK2 保留“gtk-im-module=fcitx”：GTK2 只有 X11/XWayland，必须经 fcitx IM 模块。
-    #  - XWayland 的 GTK3 应用：走 GTK3 内建 XIM（XMODIFIERS 全局已设 @im=fcitx，locale.nix）。
+    # 🔴 输入法 IM 模块按后端拆分（fcitx wiki 2025-09 + STANDARDS §4）：
+    #  GTK3/4 settings.ini 不再写 gtk-im-module（写了会退回应用内嵌候选框="原皮"）(REF:2026-08-21-fcitx5-gtk)
+    #  GTK2 保留 gtk-im-module=fcitx（仅 X11/XWayland）
     gtk2.extraConfig = "gtk-im-module=\"fcitx\"";
     gtk3.extraConfig = { }; # 空：不强制 IM 模块（Wayland 原生走 text-input-v3；XWayland 走内建 XIM）
     gtk4.extraConfig = { }; # 空：同上（GTK4 X11 亦走内建 XIM）
   };
 
-  # ---- 3b. QT 全局主题（Qt6 应用跟随 GTK 主题）----
-  # niri 环境变量已设 QT_QPA_PLATFORMTHEME=gtk3（niri.nix 的 settings.environment），
-  # 这里声明式补全 Qt6 的 platformTheme，纯 Qt6 应用（如部分 KDE 系工具）也能跟主题。
-  # 注意：platformTheme.name = "gtk3" 是原生 Qt GTK3 插件（新版 HM 的 "gtk" 已弃用）
+  # QT 全局主题（Qt6 应用跟随 GTK 主题）
+  # niri 环境变量已设 QT_QPA_PLATFORMTHEME=gtk3，这里补全 Qt6 platformTheme
   qt = {
     enable = true;
     platformTheme.name = "gtk3";
     style.name = "adwaita-dark";
   };
 
-  # ---- 4. 鼠标光标（Catppuccin Mocha Mauve） ----
+  # 暗/亮主题手动切换（Mod+Shift+L 见 niri-binds.nix）
+  # 切换内容见 theme-switch 头部注释（DMS 模式/GTK/Qt/图标/光标全套跟随）
+
+  # 鼠标光标（Catppuccin Mocha Mauve）
   home.pointerCursor = {
     enable = true;
     gtk.enable = true;

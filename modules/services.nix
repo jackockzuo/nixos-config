@@ -1,25 +1,21 @@
 # ============================================================
 # services.nix —— 系统服务
 # 职责：音频（pipewire）、快照（snapper）、U盘/固件/电源
-# 修改：启停系统服务 → 改这里
-# 关联：performance.nix（zram 交换在那里）
 # ============================================================
 _:
 
 {
   services = {
-    # ============ 快照防护：snapper（btrfs 滚挂兜底）============
-    # 🔴 btrfs 布局：/ = @、/home = @home、/nix = @nix。
-    # snapper 只对 / 和 /home 做时间线快照（/nix 是内容寻址 store，无需快照）。
-    # 用法：sudo snapper -c root list / sudo snapper -c home list；恢复：sudo snapper -c root undochange
+    # 快照防护：snapper（btrfs 滚挂兜底）
+    # btrfs 布局：/ = @、/home = @home、/nix = @nix
     snapper = {
       configs = {
         root = {
           SUBVOLUME = "/";
-          ALLOW_GROUPS = [ "wheel" ]; # 让 wheel 组（ran 在 wheel）无需 root 也能操作快照
+          ALLOW_GROUPS = [ "wheel" ];
           TIMELINE_CREATE = true;
           TIMELINE_CLEANUP = true;
-          TIMELINE_LIMIT_HOURLY = "5"; # 保留最近 5 个每小时快照
+          TIMELINE_LIMIT_HOURLY = "5";
           TIMELINE_LIMIT_DAILY = "7";
           TIMELINE_LIMIT_WEEKLY = "4";
           TIMELINE_LIMIT_MONTHLY = "3";
@@ -37,10 +33,10 @@ _:
           TIMELINE_LIMIT_YEARLY = "1";
         };
       };
-      # 定时快照：错过（关机）则开机后立即补一次
       persistentTimer = true;
     };
-    # ============ 音频 ============
+
+    # 音频
     pipewire = {
       enable = true;
       alsa.enable = true;
@@ -48,23 +44,17 @@ _:
       pulse.enable = true;
     };
 
-    # ============ 基础服务 ============
-    udisks2.enable = true; # U 盘自动挂载（udiskie）
+    # 基础服务
+    udisks2.enable = true;
     gvfs.enable = true;
-    fwupd.enable = true; # 固件更新（fwupdmgr 更新 UEFI/笔记本固件）
-    # 🔴 GNOME Keyring：portal.nix 的 Secret=gnome-keyring 依赖它！
-    # 没有它 VSCode 无法保存 GitHub 登录态、Chrome 无法记住密码。
-    # 之前 portal 指向了 gnome-keyring 但服务从未启用（bug）。
+    fwupd.enable = true;
+    # GNOME Keyring：portal Secret=gnome-keyring 依赖（VSCode/Chrome 登录态）
     gnome.gnome-keyring.enable = true;
-    # 🔴 Intel CPU 散热管理：防止过热降频（HP OMEN 游戏本高负载场景）
-    # thermald 与 TLP 互补（TLP 管电源策略，thermald 管热节流），可共存
+    # Intel CPU 散热管理：防止过热降频（与 TLP 互补）
     thermald.enable = true;
   };
-  # 🔴 .snapshots 目录：tmpfiles 创建（普通目录方案）。
-  #    ⚠️ 2026-08-16 回退：disko 独立子卷方案已回退（disko 采纳动作未执行，
-  #    生成的 fileSystems 引用不存在的子卷导致 test 进紧急模式）。
-  #   恢复 tmpfiles 规则保证 snapper 正常工作。未来若采纳 disko（STANDARDS §5）
-  #    再切换到独立子卷方案并移除本规则。
+
+  # .snapshots 目录（tmpfiles 创建，disko 回退后保留此规则）
   systemd.tmpfiles.rules = [
     "d /.snapshots 0755 root root -"
     "d /home/.snapshots 0755 root root -"

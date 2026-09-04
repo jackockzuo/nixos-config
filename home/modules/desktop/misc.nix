@@ -1,7 +1,5 @@
 # ============================================================
-# misc.nix —— 桌面杂项（曾独立 swaync/portal/mpv/screenshot/filemanager，
-# 5 个 <60 行小文件按架构量化规则 §2.6 合并）
-# 职责：通知(swaync)/portal/视频(mpv)/截图标注(satty)/默认应用(mimeapps)
+# misc.nix —— 桌面杂项（通知/portal/视频/截图标注/默认应用）
 # ============================================================
 {
   config,
@@ -18,9 +16,8 @@ in
 {
   xdg = {
     configFile = {
-      # ---- SwayNC 通知（真毛玻璃，ext-background-effect-v1，niri 26.04 原生支持）----
-      # 二进制 swaynotificationcenter 由系统层安装（NixOS 版含 background-blur 支持）
-      # config.json 由 pkgs.formats.json 从 attrset 生成（不再手写 JSON 文本）
+      # SwayNC 通知（真毛玻璃，niri 26.04 原生支持）
+      # config.json 由 pkgs.formats.json 从 attrset 生成
       "swaync/config.json" = {
         source = jsonFormat.generate "swaync-config.json" {
           "$schema" = "/etc/xdg/swaync/configSchema.json";
@@ -112,30 +109,14 @@ in
         }
       '';
 
-      # ---- mimeapps 默认应用（原 filemanager.nix）----
-      # 图片→imv、视频→mpv、文本→nvim、目录→nautilus、网页→firefox
-      # mimeApps 会自动生成 ~/.config/mimeapps.list 与
-      # ~/.local/share/applications/mimeapps.list（无需手动 force）
     };
-    # ---- TomaToDo 菜单入口（2026-08-29）----
-    # 🔴 tomatodo 已移出本仓库（仓库纯净）：由独立 flake 装进用户 profile
-    #    （nix profile install path:~/Documents/tomatodo-nix），此处仅引用其 profile 路径
-    desktopEntries.tomatodo = {
-      name = "TomaToDo";
-      genericName = "番茄ToDo";
-      comment = "番茄ToDo - 待办与番茄钟计时应用";
-      exec = "${config.home.homeDirectory}/.nix-profile/bin/tomatodo %U";
-      terminal = false;
-      categories = [ "Utility" ];
-    };
-    # ---- 用户目录（统一英文，2026-08-29 决策）----
-    # 🔴 原 ~/下载（空）与 ~/Documents/Downloads/Pictures 并存（xdg 未声明导致混乱）；
-    #    统一为 xdg 标准英文名，应用保存路径一致（浏览器/截图/下载全部指向同一处）
+
+    # ---- 用户目录 ----
+    # 统一英文名（2026-08-29）：原 ~/下载 与 ~/Documents/Downloads/Pictures 并存导致混乱
     userDirs = {
       enable = true;
-      createDirectories = true; # 缺失目录自动创建（Desktop/Templates 等）
-      # 🔴 消除弃用警告（2026-08-30）：stateVersion < 26.05 时 legacy 默认 true，
-      #    显式声明保持旧行为（设 XDG_*_DIR 会话变量，与现有应用行为一致）
+      createDirectories = true; # 缺失目录自动创建
+      # 🔴 消除弃用警告：stateVersion < 26.05 时显式声明保持旧行为(REF:2026-08-30-userdirs-warning)
       setSessionVariables = true;
       desktop = "Desktop";
       documents = "Documents";
@@ -149,13 +130,13 @@ in
     mimeApps = {
       enable = true;
       defaultApplications = {
-        # 浏览器（Firefox 为默认）
-        "text/html" = "firefox.desktop";
-        "application/xhtml+xml" = "firefox.desktop";
-        "x-scheme-handler/http" = "firefox.desktop";
-        "x-scheme-handler/https" = "firefox.desktop";
-        "x-scheme-handler/about" = "firefox.desktop";
-        "x-scheme-handler/unknown" = "firefox.desktop";
+        # 浏览器（chrome 为默认）
+        "text/html" = "chrome.desktop";
+        "application/xhtml+xml" = "chrome.desktop";
+        "x-scheme-handler/http" = "chrome.desktop";
+        "x-scheme-handler/https" = "chrome.desktop";
+        "x-scheme-handler/about" = "chrome.desktop";
+        "x-scheme-handler/unknown" = "chrome.desktop";
         # 图片
         "image/png" = "imv.desktop";
         "image/jpeg" = "imv.desktop";
@@ -178,9 +159,7 @@ in
     };
   };
 
-  # ---- xdg-desktop-portal（原 portal.nix）----
-  # 截屏/录屏走 gnome portal、文件选择器用 gtk（修复屏幕分享/录屏）
-  # niri-portals.conf 由 pkgs.formats.ini 从 attrset 生成（值含分号分隔符，逐项保留）
+  # xdg-desktop-portal（截屏/录屏走 gnome portal、文件选择器用 gtk）
   xdg.configFile."xdg-desktop-portal/niri-portals.conf" = {
     source = iniFormat.generate "niri-portals.conf" {
       preferred = {
@@ -195,18 +174,15 @@ in
     };
   };
 
-  # ---- 迁移清理（2026-08-28）：删除旧 xdg.configFile "mpv/config" 部署的 config ----
-  # 旧条目写入 ~/.config/mpv/config；programs.mpv 模块写入 mpv.conf（mpv 主配置名），
-  # 旧 config 不再被读取，GC 后为悬空链接
+  # 迁移清理（2026-08-28）：删除旧 xdg.configFile "mpv/config"
+  # 旧条目不再被读取，GC 后为悬空链接(REF:2026-08-28-mpv-cleanup)
   home.activation.cleanStaleMpvConfig = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     if [ -L "$HOME/.config/mpv/config" ]; then
       $DRY_RUN_CMD rm "$HOME/.config/mpv/config"
     fi
   '';
 
-  # ---- mpv（官方模块 programs.mpv，Vulkan 渲染 + auto-safe 硬解）----
-  # 二进制 mpv 由系统层安装（packages.nix）；模块将 mpv.conf 以 key=value 序列化，
-  # 字符串原样输出不加引号、布尔转 yes/no（HM 模块实现，见 mpv.nix renderOptionValue）
+  # mpv（Vulkan 渲染 + auto-safe 硬解）
   programs.mpv = {
     enable = true;
     config = {
@@ -215,9 +191,8 @@ in
     };
   };
 
-  # ---- satty 截图标注（官方模块 programs.satty，settings 为 TOML 生成器）----
-  # 默认画笔、右键直接保存到剪贴板、缩放 1.1、Noto Sans CJK SC + 中文回退字体
-  # 注：2026-08-29 起模块自装 satty 二进制（package 默认），系统层不再安装
+  # satty 截图标注（默认画笔、右键直接保存到剪贴板、缩放 1.1）
+  # 2026-08-29 起模块自装 satty 二进制（package 默认），系统层不再安装
   programs.satty = {
     enable = true;
     settings = {

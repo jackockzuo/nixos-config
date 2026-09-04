@@ -2,13 +2,25 @@
 # niri-binds.nix —— 合成器快捷键（原 binds.kdl）
 # 所有绑定均带 hotkey-overlay-title，按 Mod+F1 可查看全部
 # ============================================================
-_:
+{ config, ... }:
 
 {
   wayland.windowManager.niri.settings.binds = {
     # 📖 快捷键说明书（Mod+F1 唤出）
     "Mod+F1" = {
       "show-hotkey-overlay" = { };
+    };
+
+    # 🌓 暗/亮主题切换（GTK/Qt/DMS 模式+图标全套跟随，见 appearance.nix）
+    # 这里手动 toggle；登录时由 niri spawn-at-startup 恢复上次模式
+    "Mod+Shift+L" = {
+      _props = {
+        "hotkey-overlay-title" = "切换暗/亮主题";
+      };
+      spawn = [
+        "${config.home.homeDirectory}/.config/niri/scripts/theme-switch"
+        "toggle"
+      ];
     };
 
     # 🔌 电源菜单（DMS 原生电源菜单）

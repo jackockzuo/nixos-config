@@ -26,4 +26,5 @@
   #    2026-08-22：曾因默认 false 未打开 → 满载仅 2.5GHz（PL 墙未解除）+ 68°C。
   #    整组关闭/故障对比 → 改为 false（STANDARDS §2 🎯 标记）
   omen.performance.enable = true;
+  proxy.enable = true;
 }
