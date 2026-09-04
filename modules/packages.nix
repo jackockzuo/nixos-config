@@ -55,8 +55,6 @@
     # ---- 音频调试工具 ----
     pulseaudio # 提供 pactl 命令行工具
     alsa-utils # 提供 alsamixer/amixer
-
-    pkgs.dae
   ];
 
   # 系统字体

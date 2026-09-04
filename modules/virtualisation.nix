@@ -12,7 +12,7 @@ _:
     enable = true;
     binfmt = true; # 允许直接执行
   };
-  programs.fuse.userAllowOther = true; # 肥猫云 AppImage 需要
+  programs.fuse.userAllowOther = true; # AppImage/容器用户态挂载需要
 
   # ============ podman（distrobox 后端）============
   #distrobox（依赖 rootless podman；NixOS 正确姿势是 virtualisation.podman，

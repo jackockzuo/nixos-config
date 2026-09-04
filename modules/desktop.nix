@@ -2,7 +2,12 @@
 # desktop.nix —— 桌面会话与登录（greetd + DMS）
 # 职责：greetd 登录界面、DMS 桌面壳、niri 合成器、portal
 # ============================================================
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  my,
+  ...
+}:
 
 {
   programs = {
@@ -27,7 +32,7 @@
     dank-material-shell.greeter = {
       enable = true;
       compositor.name = "niri";
-      configHome = config.users.users.ran.home;
+      configHome = config.users.users.${my.username}.home;
       logs = {
         save = true;
         path = "/tmp/dms-greeter.log";

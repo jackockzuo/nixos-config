@@ -3,8 +3,9 @@
 > 本仓库修改的唯一依据。**写作原则：每条规则必须防住一次真实事故或一个已知活坑；
 > 没有事故背书的预言性规则一律不写。**
 >
-> 适用：单机 `omen`（HP OMEN 16-wf0xxx，x86_64-linux，单用户 `ran`）。
-> 架构：Flakes + flake-parts + home-manager + sops-nix。
+> 适用：**共享核心层平台无关**；机器专属能力（OMEN 解锁/显卡/显示器形态）一律收进
+> `hosts/<machine>/` 主机剖面，仅目标机 build 时生效。现仅 `omen`（HP OMEN 16-wf0xxx，x86_64-linux，单用户 `ran`）。
+> 架构：Flakes + flake-parts + home-manager + sops-nix；多主机由 flake.nix `hosts` 清单驱动。
 > 事故档案：`docs/troubleshooting/`（一档一文件；规则正文引用的事故都在那里）。
 > 2026-08-21 精简为本版（旧长篇版见 git 历史）。
 
@@ -14,29 +15,34 @@
 
 1. **秘密永不落明文**：token/密码只进 `secrets/secrets.yaml`（sops 加密），git 只存密文，`/nix/store` 不允许出现明文秘密。
 2. **唯一来源**：代理地址、镜像源、allowUnfree、密码哈希、分区——全仓库各只有一个定义点，其余全部引用。实现方式：
-   - **全局常量**（hostname/username/stateVersion）→ `flake.nix` 顶层 `let my = rec { ... }`，经 `specialArgs = { inherit my; }` 注入所有 NixOS/HM 模块。`my` 内分两类：**身份信息**（username/homeDirectory/stateVersion）和**环境常量**（hostname）——代理、镜像源等环境相关配置由各自 modules 的 options 管理（如 `options.proxy`），不塞进 `my`。
-   - **代理地址** → `modules/proxy.nix` 的 `options.proxy`，经 `extraSpecialArgs = { inherit (config) proxy; }` 注入 HM 模块。
+   - **全局常量**（username/stateVersion/代理镜像等环境常量）→ `flake.nix` 顶层 `let my = rec { ... }`，经 `specialArgs = { inherit my; }` 注入所有 NixOS/HM 模块。`my` 内分两类：**身份信息**（username/homeDirectory/stateVersion）和**每机常量**（hostname/hostId 由 `hosts` 清单经 `mkMy hostname hostId` 注入，禁止共享层写死机器标识）。
+   - **镜像源/GOPROXY 等网络环境项** → 由各自 modules 的常量管理（如 `modules/nix.nix` substituters/registry/GOPROXY），不塞进 `my`。
    - **禁止**：模块内硬编码地址/用户名；用 `lib.mkForce` 覆盖唯一来源值；使用 `builtins.getEnv`（外部变量必须经 Flake 输入，确保构建封闭性 Hermeticity）。
-3. **不碰生成文件**：`hardware-configuration.nix` 不纳入格式化与检查（root 属主、随时被 `nixos-generate-config` 重新生成覆盖）。
+3. **不碰生成文件**：`hosts/<machine>/hardware-configuration.nix` 不纳入格式化与检查（root 属主、随时被 `nixos-generate-config` 重新生成覆盖）。
 4. **事故说明分层**：模块文件内保留「事故根因 → 防再犯规则」（1-2 句）；完整排查过程、环境、恢复流程移入 `docs/troubleshooting/` 对应文件。模块内不重复完整事故链。
+5. **第三方软件红线（2026-09-03 起）**：私有/商业/闭源或依赖本机私有服务的程序，其**进程名/地址/端口/路由规则**一律不得出现在 `modules/` 共享层（含 dae 类配置与注释）；需要时经 `hosts/<machine>/` 主机剖面或仓库外独立 flake 引入。违反 = 可移植性损坏（其他机器求值通过但功能失效/断网）。
 
 ---
 
-## 1. 架构（固定，不扩展）
+## 1. 架构（多主机，hosts 清单驱动）
 
 - 入口：`flake-parts.lib.mkFlake { inherit inputs; }`，`systems = [ "x86_64-linux" ]`。
-- 主机：`flake.nixosConfigurations.omen`，modules 聚合见 §2。
-- 禁止：手写裸 outputs、引 flake-modules-core、用 digga、`mkFlake { inherit self; }`。
-- **不预建多主机结构**（hosts/、共享抽象等）——单机用不到，真的多主机那天再建。
+- 主机：`flake.nixosConfigurations` 由 `flake.nix` 顶部 `hosts` 清单 `mapAttrs` 生成；每台 =
+  `modules/`（通用层）+ `hosts/<machine>/`（主机剖面，见 §2）。现清单仅 `omen`，配置名 `#omen` 不变。
+- **加一台机器**：`hosts` 清单加一行（hostId）+ 复制 `hosts/omen/` 为 `hosts/<name>/`
+  （重跑 `nixos-generate-config` 覆盖其 `hardware-configuration.nix`，按硬件裁剪 `hardware.nix`）。
+- 禁止：手写裸 outputs、引 flake-modules-core、用 digga、`mkFlake { inherit self; }`、在共享层放机器专属模块（违规即回退到 hosts/）。
 
 ---
 
 ## 2. 目录与聚合（含架构量化规则，2026-08-21 起为所有项目通用准则）
 
-- `modules/` = 系统级（需要 root/常驻服务/全局 PATH）；`home/` = 用户级（配置/会话环境）。职责不颠倒。
+- `modules/` = 系统级（需要 root/常驻服务/全局 PATH，**平台无关**）；`home/` = 用户级（配置/会话环境，**平台无关**）；
+  `hosts/<machine>/` = 机器专属（硬件驱动/性能解锁/桌面输出形态/主机 home），**禁止把机器专属内容放共享两层**（2026-09-03 起）。
 - 一目录一领域、一文件一关注点；`default.nix` 只做 imports（每行带职责注释 = 定位地图）。
+  聚合链固定为「flake → hosts/<machine>/default.nix（或 modules/default.nix）→ 领域文件」。
 - 新增配置 → 领域内新建文件 + 所在目录 `default.nix` 的 imports 加一行；**不留空壳文件**（预留 = 注释一行，用时取消注释）。
-- 桌面合成器配置 = `home/modules/desktop/niri*.nix`（`wayland.windowManager.niri` 模块的 settings/binds/_children），**禁止手写 kdl**（2026-08-28 迁移，构建期 `niri validate` 兜底）。
+- 桌面合成器配置 = `home/modules/desktop/niri*.nix`（`wayland.windowManager.niri` 模块的 settings/binds/_children），**禁止手写 kdl**（2026-08-28 迁移，构建期 `niri validate` 兜底）。桌面**输出/显示器形态**属机器专属 → `hosts/<machine>/hm.nix`（如 omen：eDP-1 off / HDMI 主屏）。
 - 真实事故记录进 `docs/troubleshooting/`（有事故才写，不预写）。
 
 ### 注释精简原则
@@ -64,7 +70,9 @@
 
 ## 3. home-manager
 
-- `useGlobalPkgs = true`、`useUserPackages = true`；`extraSpecialArgs = { inherit (config) proxy; }`（代理唯一来源注入，见 §0.2）。
+- `useGlobalPkgs = true`、`useUserPackages = true`；`extraSpecialArgs = { inherit my; }`（身份/每机常量注入，见 §0.2）。
+- 主机专属 home（依赖某机 CLI/输出形态，如 fish perf-*、niri 输出段）→ `hosts/<machine>/hm.nix`，经
+  `home-manager.users.<name>.imports = [ ./hm.nix ]` 引入；共享 home 层禁止引用机器专属二进制。
 - `startAsUserService = true` + `systemd.user.services.home-manager.wantedBy = [ "default.target" ]`——上游 #3172 开机竞态的唯一修复，**不要动**。
 - `home.stateVersion` 保持首次使用值，不随 NixOS 版本升。
 - 有官方模块 → `programs.<x>.enable`；纯安装 → `home.packages`；配置文件 → `xdg.configFile`（禁止 `home.file` 指向 `~/.config`）。
@@ -103,7 +111,7 @@
 
 ## 5. 磁盘
 
-- fileSystems 由 `hardware-configuration.nix` 管理（by-uuid）——现状，稳定，不折腾。
+- fileSystems 由 `hosts/<machine>/hardware-configuration.nix` 管理（by-uuid）——现状，稳定，不折腾。
 - disko 是可选目标：**重新接入顺序 = 重建 `disko.nix`（分区编号/大小/类型与现有盘一致）→ 备份 → `--mode format,mount` 采纳 → 再启用模块**。顺序颠倒会进紧急模式（2026-08-16 实踩）。
 - ⚠️ `.snapshots` 禁止声明为"不挂载"子卷（snapper 会报 IO Error）。
 - 🔴 `.snapshots` 必须是真正的 btrfs 子卷（2026-08-29 实测：普通空目录同样报
@@ -123,6 +131,8 @@
 - 🔴 **私钥必须放 `/` 下**（如 `/var/lib/sops-nix/keys.txt`）：2026-08-17 放 `/home` → 开机时 `/home` 尚未挂载 → shadow 锁死。禁止放任何独立子卷。
 - 本机方案 = 既有盘手动拷贝私钥（`/var/lib/...` 与 `~/.config/sops/age/...` 同一私钥两份）；`generateKey` 仅全新装机自动生成。两者互斥。
 - 改密码：`mkpasswd -s` → `sops secrets/secrets.yaml` 更新 → rebuild 验证。
+- 多机：新机的 age 公钥加进 `.sops.yaml` 的 `keys` 与 `creation_rules.key_groups` 后
+  `sops updatekeys secrets/secrets.yaml`；同一 secrets.yaml 多机共用（密码/私钥策略不变）。
 
 ---
 
@@ -131,7 +141,7 @@
 1. `nix fmt`（nixfmt-rfc-style）
 2. `nix flake check`（含 deadnix/statix）
 3. `git diff --check`（2026-08-21：尾随空格曾漏进提交）
-4. **断言测试**：硬件专属模块（如 `omencore.nix`）应加 `assertions` 防误用。`message` 须包含**解决路径**（如何修复）。示例：
+4. **断言测试**：硬件专属模块（如 `hosts/omen/omencore.nix`）应加 `assertions` 防误用。`message` 须包含**解决路径**（如何修复）。示例：
    ```nix
    assertions = [{
      assertion = config.networking.hostName == "omen";
@@ -171,12 +181,14 @@
 
 ---
 
-## 🎯 [OMEN] 本机硬件要点（单机专属；事故背书见 troubleshooting）
+## 🎯 [OMEN] 本机硬件要点（仅 omen 剖面；事故背书见 troubleshooting）
 
-- **功耗墙解锁只信 `ec_sys` 直写 EC 寄存器 `0xBA=5`**（`modules/omencore.nix` 的 `omen-power-unlock` 服务开机执行）：
-  TLP 的 PL 配置（键名须 `PL1_LIMIT_ON_AC`，本机仍写不进）、WMAA 固件假 PASS（内核日志
-  `WMAA/WHCM aborts`）、RAPL 被 EC 实际供电覆盖——全是死路（2026-08-23 事故）。
-- **AC 下 CPU 调速器用 `powersave` + EPP `balance_performance`**（`modules/performance.nix`）：
+- **功耗墙解锁只信 OmenCore CLI 官方接口**（`hosts/omen/omencore.nix` 的 `omen-power-unlock` 服务开机执行
+  `perf --mode performance --power-limit 5`，内部封装 hp-wmi/EC 并读回验证——2026-08-30 起零裸 hex）：
+  底层通道仍是 `ec_sys` 写 EC 寄存器 `0xBA=5`（write_support=1 必须）；TLP 的 PL 配置（键名须 `PL1_LIMIT_ON_AC`，
+  本机仍写不进）、WMAA 固件假 PASS（内核日志 `WMAA/WHCM aborts`）、RAPL 被 EC 实际供电覆盖——全是死路（2026-08-23 事故）。
+  2026-09-03 起 CLI-only（GUI/桌面项/root wrapper/omen-hardware-perms 已移除——GUI 需向 wheel 开放整片 EC RAM）。
+- **AC 下 CPU 调速器用 `powersave` + EPP `balance_performance`**（`hosts/omen/performance.nix`）：
   `performance` governor 在 intel_pstate 下锁最高频（min=max）→ CPU VRM 电感高频开关 →
   登录桌面后"嗞嗞"线圈啸叫（2026-08-25 实测）；powersave 才是动态调频，重载时 HWP 仍睿频到
   5.2GHz，PL1/PL2 解锁与 scx_lavd 均不受影响，性能无损。
