@@ -34,7 +34,8 @@
 
 ## 3. 已完成：fcclient 代理模型定型（最终形态，非 TUN）
 
-**放弃内核 TUN 全局限**（Linux 非 root 无法建 tun；fcclient 自身提权 UX 差、反复弹管理员密码 → 判定不可用）。采用"按需代理"：
+**最终采用：内核透明代理（dae，hosts/omen/proxy.nix）** —— 所有应用零配置，geoip/geosite 国内直连（无名单遗漏），非国内走 fcclient(socks5://127.0.0.1:7892) 后端。
+曾试过的 TUN/系统代理/静态名单等方案结论保留于 §4。
 
 | 对象 | 机制（均为用户级/私有，不进 nixos-config） | 行为 |
 |---|---|---|
