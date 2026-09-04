@@ -1,10 +1,8 @@
 # omencore.nix —— HP OMEN 性能解锁（CLI-only，主机专属）
-# 2026-09-03 瘦身（feat/portability-cleanup）：移除 GUI/桌面项/pkexec/omen-hardware-perms——
-#   GUI 面板只服务手动风扇/RGB 交互，且需向 wheel 开放整片 EC RAM（高风险）；
-#   性能解锁全在 CLI 路径（实测 omencore-cli 单文件独立运行，无需 Skia 等 GUI 原生库）。
-# 保留项 = 开机功耗墙解锁 + daemon 看门狗（EC 若重置功耗档自动重刷，REF:2026-08-30-omen-ec-safety）。
-# 仅限 OMEN 主机 import；其他机器在 flake.nix hosts 清单无此目录/不 import。
-# 功耗墙解锁事故链见 docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md
+# 2026-09-03 CLI 瘦身：删 GUI/桌面项/pkexec/omen-hardware-perms（GUI 需向 wheel 开放整片
+#   EC RAM，且性能解锁全在 CLI 路径，实测 omencore-cli 单文件独立运行）。
+# 保留 = omen-power-unlock（功耗墙 0xBA=5）+ daemon 看门狗（REF:2026-08-30-omen-ec-safety）。
+# 仅限 OMEN 主机 import；解锁事故链见 docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md
 #   (REF:2026-08-23-omen-ec)
 # ============================================================
 { config, pkgs, ... }:
