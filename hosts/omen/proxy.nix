@@ -40,6 +40,11 @@
       }
 
       dns {
+        # 缓存调优：乐观缓存(默认开)延长陈旧窗口 + 限容量防泄漏
+        optimistic_cache: true
+        optimistic_cache_ttl: 300
+        max_cache_size: 4096
+
         upstream {
           alidns: 'udp://223.5.5.5:53'
           googledns: 'tcp://8.8.8.8:53'
@@ -54,7 +59,10 @@
 
       routing {
         # 本机代理客户端与系统进程直连（防回环/防自拦截）
-        pname(fcclient, fcclientCore, nix, nix-daemon, sshd, systemd-resolved) -> direct
+        # VPN/隧道工具必须直连（否则隧道流量被自己再代理=套娃）；其他需直连程序在此追加
+        pname(fcclient, fcclientCore, nix, nix-daemon, sshd, systemd-resolved,
+              openvpn, wireguard, wg-quick, tailscaled, tailscale, zerotier-one,
+              chronyd, ntpd, syncthing) -> direct
         # 国内直连
         dip(geoip:private) -> direct
         dip(geoip:cn) -> direct
@@ -85,6 +93,7 @@
     description = "Assign stable host address to dae0 (backend reachability)";
     wantedBy = [ "dae.service" ]; # 每次 dae 启动/重启都补配
     after = [ "dae.service" ];
+    partOf = [ "dae.service" ]; # dae 重启重建 dae0 后地址会丢，须随 dae 一起重启补配
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
