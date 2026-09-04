@@ -77,4 +77,28 @@
     allowedTCPPorts = [ 7892 ];
     allowedUDPPorts = [ 7892 ];
   };
+
+  # dae 的 L3 链路：宿主侧 dae0 需有 IPv4，daens(网关 169.254.0.1) 才能访问宿主机 fcclient。
+  # 2026-09-05 实测：dae 只给 ns 侧配 169.254.0.11/32，宿主侧无地址 → 后端拨不通；
+  # 手动 `ip addr add 169.254.0.1/30 dev dae0` 后宿主外网即通（google 204）。此处固化。
+  systemd.services.dae-host-addr = {
+    description = "Assign stable host address to dae0 (backend reachability)";
+    wantedBy = [ "dae.service" ]; # 每次 dae 启动/重启都补配
+    after = [ "dae.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "dae-host-addr" ''
+        set -e
+        # 等 dae0 出现（dae 建网卡有竞态）
+        i=0
+        until ip link show dev dae0 >/dev/null 2>&1; do
+          i=$((i+1))
+          [ $i -ge 40 ] && exit 1
+          sleep 0.5
+        done
+        ip addr show dev dae0 | grep -q 169.254.0.1 || ip addr add 169.254.0.1/30 dev dae0
+      '';
+    };
+  };
 }
