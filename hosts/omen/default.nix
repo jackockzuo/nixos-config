@@ -12,6 +12,7 @@
     ./hardware.nix # 硬件（NVIDIA 4060 混合显卡/蓝牙/VA-API，bus id 本机专属）
     ./omencore.nix # 性能解锁 CLI-only（功耗墙 0xBA=5 + daemon 看门狗）
     ./performance.nix # 性能调优全家桶（scx/irqbalance/TLP/zram/fd）
+    ./proxy.nix # 透明代理（dae → fcclient 后端，国内直连；主机专属）
   ];
 
   # 本机性能调优总开关（整组关闭 → false）

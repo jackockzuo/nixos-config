@@ -27,15 +27,15 @@ nix flake check          # 质量门禁（treefmt/deadnix/statix）
 nix fmt                  # 统一格式化（RFC 风格）
 ```
 
-## 代理（最终模型：按需、无系统污染）
+## 代理（最终模型：dae 透明接管，主机专属）
 
-| 对象 | 机制 | 备注 |
-|---|---|---|
-| fcclient | 菜单原样启动即可 | 想代理就开，不想就关 |
-| Chrome | 用户级启动器 `~/.local/bin/chrome-fcclient` 每次启动时探测 7892：在跑→全量走代理（国内/国外分流交给 fcclient 自身规则，无名单遗漏）；未跑→直连 | 每次打开 Chrome 时按 fcclient 状态决定；中途开关 fcclient 需重开 Chrome 生效 |
-| 终端 CLI | fish `proxy on [port] / off / status` | 只影响当前 shell，端口可自定义并记忆 |
+- `hosts/omen/proxy.nix`：内核层透明代理（dae）——**所有应用零配置**（Chrome/CLI/任意 App）。
+  geoip/geosite 判断国内直连（无名单遗漏），非国内走后端节点 fcclient（socks5://127.0.0.1:7892）。
+- 行为：fcclient 开 → 外网通；fcclient 关 → 国内直连照常、外网不可达（后端 down）。
+- 终端 fish `proxy on [port] / off`（可选，供无 dae 场景/显式控制用）。
+- 此模块仅 omen 主机 import（共享层保持纯净可移植）；曾用的 Chrome 启动器/系统代理 hack 已移除。
 
-> 端口改法：`FCCLIENT_PROXY_PORT=8080` 前缀启动 chrome-fcclient，或改脚本内 PORT。
+> 实验/弃用结论（TUN、gsettings、静态名单等）见 `docs/2026-09-05-portability-proxy-session.md`。
 
 > 这些均为用户级/私有实现（`~/.local/share/applications/`、`~/.config/fish/functions/`、
 > `~/Documents/nix-packaging/fcclient`），不进本仓库 —— 保持系统配置纯净可移植。
