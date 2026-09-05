@@ -25,7 +25,7 @@ in
       efiInstallAsRemovable = false; # 写 NVRAM 项；可回退项见 GRUB Boot0002
       extraConfig = ''
         # Minimalist 主题（include 相对 /EFI/refind）
-        include themes/refind-minimal/theme.conf
+        include themes/rEFInd-minimal/theme.conf
         # 扫描：本机多系统盘（Windows ESP 在其它 NVMe）
         scanfor internal,external,optical,biosexternal
       '';
@@ -34,6 +34,6 @@ in
 
   # 把主题复制到 ESP（tmpfiles C = 每次开机递归拷贝；切换后手动跑一次即可预置）
   systemd.tmpfiles.rules = [
-    "C! /boot/EFI/refind/themes/refind-minimal - - - - ${themeDir}"
+    "C! /boot/EFI/refind/themes/rEFInd-minimal - - - - ${themeDir}"
   ];
 }
