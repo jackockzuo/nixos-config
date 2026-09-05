@@ -22,8 +22,8 @@ let
     }
     .${kernelProfile};
 
-  # Limine 壁纸（可替换成自己的图；catppuccin 风深色 1920x1080 占位）
-  wallpaper = ../assets/limine/background.png;
+  # Limine 壁纸（可选；catppuccin/limine 官方风格=纯色底。想加壁纸：放 assets/ 并把下面
+  #   style.wallpapers = [ <路径> ] 取消注释即可。GRUB 主题文件 assets/grub-theme 保留未动）
 in
 {
   boot = {
@@ -40,25 +40,29 @@ in
         enableEditor = false; # 关闭编辑（防 init=/bin/sh 提权）
         resolution = "1920x1080x32"; # 内核早期 fb 分辨率（外显友好）
 
-        # ---- 外观：catppuccin mocha 配色 + 极简 ----
+        # ---- 外观：Catppuccin/limine 官方主题（mocha-blue，github.com/catppuccin/limine）----
         style = {
-          wallpapers = [ wallpaper ];
+          # wallpapers = [ ../assets/limine/background.png ]; # 可选壁纸（预留）
           wallpaperStyle = "stretched";
-          backdrop = "1E1E2E"; # catppuccin mocha base（centered 时填充）
+          backdrop = "1E1E2E"; # mocha base
 
           interface = {
             resolution = "1920x1080x32"; # Limine 菜单自身分辨率（外显 1080p）
             branding = "NixOS";
             brandingColor = "89B4FA"; # catppuccin mocha blue
             helpColor = "89B4FA";
-            helpColorBright = "F9E2AF";
+            helpColorBright = "89B4FA";
           };
 
           graphicalTerminal = {
             font.scale = "2x2"; # 高分屏清晰（用户指定 scale=2）
-            palette = "45475A;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;BAC2DE";
-            brightPalette = "585B70;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;CDD6F4";
+            # === catppuccin-mocha-blue.conf（官方值，勿改格式）===
+            palette = "1E1E2E;F38BA8;A6E3A1;F9E2AF;89B4FA;F5C2E7;94E2D5;CDD6F4";
+            brightPalette = "585B70;F38BA8;A6E3A1;F9E2AF;89B4FA;F5C2E7;94E2D5;CDD6F4";
+            background = "1E1E2E";
             foreground = "CDD6F4";
+            brightBackground = "585B70";
+            brightForeground = "CDD6F4";
             margin = 100; # 呼吸感留白（用户指定）
             marginGradient = 40;
           };
