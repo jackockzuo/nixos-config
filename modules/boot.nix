@@ -22,7 +22,13 @@ let
     }
     .${kernelProfile};
 
-  # 纯色版：无壁纸资产，底色由 style.backdrop 提供（catppuccin mocha base）
+  # 4 张蓝色调壁纸（PNG 2560x1600，每次开机随机一张；jpg 源已删）
+  wallpapers = map (f: ../assets/wallpaper/${f}) [
+    "img1.wallspic.com-particle-shape-electric_blue-blue-fractal_art-3840x2160.png"
+    "img2.wallspic.com-electric_blue-azure-light-space-symmetry-3840x2400.png"
+    "img2.wallspic.com-purple-light-space-blue-atmosphere-2560x1600.png"
+    "img3.wallspic.com-creative_arts-energy-graphics-space-symmetry-2560x1600.png"
+  ];
 in
 {
   boot = {
@@ -41,14 +47,16 @@ in
 
         # ---- 外观：catppuccin mocha 配色 + 极简 ----
         style = {
-          backdrop = "1E1E2E"; # catppuccin mocha base 纯色背景
+          wallpapers = wallpapers;
+          wallpaperStyle = "stretched";
+          backdrop = "0B1E33"; # 深蓝兜底（壁纸加载前/居中时）
 
           interface = {
             resolution = "2560x1600x32"; # Limine 菜单 = 内屏原生(eDP)
             branding = "NixOS";
-            brandingColor = "89B4FA"; # catppuccin mocha blue
-            helpColor = "89B4FA";
-            helpColorBright = "F9E2AF";
+            brandingColor = "6FB1FF"; # 电蓝主色（配蓝图）
+            helpColor = "9AC8FF";
+            helpColorBright = "E6F1FF";
           };
 
           graphicalTerminal = {
@@ -57,9 +65,11 @@ in
               scale = "2x2";
               spacing = 1;
             };
-            palette = "45475A;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;BAC2DE";
-            brightPalette = "585B70;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;CDD6F4";
-            foreground = "CDD6F4";
+            # 冷蓝协调：冷白前景 + 半透明深蓝底幕（四张蓝图通吃可读）
+            palette = "0B1E33;4FA3FF;7FD0FF;9AC8FF;4FA3FF;C6A9FF;8FE3FF;E6F1FF";
+            brightPalette = "14263F;6FB1FF;9FD8FF;B8D9FF;6FB1FF;DDC6FF;AFE9FF;FFFFFF";
+            foreground = "E6F1FF";
+            background = "990B1E33"; # TT=99(≈60%) 深蓝底幕，防止亮图吃字
             margin = 120; # 呼吸感留白
             marginGradient = 60;
           };
