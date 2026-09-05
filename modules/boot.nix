@@ -35,7 +35,7 @@ in
       limine = {
         enable = true;
         efiSupport = true;
-        efiInstallAsRemovable = false; # 写 NVRAM 项；如需更稳可改 true(装到 \EFI\BOOT)
+        efiInstallAsRemovable = true; # 可移动安装：不写 NVRAM，避免 HP 固件同号重建 exit8（NVRAM 项手工建一次）
         maxGenerations = 5; # 只留最近 5 个 NixOS 镜像
         enableEditor = false; # 关闭编辑（防 init=/bin/sh 提权）
         resolution = "1920x1080x32"; # 内核早期 fb 分辨率（外显友好）
