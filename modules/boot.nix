@@ -1,4 +1,7 @@
-# boot.nix —— 引导与内核
+# ============================================================
+# boot.nix —— 引导与内核（平台通用，所有机器统一引导器 = Limine）
+# 职责：内核选择 + Limine（catppuccin 风配色/壁纸/多系统）
+# GRUB 已停用但保留在本文件注释（回退方法见文件尾 + docs）
 # ============================================================
 { pkgs, ... }:
 
@@ -18,20 +21,69 @@ let
       lts = pkgs.linuxPackages_6_12;
     }
     .${kernelProfile};
+
+  # Limine 壁纸（可替换成自己的图；catppuccin 风深色 1920x1080 占位）
+  wallpaper = ../assets/limine/background.png;
 in
 {
   boot = {
-    # GRUB 引导（固件实际从 /boot/EFI/NixOS-boot/grubx64.efi 引导，非 systemd-boot）
     loader = {
-      grub = {
+      timeout = 6;
+      efi.canTouchEfiVariables = true;
+
+      # ---- 主引导器：Limine（全机统一）----
+      limine = {
         enable = true;
-        device = "nodev";
         efiSupport = true;
-        efiInstallAsRemovable = true;
-        useOSProber = true; # 跨盘发现 Windows
-        theme = ../assets/grub-theme;
-        configurationLimit = 10; # 菜单只保留最近 10 代
+        efiInstallAsRemovable = false; # 写 NVRAM 项；如需更稳可改 true(装到 \EFI\BOOT)
+        maxGenerations = 5; # 只留最近 5 个 NixOS 镜像
+        enableEditor = false; # 关闭编辑（防 init=/bin/sh 提权）
+        resolution = "1920x1080x32"; # 内核早期 fb 分辨率（外显友好）
+
+        # ---- 外观：catppuccin mocha 配色 + 极简 ----
+        style = {
+          wallpapers = [ wallpaper ];
+          wallpaperStyle = "stretched";
+          backdrop = "1E1E2E"; # catppuccin mocha base（centered 时填充）
+
+          interface = {
+            resolution = "1920x1080x32"; # Limine 菜单自身分辨率（外显 1080p）
+            branding = "NixOS";
+            brandingColor = "89B4FA"; # catppuccin mocha blue
+            helpColor = "89B4FA";
+            helpColorBright = "F9E2AF";
+          };
+
+          graphicalTerminal = {
+            font.scale = "2x2"; # 高分屏清晰（用户指定 scale=2）
+            palette = "45475A;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;BAC2DE";
+            brightPalette = "585B70;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;CDD6F4";
+            foreground = "CDD6F4";
+            margin = 100; # 呼吸感留白（用户指定）
+            marginGradient = 40;
+          };
+        };
+
+        # ---- 多系统：Windows 11（另一 NVMe 独立 ESP，用固件启动项委托）----
+        extraEntries = ''
+          /Windows 11
+            protocol: efi_boot_entry
+            entry: Windows Boot Manager
+        '';
       };
+
+      # ---- GRUB 回退（已停用；应急/回退方法见文件尾注释）----
+      # 如需回退 GRUB：启用下面块并注释上面 limine.enable，然后 `nr`。
+      # 磁盘上的 /boot/EFI/NixOS-boot 与固件项 NixOS-boot(Boot0002) 仍在，可作紧急入口。
+      # grub = {
+      #   enable = true;
+      #   device = "nodev";
+      #   efiSupport = true;
+      #   efiInstallAsRemovable = true;
+      #   useOSProber = true;
+      #   theme = ../assets/grub-theme;
+      #   configurationLimit = 10;
+      # };
     };
 
     # 由 kernelProfile 决定
