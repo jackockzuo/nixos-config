@@ -37,14 +37,14 @@ in
         efiInstallAsRemovable = true; # 装到 \EFI\BOOT；NVRAM 项已手工建一次，勿再让模块建
         maxGenerations = 5; # 只留最近 5 个 NixOS 镜像
         enableEditor = false; # 关闭编辑（防 init=/bin/sh 提权）
-        resolution = "1920x1080x32"; # 内核早期 fb 分辨率（外显友好）
+        resolution = "2560x1600x32"; # 内核早期 fb = 内屏原生(eDP)
 
         # ---- 外观：catppuccin mocha 配色 + 极简 ----
         style = {
           backdrop = "1E1E2E"; # catppuccin mocha base 纯色背景
 
           interface = {
-            resolution = "1920x1080x32"; # Limine 菜单分辨率（外显 1080p）
+            resolution = "2560x1600x32"; # Limine 菜单 = 内屏原生(eDP)
             branding = "NixOS";
             brandingColor = "89B4FA"; # catppuccin mocha blue
             helpColor = "89B4FA";
