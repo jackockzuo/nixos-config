@@ -60,7 +60,7 @@
       routing {
         # 本机代理客户端与系统进程直连（防回环/防自拦截）
         # VPN/隧道工具必须直连（否则隧道流量被自己再代理=套娃）；其他需直连程序在此追加
-        pname(fcclient, fcclientCore, nix, nix-daemon, sshd, systemd-resolved,
+        pname(fcclient, fcclientCore, sshd, systemd-resolved,
               openvpn, wireguard, wg-quick, tailscaled, tailscale, zerotier-one,
               chronyd, ntpd, syncthing) -> direct
         # 国内直连
