@@ -42,7 +42,7 @@ in
 
         # ---- 外观：Catppuccin/limine 官方主题（mocha-blue，github.com/catppuccin/limine）----
         style = {
-          # wallpapers = [ ../assets/limine/background.png ]; # 可选壁纸（预留）
+          wallpapers = [ ]; # 官方 catppuccin 风格=纯色底；想加壁纸：改成 [ ../assets/<你的图>.png ]
           wallpaperStyle = "stretched";
           backdrop = "1E1E2E"; # mocha base
 
