@@ -3,7 +3,7 @@
 # 职责：内核选择 + Limine（catppuccin 风配色/壁纸/多系统）
 # GRUB 已停用但保留在本文件注释（回退方法见文件尾 + docs）
 # ============================================================
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 let
   # 内核选择开关
@@ -86,28 +86,11 @@ in
       # };
     };
 
-    # 由 kernelProfile 决定（mkDefault 允许 specialisation 内核变体覆盖）
-    kernelPackages = lib.mkDefault kernelPackages;
+    # 由 kernelProfile 决定
+    inherit kernelPackages;
     kernelParams = [
       "ibt=off" # nvidia 兼容
       "nvidia-drm.modeset=1"
     ];
-  };
-
-  # ============================================================
-  # 多内核（specialisation，Limine 菜单自选）：
-  #   默认 = 上方 kernelProfile（cachyos）；以下为备用内核变体。
-  #   ⚠️ 非 cachyos 内核必须改用官方 nvidia 驱动（nvidia_cachyos 仅配 cachyos 内核）。
-  # ============================================================
-  specialisation = {
-    latest.configuration = {
-      boot.kernelPackages = pkgs.linuxPackages_latest; # 主线尝鲜
-      # 官方 nvidia 驱动按该内核变体取（nvidia_cachyos 仅适用于 cachyos 内核）
-      hardware.nvidia.package = lib.mkForce pkgs.linuxPackages_latest.nvidiaPackages.stable;
-    };
-    lts.configuration = {
-      boot.kernelPackages = pkgs.linuxPackages_6_12; # 稳定兜底
-      hardware.nvidia.package = lib.mkForce pkgs.linuxPackages_6_12.nvidiaPackages.stable;
-    };
   };
 }
