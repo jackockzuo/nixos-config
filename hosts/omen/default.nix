@@ -13,7 +13,6 @@
     ./omencore.nix # 性能解锁 CLI-only（功耗墙 0xBA=5 + daemon 看门狗）
     ./performance.nix # 性能调优全家桶（scx/irqbalance/TLP/zram/fd）
     ./proxy.nix # 透明代理（dae → fcclient 后端，国内直连；主机专属）
-    ./refind.nix # 引导：rEFInd + Minimalist 主题（GRUB 停用保留回退）
   ];
 
   # 本机性能调优总开关（整组关闭 → false）
