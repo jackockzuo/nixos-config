@@ -39,10 +39,10 @@
       options = "--delete-older-than 7d";
     };
     settings = {
-      connect-timeout = 5;
-      stalled-download-timeout = 10;
-      http-connections = 50;
-      max-substitution-jobs = 20;
+      connect-timeout = 30;
+      stalled-download-timeout = 240; # 原 10s：经代理拉大文件频繁误杀，放宽到断点可续
+      http-connections = 12; # 降并发，避免小管道拥塞
+      max-substitution-jobs = 4; # 同左
       warn-dirty = false;
     };
     registry.nixpkgs.to = {
