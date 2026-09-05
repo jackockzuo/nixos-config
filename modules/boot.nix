@@ -22,13 +22,12 @@ let
     }
     .${kernelProfile};
 
-  # Limine 壁纸（可替换成自己的图；catppuccin 风深色 1920x1080 占位）
-  wallpaper = ../assets/limine/background.png;
+  # 纯色版：无壁纸资产，底色由 style.backdrop 提供（catppuccin mocha base）
 in
 {
   boot = {
     loader = {
-      timeout = 6;
+      timeout = null; # 不自动进系统，进菜单手动选择
       efi.canTouchEfiVariables = true;
 
       # ---- 主引导器：Limine（全机统一，可移动安装免 NVRAM 冲突）----
@@ -42,9 +41,7 @@ in
 
         # ---- 外观：catppuccin mocha 配色 + 极简 ----
         style = {
-          wallpapers = [ wallpaper ];
-          wallpaperStyle = "stretched";
-          backdrop = "1E1E2E"; # catppuccin mocha base
+          backdrop = "1E1E2E"; # catppuccin mocha base 纯色背景
 
           interface = {
             resolution = "1920x1080x32"; # Limine 菜单分辨率（外显 1080p）
@@ -55,12 +52,16 @@ in
           };
 
           graphicalTerminal = {
-            font.scale = "2x2"; # 高分屏清晰
+            # 视觉调优（Limine 仅位图字库，无 TTF）：scale=2 保证高分清晰，spacing=1 致密
+            font = {
+              scale = "2x2";
+              spacing = 1;
+            };
             palette = "45475A;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;BAC2DE";
             brightPalette = "585B70;F38BA8;A6E3A1;F9E2AF;89B4FA;CBA6F7;94E2D5;CDD6F4";
             foreground = "CDD6F4";
-            margin = 100; # 呼吸感留白
-            marginGradient = 40;
+            margin = 120; # 呼吸感留白
+            marginGradient = 60;
           };
         };
 
