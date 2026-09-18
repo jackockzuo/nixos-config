@@ -1,6 +1,6 @@
 # ============================================================
 # services.nix —— 系统服务
-# 职责：音频（pipewire）、快照（snapper）、U盘/固件/电源
+# 职责：音频（pipewire）、快照（snapper）、btrfs scrub、U盘/GVFS/固件/密钥环
 # ============================================================
 _:
 
@@ -36,6 +36,16 @@ _:
       persistentTimer = true;
     };
 
+    # 静默损坏防护：btrfs 定期 scrub（SSD 每月；STANDARDS §5）
+    btrfs.autoScrub = {
+      enable = true;
+      interval = "monthly";
+      fileSystems = [
+        "/"
+        "/home"
+      ];
+    };
+
     # 音频
     pipewire = {
       enable = true;
@@ -50,14 +60,11 @@ _:
     fwupd.enable = true;
     # GNOME Keyring：portal Secret=gnome-keyring 依赖（VSCode/Chrome 登录态）
     gnome.gnome-keyring.enable = true;
-    # 注：thermald 已于 2026-09-03 移除——OMEN 16 固件无 DPTF(INT3400/INT3403 参与者)，
-    #     它启动即 fail（"couldn't create any zones"，EC 风扇 + HWP + TLP 已覆盖，纯冗余）；
-    #     若某机器 BIOS 有完整 DPTF，在对应 hosts/<machine>/ 主机剖面里单独启用。
+    # thermald 未启用：OMEN 16 固件无 DPTF，启动即失败（couldn't create any zones）；
+    # 需要 DPTF 的机器在 hosts/<machine>/ 主机剖面里单独启用（EC 风扇 + HWP + TLP 已覆盖本机）。
   };
 
-  # .snapshots 目录（tmpfiles 创建，disko 回退后保留此规则）
-  systemd.tmpfiles.rules = [
-    "d /.snapshots 0755 root root -"
-    "d /home/.snapshots 0755 root root -"
-  ];
+  # .snapshots 必须是真正的 btrfs 子卷（普通目录会让 snapper 报 IO Error，STANDARDS §5）
+  # 不能用 tmpfiles 建普通目录（会埋雷）；缺失时手动创建：
+  #   sudo rm -rf /.snapshots /home/.snapshots && sudo btrfs subvolume create /.snapshots /home/.snapshots
 }

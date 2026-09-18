@@ -7,8 +7,13 @@
 _:
 
 {
+  # NixOS stateVersion（首次安装值，勿随大版本升）；HM 的 stateVersion 在 flake.nix my.stateVersion
   system.stateVersion = "25.05";
 
   # 允许 unfree（nvidia 驱动、chrome 等）
+  # allowUnfree 有三个作用域（各自机制不同，非重复定义，STANDARDS §0.2 唯一来源指"同一作用域内"）：
+  #   ① 本处 = 系统 nixpkgs.config（NixOS 求值）
+  #   ② flake.nix perSystem = devShell 用的 pkgs
+  #   ③ home/modules/core.nix = 用户 nix 客户端（nix profile/nix-env）
   nixpkgs.config.allowUnfree = true;
 }

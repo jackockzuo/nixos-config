@@ -23,6 +23,10 @@
 | 2026-08-23 | 满载锁 2.5GHz（温度仅 68°C，功耗墙没解开） | EC 默认低功耗档（~25W）：TLP 键名错写不进、WMAA 固件假 PASS、RAPL 被 EC 实际供电覆盖；正确通道 = `ec_sys` 直写 EC 寄存器 0xBA=5（OmenCore LinuxEcController） | ✅ 已解决 | [2026-08-23-omen-ec-power-limit-2.5ghz-lock.md](./2026-08-23-omen-ec-power-limit-2.5ghz-lock.md) |
 | 2026-08-25 | 登录桌面后持续"嗞嗞"线圈啸叫（Windows 下无） | TLP AC=performance governor 锁最高频 → CPU VRM 电感高频开关发声；改 powersave + balance_performance（HWP 重载仍睿频 5.2GHz，性能无损） | ✅ 已解决 | [2026-08-25-coil-whine-cpu-governor.md](./2026-08-25-coil-whine-cpu-governor.md) |
 | 2026-08-25 | omencore 守护进程崩溃循环（226/NAMESPACE） | PrivateTmp + ReadWritePaths=/var/tmp/omencore 冲突：namespace 在 ExecStartPre 前搭建、路径不存在必炸；改 StateDirectory=omencore | ✅ 已解决 | [2026-08-25-omencore-namespace-crash.md](./2026-08-25-omencore-namespace-crash.md) |
+| 2026-08-30 | 满载锁 2.16GHz（8-25 后性能回归） | omen-power-unlock 未随内核/模块变化重跑，EC 功耗档回落；重建 + 复跑解锁服务恢复 | ✅ 已解决 | [2026-08-30-omen-full-load-frequency-regression.md](./2026-08-30-omen-full-load-frequency-regression.md) |
+| 2026-09-05 | 多主机可移植重构 + 代理模型定型（会话归档） | 透明代理 dae 依赖本机 fcclient 后端；会话/网络环境变化时链路失效 → 归档结论与可移植约定 | ✅ 已归档 | [2026-09-05-portability-proxy-session.md](./2026-09-05-portability-proxy-session.md) |
+| 2026-09-09 | fish 缩写删除后仍生效（通用变量残留） | 声明式删除 abbr ≠ 清掉 fish universal variable；需 `abbr --erase`/清 `fish_variables` | ✅ 已解决 | [2026-09-09-fish-abbr-universal-residue.md](./2026-09-09-fish-abbr-universal-residue.md) |
+| 2026-09-12 | VSCode 装不了扩展 + HM 激活失败（extensions 目录布局切换） | `~/.vscode/extensions` 停留在旧代际只读软链；`mutableExtensionsDir=false` 后需迁移 | ✅ 已解决 | [2026-09-12-vscode-extensions-layout-transition.md](./2026-09-12-vscode-extensions-layout-transition.md) |
 
 ## 模板（新增记录时复制）
 

@@ -35,15 +35,13 @@
         QT_QPA_PLATFORMTHEME_QT6 = "gtk3";
         # quickshell 图标主题（DMS 外壳跟随）：papirus-icon-theme 已装进用户 profile
         QS_ICON_THEME = "Papirus-Dark";
-        # GTK 渲染器：n 卡双显卡导致 GTK 应用启动缓慢的修复（AMD/Intel 可去掉）
-        GSK_RENDERER = "gl";
         # 默认文本编辑器
         EDITOR = "vim";
       };
 
-      # 光标（Catppuccin Mocha Mauve，appearance.nix 同款）
+      # 光标（名称引用 HM 选项，单一来源 = catppuccin.cursors，见 home/modules/theme/）
       cursor = {
-        "xcursor-theme" = "catppuccin-mocha-mauve-cursors";
+        "xcursor-theme" = config.home.pointerCursor.name;
         "xcursor-size" = 30;
         "hide-after-inactive-ms" = 15000; # 闲置 15s 自动隐藏
       };
@@ -174,78 +172,6 @@
         struts = { };
       };
 
-      # 动画（spring 弹簧动画族）
-      animations = {
-        slowdown = 0.98114514; # <1 加快，>1 减慢
-        "workspace-switch" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 0.82;
-              stiffness = 400;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "horizontal-view-movement" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 0.84;
-              stiffness = 400;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "window-open" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 1.0;
-              stiffness = 1000;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "window-close" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 0.8;
-              stiffness = 400;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "window-movement" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 1.0;
-              stiffness = 800;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "window-resize" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 0.9;
-              stiffness = 500;
-              epsilon = 0.0001;
-            };
-          };
-        };
-        "screenshot-ui-open" = {
-          "duration-ms" = 300;
-          curve = "ease-out-quad";
-        };
-        "overview-open-close" = {
-          spring = {
-            _props = {
-              "damping-ratio" = 1.0;
-              stiffness = 900;
-              epsilon = 0.0001;
-            };
-          };
-        };
-      };
-
       # 启动项（spawn-at-startup，_children 保证逐条独立节点）
       # 🔴 原 /home/ran 硬编码改为 ${config.home.homeDirectory} 声明式引用（STANDARDS §0.2）
       _children = [
@@ -293,14 +219,7 @@
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/toggle-wlsunset" ];
         }
-        # 登录时恢复上次暗/亮模式（持久化在 ~/.local/state/theme-mode，
-        # 手动切换：Mod+Shift+L 或 theme-switch toggle，见 appearance.nix）
-        {
-          "spawn-at-startup" = [
-            "${config.home.homeDirectory}/.config/niri/scripts/theme-switch"
-            "--apply-current"
-          ];
-        }
+        # 暗/亮明暗由 DMS 自带的 Automatic Control 管理（time/location），无需自写脚本
         # 截图音效守护进程
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/screenshot-sound.sh" ];
@@ -341,10 +260,11 @@
     force = true; # 覆盖旧版本散落文件
   };
 
-  # 迁移清理（2026-08-28）：删除旧拆分架构遗留的 7 个 store symlink
-  # 不清除的后果：niri-binds 脚本递归 grep *.kdl 会重复读到旧键位(REF:2026-08-28-niri-cleanup)
+  # 迁移清理（2026-08-28）：删除旧拆分架构遗留的 store symlink
+  # 不清除的后果：niri-binds 脚本递归 grep *.kdl 会重复读到旧键位
+  # theme-switch：已下线的自定义明暗脚本（改用 DMS 自带 Automatic Control），清残留符号链接
   home.activation.cleanStaleNiriLinks = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
-    for f in animations.kdl binds.kdl blur.kdl hyprlock-colors.conf hyprlock.conf layout.kdl output.kdl rule.kdl; do
+    for f in animations.kdl binds.kdl blur.kdl hyprlock-colors.conf hyprlock.conf layout.kdl output.kdl rule.kdl theme-switch; do
       if [ -L "$HOME/.config/niri/$f" ]; then
         $DRY_RUN_CMD rm "$HOME/.config/niri/$f"
       fi

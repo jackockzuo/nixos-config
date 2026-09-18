@@ -17,6 +17,7 @@
 2. **唯一来源**：代理地址、镜像源、allowUnfree、密码哈希、分区——全仓库各只有一个定义点，其余全部引用。实现方式：
    - **全局常量**（username/stateVersion/代理镜像等环境常量）→ `flake.nix` 顶层 `let my = rec { ... }`，经 `specialArgs = { inherit my; }` 注入所有 NixOS/HM 模块。`my` 内分两类：**身份信息**（username/homeDirectory/stateVersion）和**每机常量**（hostname/hostId 由 `hosts` 清单经 `mkMy hostname hostId` 注入，禁止共享层写死机器标识）。
    - **镜像源/GOPROXY 等网络环境项** → 由各自 modules 的常量管理（如 `modules/nix.nix` substituters/registry/GOPROXY），不塞进 `my`。
+   - **配色** → flavor/accent 只在 `my.catppuccin` 定义一次；静态端口由 `modules/theme.nix`（NixOS）与 `home/modules/theme/`（HM，`catppuccin.nix`/`appearance.nix` 两层）统一启用 `catppuccin/nix`，程序配色一律走其模块接口（`catppuccin.<程序>`），禁止在各程序配置里手写 hex/调色板；派生主题名（fcitx5/GTK）只在 `my.catppuccin.names` 定义。**例外**：DMS 外壳允许壁纸取色（DMS 自带 dynamic theming；必须 `runDmsMatugenTemplates=false` 只给自己上色、不写其它应用，其余一律 Catppuccin）；无 catppuccin 端口的资产：GTK 主题包、swaync 自定义毛玻璃 CSS、onefetch、Limine 主机壁纸。
    - **禁止**：模块内硬编码地址/用户名；用 `lib.mkForce` 覆盖唯一来源值；使用 `builtins.getEnv`（外部变量必须经 Flake 输入，确保构建封闭性 Hermeticity）。
 3. **不碰生成文件**：`hosts/<machine>/hardware-configuration.nix` 不纳入格式化与检查（root 属主、随时被 `nixos-generate-config` 重新生成覆盖）。
 4. **事故说明分层**：模块文件内保留「事故根因 → 防再犯规则」（1-2 句）；完整排查过程、环境、恢复流程移入 `docs/troubleshooting/` 对应文件。模块内不重复完整事故链。
@@ -50,13 +51,13 @@
 - **定位注释**（default.nix imports 行）：一行说明该 import 的职责（做什么），不含历史背景、迁移说明。
 - **配置注释**（config 块内）：保留事故防再犯规则（§0.4）和唯一来源说明；删除已迁移/已移出的历史说明、emoji 标记（🔴🎯📝）可选用于高危项。
 - **历史背景**：移入 `docs/troubleshooting/` 或 git commit message，模块文件不保留。
-- **事故引用格式**：模块内防再犯规则须包含 `REF:YYYY-MM-DD-关键词`（如 `REF:2026-08-21-fcitx5-gtk`），全局搜索该 ID 可直达 `docs/troubleshooting/` 对应文件。示例：`# GTK_IM_MODULE 必须 mkForce "" (REF:2026-08-21-fcitx5-gtk)`
+- **事故引用格式**：模块内防再犯规则须包含 `REF:YYYY-MM-DD-关键词`（如 `REF:2026-08-21-fcitx5-gtk`），全局搜索该 ID 可直达 `docs/troubleshooting/` 对应文件。示例：`# GTK_IM_MODULE 必须 mkForce "" (REF:2026-08-21-fcitx5-gtk)`。🔴 **REF 仅用于已有对应事故档（`docs/troubleshooting/` 含该 ID）的规则**；普通迁移/上游改名/环境常量只写解释、不加 `REF:`，避免悬空指针（2026-09 体检：曾有多处 REF 无档）。
 - **事故文件命名**：`docs/troubleshooting/` 下文件名**必须**包含对应 REF ID（如 `2026-08-21-fcitx5-gtk.md`），终端 `ls docs/troubleshooting/ | grep ID` 或编辑器 `Ctrl+P` 输入 ID 即可秒开。
 
 ### 架构量化规则（平衡：快速定位 / 不杂乱 / 文件不长）
 
 1. **一文件 = 一领域**；单文件 **40–200 行**——<40 行的同领域小文件合并进领域文件；>200 行在领域内再拆。
-   - 💡 **豁免一（配置密集）**：配置密集的领域主体文件（如 starship 提示符模块集、neovim initLua）允许 ≤300 行——强拆会破坏"一工具一文件"直觉、反而增加认知负担（本仓库实测 starship 299 / neovim 249）。
+   - 💡 **豁免一（配置密集）**：配置密集的领域主体文件（如 starship 提示符模块集、nixvim 配置）允许 ≤300 行——强拆会破坏"一工具一文件"直觉、反而增加认知负担（本仓库实测 starship 280 / nixvim 282）。
    - 💡 **豁免二（纯数据声明，不受行数上限）**：声明式规则/键位表（如 niri 窗口规则、键位绑定、样式主题）**不设行数上限**——这类文件是"顺序即语义"的匹配列表，行数增长只来自数据条目，不增加认知复杂度。**但必须分段并加注释**（如 `# ---- 浏览器规则 ----`），禁止无分隔的长列表。
 2. **目录 ≤2 层**；聚合链固定为「flake → 目录 default.nix → 文件」。
 3. **一个目录文件数 ≤16**（一屏可扫完）。
@@ -76,6 +77,31 @@
 - `startAsUserService = true` + `systemd.user.services.home-manager.wantedBy = [ "default.target" ]`——上游 #3172 开机竞态的唯一修复，**不要动**。
 - `home.stateVersion` 保持首次使用值，不随 NixOS 版本升。
 - 有官方模块 → `programs.<x>.enable`；纯安装 → `home.packages`；配置文件 → `xdg.configFile`（禁止 `home.file` 指向 `~/.config`）。
+
+### 3.1 包与配置落点（判定树，2026-09 起）
+
+**安装跟「谁需要它」走，配置跟「哪个程序」走。** 按顺序判定，第一个命中即定：
+
+1. 秘密 → `secrets/secrets.yaml`（§6）。
+2. 机器专属（硬件/私有后端/主机端口/输出形态/第三方）→ `hosts/<machine>/`（§0.5）。
+3. 需要 root / boot / PAM / greeter / 系统 daemon / 全局 PATH（服务脚本、tty 兜底）→
+   `environment.systemPackages`（`modules/packages.nix` 或同领域文件）。
+4. 有官方 NixOS 模块 → `modules/<领域>.nix` 的 `programs./services.`。
+5. 字体/系统主题包 → `modules/packages.nix` 的 `fonts.packages`。
+6. 仅用户会话：有官方 HM 模块 → `programs.<x>`（自动装包）；纯安装 → `home.packages`。
+   - GUI 应用与桌面会话工具 → `home/modules/desktop/packages.nix`；
+   - 无专属领域的通用 CLI → `home/modules/tools/shell-utils.nix`；
+   - 有明确领域的 CLI → 该领域文件（监控 `monitoring.nix`、开发 `dev.nix`）；
+   - **程序专属依赖随程序文件**（如 yazi 预览依赖在 `yazi.nix`）。
+7. 项目工具链（编译器/LSP/语言运行时）→ 项目 devShell/direnv，不进全局。
+8. 静态资产 → 系统级 `assets/`，用户级 `home/source/`。
+
+**配置文件落点优先级**（从高到低）：
+官方模块 `settings` > `xdg.configFile` + `pkgs.formats` 生成器 > `xdg.configFile.text` >
+`xdg.configFile.source`（`home/source/` 静态资产）> `home.activation`（程序运行时会写回的配置，
+同时 `force = true` 防 `checkLinkTargets` 冲突）。禁止把多个程序的配置堆进同一个「杂项」文件。
+
+**包唯一性**：同一个包全仓只声明一次；被两处需要时在次要处注释指路，禁止重复声明。
 
 ---
 
@@ -157,7 +183,7 @@
 
 - rebuild/check 的 warning、error、deprecation 当场处理，不允许带病提交。
 - 升级 NixOS/HM 大版本前读 release notes，逐条核对仓库受影响项。
-- **启动项生存位**：Bootloader 必须保留至少 15-20 个 Generations（`boot.loader.grub.configurationLimit = 10` 已配置，但手动 `nix-collect-garbage -d` 会绕过——禁止在系统微小不稳定时执行，那是自毁长城）。
+- **启动项生存位**：Bootloader 必须保留足够的可回滚代际（Limine 菜单保留 `maxGenerations = 3`，受 ESP 容量限制，见 `modules/boot.nix`；系统代际档案由 `/nix/var/nix/profiles/system` 保留）。手动 `nix-collect-garbage -d` 会绕过代际保留——禁止在系统微小不稳定时执行，那是自毁长城。
 - **驱动更新离线兜底**：涉及核心驱动（Wi-Fi/GPU）的更新，必须在网络环境良好的情况下进行，并确保本地有上一版本的生成记录（可 `nixos-rebuild switch --rollback` 回退）。
 
 ---
@@ -169,7 +195,7 @@
 
 ---
 
-## 10. 提交 checklist（7 项）
+## 10. 提交 checklist（8 项）
 
 - [ ] `nix fmt` 通过
 - [ ] `nix flake check` 通过
@@ -178,6 +204,7 @@
 - [ ] 注释/表述与改动同步（含本文件；双作用域变量两处同步）
 - [ ] rebuild 无新增 warning
 - [ ] **关键服务状态核验**：涉及 systemd 服务的改动，rebuild 后必须 `systemctl --user status <service>` 确认无 `activating (auto-restart)` 等静默失败（NixOS 只保证服务"定义"了，不保证在特定硬件上"跑起来"）
+- [ ] **运行时状态改动**：删除 abbr/通用变量/迁移文件等声明式管不到的运行时状态后，须 `abbr --erase`/清 `fish_variables` + 新 shell 验证——配置删了 ≠ 状态没了（REF:2026-09-09-fish-abbr-universal-residue）
 
 ---
 

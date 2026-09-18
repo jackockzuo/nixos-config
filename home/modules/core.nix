@@ -10,10 +10,10 @@
 }:
 
 {
-  # 用户（单一来源 flake.nix 顶部 my）
-  home = {
-    inherit (my) username homeDirectory stateVersion;
-  };
+  # 身份（username/homeDirectory）由系统层 users.users 自动派生
+  # （HM 作为 NixOS 模块时 nixos/common.nix 会按 users.users.<name> 设置）；
+  # 此处只保留 HM 自己的 stateVersion（首次使用值，勿随版本升，STANDARDS §3）
+  home.stateVersion = my.stateVersion;
 
   programs.home-manager.enable = true;
 
@@ -26,7 +26,8 @@
         "flakes"
       ];
       # substituters 单一来源是系统层 modules/nix.nix（daemon 管理）
-      connect-timeout = 10;
+      # 与系统层 connect-timeout 保持一致
+      connect-timeout = 5;
     };
   };
 

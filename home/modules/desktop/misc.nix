@@ -115,7 +115,7 @@ in
     userDirs = {
       enable = true;
       createDirectories = true; # 缺失目录自动创建
-      # 🔴 消除弃用警告：stateVersion < 26.05 时显式声明保持旧行为(REF:2026-08-30-userdirs-warning)
+      # 🔴 消除弃用警告：stateVersion < 26.05 时显式声明保持旧行为
       setSessionVariables = true;
       desktop = "Desktop";
       documents = "Documents";
@@ -174,7 +174,7 @@ in
   };
 
   # 迁移清理（2026-08-28）：删除旧 xdg.configFile "mpv/config"
-  # 旧条目不再被读取，GC 后为悬空链接(REF:2026-08-28-mpv-cleanup)
+  # 旧条目不再被读取，GC 后为悬空链接
   home.activation.cleanStaleMpvConfig = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     if [ -L "$HOME/.config/mpv/config" ]; then
       $DRY_RUN_CMD rm "$HOME/.config/mpv/config"

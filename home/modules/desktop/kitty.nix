@@ -28,33 +28,7 @@ _:
       cursor_shape = "beam";
       cursor_blink_interval = "0.5";
 
-      # 颜色（Catppuccin Mocha 完整 16 色）
-      # 基础色
-      foreground = "#cdd6f4";
-      background = "#1e1e2e";
-      cursor_text_color = "#1e1e2e";
-      selection_foreground = "#1e1e2e";
-      selection_background = "#f5e0dc";
-
-      # 普通色（color0-7）
-      color0 = "#45475a";
-      color1 = "#f38ba8";
-      color2 = "#a6e3a1";
-      color3 = "#f9e2af";
-      color4 = "#89b4fa";
-      color5 = "#f5c2e7";
-      color6 = "#94e2d5";
-      color7 = "#bac2de";
-
-      # 亮色（color8-15）—— 补齐后 git diff / fzf / htop / eza 高亮恢复正常
-      color8 = "#585b70";
-      color9 = "#f38ba8";
-      color10 = "#a6e3a1";
-      color11 = "#f9e2af";
-      color12 = "#89b4fa";
-      color13 = "#f5c2e7";
-      color14 = "#94e2d5";
-      color15 = "#a6adc8";
+      # 颜色由 catppuccin.kitty 注入（themeFile = Catppuccin-Mocha，含基础色 + 16 色）
 
       # 交互体验
       # 选中即复制到剪贴板
@@ -84,7 +58,7 @@ _:
   };
 
   # 会话文件：kitty --session work 一键打开工作区
-  # 配合 tools/terminal/fish.nix 的 ks 别名使用
+  # 配合 tools/fish.nix 的 ks 别名使用
   # 注意：kitty --session 相对路径直接相对 ~/.config/kitty 解析
   xdg.configFile."kitty/work".text = ''
     # 工作会话：2 个窗口左右分屏 + 顶部标签栏

@@ -1,6 +1,6 @@
 # dev.nix —— 开发工具（git/gh/lazygit/direnv/tealdeer/topgrade/pass/languages）
 # 职责：git 工作流 / GitHub CLI / LSP server 包 / direnv / 密码管理 / 升级工具
-# 注意：neovim 独立（neovim.nix）；vscode 声明式扩展 + nixd 选项补全
+# 注意：编辑器为 nixvim（tools/nixvim.nix）；vscode 声明式扩展 + nixd 选项补全
 # ============================================================
 {
   config,
@@ -19,7 +19,7 @@
       enable = true;
       settings = {
         user = {
-          name = "ran";
+          name = my.username;
           email = "jackocksmic@outlook.com";
         };
         init = {
@@ -36,36 +36,27 @@
       };
     };
 
-    # lazygit（git TUI，Catppuccin Mocha 主题）
+    # lazygit（git TUI，配色由 catppuccin.lazygit 注入）
     lazygit = {
       enable = true;
-      settings = {
-        gui.theme = {
-          selectedLineBgColor = [ "#313244" ];
-          activeBorderColor = [
-            "#89b4fa"
-            "bold"
-          ];
-          inactiveBorderColor = [ "#585b70" ];
-          optionsFgColor = [ "#89b4fa" ];
-          selectedRangeBgColor = [ "#313244" ];
-          cherryPickedCommitBgColor = [ "#45475a" ];
-          cherryPickedCommitFgColor = [ "#cba6f7" ];
-          unstagedChangesColor = [ "#f38ba8" ];
-          defaultFgColor = [ "#cdd6f4" ];
-          searchingActiveBorderColor = [ "#f9e2af" ];
-        };
-      };
     };
 
     # direnv（目录环境）
-    # fish 集成 type -q 守卫（容器兼容）(REF:2026-08-18-distrobox-nc)
+    # fish 集成 type -q 守卫（容器兼容）(REF:2026-08-18-distrobox-container-fish-unknown-command)
     direnv = {
       enable = true;
       enableFishIntegration = false; # 集成交给下方守卫块
       nix-direnv.enable = true;
       silent = false;
     };
+    # 统一 fish 集成守卫块（direnv）
+    fish.interactiveShellInit = lib.mkAfter ''
+      if type -q direnv
+          if not functions -q __direnv_export_eval
+              direnv hook fish | source
+          end
+      end
+    '';
 
     # tealdeer（tldr 简洁手册）
     tealdeer = {
@@ -79,46 +70,35 @@
     };
 
     # topgrade（一键升级，NixOS flake 兼容）
-    # 更新链（事故驱动）：nixpkgs → 质量门禁 → 预构建+切换 (REF:2026-08-29-topgrade-rewrite)
+    # 更新链（事故驱动）：nixpkgs → 质量门禁 → 预构建+切换
     topgrade = {
       enable = true;
       settings = {
         misc = {
           disable = [
-            "system"
+            "system" # 原生 = nixos-rebuild switch --upgrade（flake 场景不用，统一走 nr）
             "pi"
-            "nix" # nix 步骤用 nix-env --upgrade，与 nix profile 不兼容 (REF:2026-08-30-topgrade-nix)
+            "nix" # = nix-channel/nix-env，与 flakes 不兼容
+            # HM 集成式；且 topgrade 17.9.0 在仅 nh 可用但 NH_FLAKE 未设时触发 require_one panic
+            "home_manager"
           ];
-          pre_sudo = true; # sudo switch 免输入
+          pre_sudo = true; # sudo 免输入
           set_title = false;
+          nix_handler = "nh"; # NixOS/HM 切换统一走 nh
         };
         commands = {
-          # ① 更新（精确控制：只 nixpkgs，覆盖 99% 场景）
-          "NixOS flake update" = "cd ${config.home.homeDirectory}/nixos-config && nix flake update nixpkgs";
-          # ② 质量门禁
-          "NixOS flake check" = "cd ${config.home.homeDirectory}/nixos-config && nix fmt && nix flake check";
-          # ③ 预构建验证 + ④ 确认无误才切换（&& 短路保证）
-          # rebuild 前自动 snapper 快照（/ + /home）：改配置翻车可一条命令回滚（snapper rollback/undochange）(REF:2026-08-29-topgrade-rewrite)
-          "NixOS rebuild" =
-            "sudo snapper -c root create -t single -d 'nixos-rebuild before' && sudo snapper -c home create -t single -d 'nixos-rebuild before' && cd ${config.home.homeDirectory}/nixos-config && nix build .#nixosConfigurations.${my.hostname}.config.system.build.toplevel && sudo nixos-rebuild switch --flake ${config.home.homeDirectory}/nixos-config#${my.hostname}";
+          # 唯一 NixOS 入口：门禁 → nr -u（快照 / + /home → 更新全部 inputs → nh 构建/diff/切换）
+          "NixOS 全量更新+重建" =
+            "cd ${config.home.homeDirectory}/nixos-config && nix fmt && nix flake check && fish -c 'nr -u'";
         };
       };
     };
 
-    # 统一 fish 集成守卫块（direnv）
-    fish.interactiveShellInit = lib.mkAfter ''
-      if type -q direnv
-          if not functions -q __direnv_export_eval
-              direnv hook fish | source
-          end
-      end
-    '';
-
     # ---- 编辑器：VSCode（声明式扩展 + Nix 选项补全）----
-    # nixd 选项补全：nix.serverSettings 经 nix-ide 传给 nixd，expr 用 builtins.getFlake 指向本仓库 (REF:2026-08-29-topgrade-rewrite)
+    # nixd 选项补全：nix.serverSettings 经 nix-ide 传给 nixd，expr 用 builtins.getFlake 指向本仓库
     vscode = {
       enable = true;
-      # 扩展目录 store 只读（禁止手工装扩展，全部声明式）
+      # 扩展目录 store 只读（禁止手工装扩展，全部声明式）(REF:2026-09-12-vscode-extensions-layout-transition)
       mutableExtensionsDir = false;
       profiles.default = {
         enableUpdateCheck = false;
@@ -129,6 +109,16 @@
           ms-ceintl.vscode-language-pack-zh-hans # 中文界面
           timonwong.shellcheck # Shell 检查
           redhat.vscode-yaml # YAML 支持
+
+          tamasfe.even-better-toml # TOML 支持
+          usernamehw.errorlens # 报错提示优化
+          eamodio.gitlens # Git 辅助
+
+          myriad-dreamin.tinymist
+
+          haskell.haskell # Haskell 支持
+
+          rust-lang.rust-analyzer # Rust 支持
         ];
         userSettings = {
           "git.confirmSync" = false;
@@ -138,11 +128,26 @@
           "git.autofetch" = true;
           "git.enableSmartCommit" = true;
 
+          # ---- Haskell（haskell.haskell 2.x）----
+          # 2.x 无内置 TextMate 语法高亮，颜色全靠 HLS semantic tokens；
+          # 但该设置默认 false 且会被原样转发给 HLS → 必须显式开启才有高亮。
+          "haskell.manageHLS" = "PATH"; # 不用 GHCup 下载，直接用 PATH 上的 Nix HLS
+          "haskell.plugin.semanticTokens.globalOn" = true;
+          # 项目 devShell 只装了 fourmolu（无 ormolu）
+          "haskell.formattingProvider" = "fourmolu";
+
           # ---- Nix IDE（nixd）----
           "[nix]" = {
             "editor.formatOnSave" = true;
           };
           "nix.enableLanguageServer" = true;
+          # 语义高亮：nixd 默认不声明 semanticTokensProvider，必须显式给它 --semantic-tokens
+          # 否则 `pkgs.ripgrep` 这类属性选择只是 TextMate 默认前景色，看不出包名
+          "nix.serverPath" = [
+            "nixd"
+            "--semantic-tokens"
+          ];
+          "editor.semanticHighlighting.enabled" = true;
           "nix.serverSettings" = {
             nixd = {
               eval = {
@@ -160,7 +165,7 @@
               # 配置项补全（本机 = nixos-rebuild 集成式 HM，nixd 官方文档 B 方案）：
               # NixOS 选项 + Home Manager 选项两组，输入时自动补全可配置项
               options = {
-                # expr 为字符串但经 nix 插值：改 flake.nix 顶部 my.hostname 自动跟随 (REF:2026-08-29-topgrade-rewrite)
+                # expr 为字符串但经 nix 插值：改 flake.nix 顶部 my.hostname 自动跟随
                 nixos.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.${my.hostname}.options";
                 home-manager.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.${my.hostname}.options.home-manager.users.type.getSubOptions []";
               };
@@ -194,15 +199,21 @@
       max-cache-ttl 7200
     '';
 
-    # LSP server 包（nvim mason+lspconfig 自动从 PATH 检测）
+    # 补充 LSP server 包（nixvim 的 lsp 自动装主服务，这里只补额外工具）
+    # haskell-language-server 不放全局：工具链随项目 devShell 走（direnv），保持系统纯净
     packages = with pkgs; [
-      clang-tools # cpp LSP
-      rust-analyzer
-      pkgs.nixd # nix LSP（vscode + nvim 共用）
+
       tinymist # typst LSP
-      haskell-language-server # haskell LSP
-      pkgs.nixfmt # nix 格式化
+
       shellcheck # vscode shellcheck 扩展依赖
+
+      # ---- 编译加速 ----
+      mold # 快速链接器
+      sccache # 编译缓存
+
+      # ---- 密码管理（pass：gpg 加密；gpg 配置见上方 programs.gpg）----
+      pass
+      pinentry-curses # gpg 主密码输入（终端版 pinentry）
     ];
   };
 }

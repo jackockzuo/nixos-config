@@ -14,21 +14,27 @@ in
     # 本机性能全家桶（整组关闭：options.omen.performance.enable = false）
     # - scx_lavd：交互负载 + 计算并行兼顾（13900HX P/E 核混合友好）
     # - irqbalance：13900HX 24 核，避免单个 P-Core 被网卡/磁盘中断占满
-    # - TLP：AC = powersave governor + balance_performance EPP (REF:2026-08-25-omen-coil-whine)
+    # - TLP：AC = powersave governor + balance_performance EPP (REF:2026-08-25-coil-whine-cpu-governor)
     # - zram：内存 50% 压缩交换（抗 OOM）｜fd 上限 65536（并行编译/大数据）
     services = {
+      system76-scheduler = {
+        enable = true;
+      };
+
+      # 开启 scx 服务并选择 lavd 调度器（需要内核支持 sched_ext）
       scx = {
         enable = true;
         scheduler = "scx_lavd";
+
       };
       irqbalance.enable = true;
       tlp = {
         enable = true;
         settings = {
-          # 修复线圈啸叫：performance → powersave (REF:2026-08-25-omen-coil-whine)
+          # 修复线圈啸叫：performance → powersave (REF:2026-08-25-coil-whine-cpu-governor)
           CPU_SCALING_GOVERNOR_ON_AC = "powersave";
           CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
-          # PL1/PL2 不在 TLP 设置：platform_profile=performance 时固件强制 PL1=130W (REF:2026-08-30-omen-ec-safety)
+          # PL1/PL2 不在 TLP 设置：platform_profile=performance 时固件强制 PL1=130W
         };
       };
       power-profiles-daemon.enable = false;

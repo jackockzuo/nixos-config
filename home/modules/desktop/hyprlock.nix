@@ -1,67 +1,17 @@
 # ============================================================
 # hyprlock.nix —— 锁屏（官方模块 programs.hyprlock）
-# 颜色 $vars 直接内联为 settings 顶层键
-# 说明：hyprlock 二进制由系统层安装（packages.nix），package = null 只管配置
+# 职责：锁屏配置；二进制由本模块安装（不再依赖系统层 packages.nix）
+# PAM 认证：系统层 modules/desktop.nix 的 security.pam.services.hyprlock
 # ============================================================
 _:
 
 {
   programs.hyprlock = {
     enable = true;
-    package = null; # 系统层已装（packages.nix），HM 只管配置
 
     settings = {
-      # Material 调色板（rgba 为 matugen 色值）
-      "$background" = "rgba(131318ff)";
-      "$error" = "rgba(ffb4abff)";
-      "$error_container" = "rgba(93000aff)";
-      "$inverse_on_surface" = "rgba(303036ff)";
-      "$inverse_primary" = "rgba(555a92ff)";
-      "$inverse_surface" = "rgba(e4e1e9ff)";
-      "$on_background" = "rgba(e4e1e9ff)";
-      "$on_error" = "rgba(690005ff)";
-      "$on_error_container" = "rgba(ffdad6ff)";
-      "$on_primary" = "rgba(262b60ff)";
-      "$on_primary_container" = "rgba(e0e0ffff)";
-      "$on_primary_fixed" = "rgba(10144bff)";
-      "$on_primary_fixed_variant" = "rgba(3d4279ff)";
-      "$on_secondary" = "rgba(2e2f42ff)";
-      "$on_secondary_container" = "rgba(e1e0f9ff)";
-      "$on_secondary_fixed" = "rgba(191a2cff)";
-      "$on_secondary_fixed_variant" = "rgba(444559ff)";
-      "$on_surface" = "rgba(e4e1e9ff)";
-      "$on_surface_variant" = "rgba(c7c5d0ff)";
-      "$on_tertiary" = "rgba(45263cff)";
-      "$on_tertiary_container" = "rgba(ffd8eeff)";
-      "$on_tertiary_fixed" = "rgba(2e1126ff)";
-      "$on_tertiary_fixed_variant" = "rgba(5e3c53ff)";
-      "$outline" = "rgba(91909aff)";
-      "$outline_variant" = "rgba(46464fff)";
-      "$primary" = "rgba(bec2ffff)";
-      "$primary_container" = "rgba(3d4279ff)";
-      "$primary_fixed" = "rgba(e0e0ffff)";
-      "$primary_fixed_dim" = "rgba(bec2ffff)";
-      "$scrim" = "rgba(000000ff)";
-      "$secondary" = "rgba(c5c4ddff)";
-      "$secondary_container" = "rgba(444559ff)";
-      "$secondary_fixed" = "rgba(e1e0f9ff)";
-      "$secondary_fixed_dim" = "rgba(c5c4ddff)";
-      "$shadow" = "rgba(000000ff)";
-      "$source_color" = "rgba(5a61b1ff)";
-      "$surface" = "rgba(131318ff)";
-      "$surface_bright" = "rgba(39393fff)";
-      "$surface_container" = "rgba(1f1f25ff)";
-      "$surface_container_high" = "rgba(2a292fff)";
-      "$surface_container_highest" = "rgba(34343aff)";
-      "$surface_container_low" = "rgba(1b1b21ff)";
-      "$surface_container_lowest" = "rgba(0e0e13ff)";
-      "$surface_dim" = "rgba(131318ff)";
-      "$surface_tint" = "rgba(bec2ffff)";
-      "$surface_variant" = "rgba(46464fff)";
-      "$tertiary" = "rgba(e7b9d5ff)";
-      "$tertiary_container" = "rgba(5e3c53ff)";
-      "$tertiary_fixed" = "rgba(ffd8eeff)";
-      "$tertiary_fixed_dim" = "rgba(e7b9d5ff)";
+      # 调色板变量（$base/$surface0/$text/$accent/$pink/$red...）由
+      # catppuccin.hyprlock 经 source 注入（见 home/modules/theme/）
 
       # 字体变量（锁屏是 UI 组件，用系统默认中文字体）
       "$font" = "Noto Sans CJK SC";
@@ -87,7 +37,7 @@ _:
         {
           monitor = ""; # 应用到所有显示器
           path = "screenshot";
-          color = "$surface"; # 截图加载失败的兜底背景色
+          color = "$base"; # 截图加载失败的兜底背景色
           "blur_size" = 5; # 模糊半径
           "blur_passes" = 4; # 模糊迭代次数（越高越平滑，越耗性能）
           noise = 0.01; # 防色带
@@ -104,7 +54,7 @@ _:
         {
           monitor = "";
           text = "cmd[update:1000] echo \"<b><big> $(date +\"%H\") </big></b>\"";
-          color = "$primary";
+          color = "$accent";
           "font_size" = 130;
           "font_family" = "$font_clock";
           "shadow_passes" = 3;
@@ -117,7 +67,7 @@ _:
         {
           monitor = "";
           text = "cmd[update:1000] echo \"<b><big> $(date +\"%M\") </big></b>\"";
-          color = "$primary";
+          color = "$accent";
           "font_size" = 130;
           "font_family" = "$font_clock";
           "shadow_passes" = 3;
@@ -130,7 +80,7 @@ _:
         {
           monitor = "";
           text = "cmd[update:18000000] echo \"<b><big> \"$(date +'%A')\" </big></b>\"";
-          color = "$secondary";
+          color = "$subtext1";
           "font_size" = 28;
           "font_family" = "$font";
           position = "0, 7%";
@@ -141,7 +91,7 @@ _:
         {
           monitor = "";
           text = "cmd[update:18000000] echo \"<b> \"$(date +'%b %d')\" </b>\"";
-          color = "$secondary";
+          color = "$subtext1";
           "font_size" = 18;
           "font_family" = "$font";
           position = "0, 4%";
@@ -161,11 +111,11 @@ _:
           "dots_center" = true;
           "dots_rounding" = -1; # -1 = 完美圆形
           rounding = 12;
-          "outer_color" = "$primary $tertiary $primary"; # 渐变：主色→第三色→主色
-          "inner_color" = "$surface_container";
-          "font_color" = "$on_surface";
-          "check_color" = "$secondary";
-          "fail_color" = "$error";
+          "outer_color" = "$accent $pink $accent"; # 渐变：主色→粉色→主色
+          "inner_color" = "$surface0";
+          "font_color" = "$text";
+          "check_color" = "$accent";
+          "fail_color" = "$red";
           "fade_on_empty" = false; # 空输入也保持显示
           "placeholder_text" = "<i>Password...</i>";
           position = "0, 10%";

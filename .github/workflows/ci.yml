@@ -31,8 +31,12 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v16
 
+      # GitHub 原生缓存（替代已弃用的 magic-nix-cache；无需外部账号/服务）
       - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v9
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
 
       # 标准修改流程质量门禁（STANDARDS §10）：flake check 全绿
       # 注：2026-08-29 起无仓库外 path 输入（fcclient/tomatodo 已移出），无需 override-input

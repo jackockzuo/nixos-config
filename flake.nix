@@ -3,11 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
+    catppuccin = {
+      url = "github:catppuccin/nix";
+      inputs.nixpkgs.follows = "nixpkgs"; # 全仓单一 nixpkgs（STANDARDS §0.2）
+    };
     # 核心架构（STANDARDS §1）
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
-
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      # If you are not running an unstable channel of nixpkgs, select the corresponding branch of Nixvim.
+      # url = "github:nix-community/nixvim/nixos-26.05";
+    };
     # 代码质量（STANDARDS §7）
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -18,14 +25,20 @@
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
-    # CachyOS 高性能包/内核（网络环境项，多机通用）
-    chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
-
     # DMS 桌面壳
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # DMS Greeter 登录界面（已从 DankMaterialShell 拆分为独立仓库）
+    dank-greeter = {
+      url = "github:AvengeMedia/dank-greeter";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    fh.url = "https://flakehub.com/f/DeterminateSystems/fh/*.tar.gz";
+
+    # 用户级配置（STANDARDS §3：作为 NixOS 模块集成）
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -36,17 +49,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # omencore：官方 release 二进制（仅 omen 主机使用，2026-09-03 起 CLI-only）
-    omencore = {
-      url = "https://github.com/theantipopau/omencore/releases/download/v4.1.7/OmenCore-4.1.7-linux-x64.zip";
-      flake = false;
-    };
-
   };
 
   outputs =
     inputs@{ flake-parts, ... }:
     let
+      lib = inputs.nixpkgs.lib;
+
       # 身份单一来源（STANDARDS §0.2）：改这里 → 全仓库自动跟随
       # username/homeDirectory/stateVersion = 用户身份（多机共用）；
       # hostname/hostId = 每机常量，由下方 hosts 清单注入（共享层禁止写死机器标识）
@@ -54,6 +63,24 @@
         username = "ran";
         homeDirectory = "/home/${username}";
         stateVersion = "24.05";
+
+        # GitHub token 片段路径（sops 渲染）。全局常量单一来源：
+        #   modules/secrets.nix 生成于此，home/modules/core.nix 把它 include 进用户 nix.conf。
+        nixAccessTokensPath = "/run/nix-access-tokens";
+
+        # 配色单一来源（STANDARDS §0.2）：NixOS/HM 两侧 catppuccin 模块共用
+        #   flavor/accent 改这里，系统层 modules/theme.nix 与用户层 home/modules/theme/ 同步跟随。
+        catppuccin = rec {
+          flavor = "mocha";
+          accent = "mauve";
+          # 派生主题名（无 catppuccin/nix 端口处使用：fcitx5 用户配置、GTK 主题包）
+          names = {
+            fcitx5 = "catppuccin-${flavor}-${accent}";
+            gtk =
+              "Catppuccin-${lib.toSentenceCase flavor}-Standard-${lib.toSentenceCase accent}-"
+              + (if flavor == "latte" then "Light" else "Dark");
+          };
+        };
       };
 
       # 主机清单（STANDARDS §1）：加一台机器 = 这里一行 + hosts/<name>/ 目录
@@ -91,6 +118,15 @@
               pkgs.statix
               pkgs.deadnix
               pkgs.treefmt
+              # 打包/flake 开发工具
+              pkgs.nurl # URL → fetchurl/fetchFromGitHub 表达式
+              pkgs.nix-fast-build # 并行构建 + 结果缓存
+              pkgs.nixpkgs-review # 本地批量验证 nixpkgs PR
+              pkgs.nixpkgs-hammering # 打包规范 lint
+              pkgs.nix-diff # 解释两个 derivation 差异
+              # 秘密管理（编辑 secrets/secrets.yaml / 轮换 age 密钥，见 STANDARDS §6）
+              pkgs.sops # sops secrets/secrets.yaml
+              pkgs.age # age-keygen / age -d
             ];
           };
 
@@ -114,15 +150,13 @@
 
           # 按需运行的包
           packages = {
-            omencore = pkgs.callPackage ./packages/omencore/package.nix { src = inputs.omencore; };
+            omencore = pkgs.callPackage ./packages/omencore/package.nix { };
             omencore-update = pkgs.writeShellApplication {
               name = "omencore-update";
               runtimeInputs = with pkgs; [
-                curl
-                python3
+                nix-update
                 nix
-                gnused
-                gnugrep
+                git
                 coreutils
               ];
               text = builtins.readFile ./packages/omencore/update.sh;
@@ -132,7 +166,15 @@
 
       flake = {
         overlays.default = final: _prev: {
-          omencore = final.callPackage ./packages/omencore/package.nix { src = inputs.omencore; };
+          omencore = final.callPackage ./packages/omencore/package.nix { };
+
+          # Go 1.25 兼容垫片：nixpkgs 2026-09-15 起把 `buildGo125Module` 变成 throw
+          #   （“Go 1.25 is end-of-life”），而 sops-nix 最新 HEAD 仍写死该形参
+          #   （pkgs/sops-install-secrets/default.nix）→ sops.package 求值即崩。
+          #   sops-nix 显式接收 `buildGo125Module`，故仅把它重定向到当前 `buildGoModule`
+          #   （Go 1.26）即可，语义等价、不碰其它包、无需硬编码 vendorHash。
+          #   上游改用新 builder 后本垫片可删 (REF:2026-09-16-sops-nix-go125-eol)
+          buildGo125Module = final.buildGoModule;
         };
 
         # 每台主机 = 通用层 modules/ + 主机剖面 hosts/<name>/（nixosSystem 参数见 mkMy）
@@ -148,6 +190,9 @@
               # 通用层（平台无关）
               ./modules
 
+              # 配色（catppuccin/nix NixOS 作用域：全局开关 + fcitx5/limine 等系统端口）
+              inputs.catppuccin.nixosModules.catppuccin
+
               # 主机剖面（机器专属：硬件/性能解锁/主机 home）
               (import (./hosts + "/${hostname}"))
 
@@ -156,20 +201,18 @@
                 nixpkgs.overlays = [ inputs.self.overlays.default ];
               }
 
-              # sops-nix 秘密管理（STANDARDS §6）
-              inputs.sops-nix.nixosModules.sops
-
-              # Chaotic-Nyx
-              inputs.chaotic.nixosModules.default
-
-              # DMS 桌面壳
-              inputs.dms.nixosModules.default
-              inputs.dms.nixosModules.greeter
-
-              # Nix registry 指向本 flake 锁定的 nixpkgs
+              # nixpkgs registry → 指向本 flake 锁定的 nixpkgs（本地 store 路径，免每次 git fetch）
               {
                 nix.registry.nixpkgs.flake = inputs.nixpkgs;
               }
+
+              # sops-nix 秘密管理（STANDARDS §6）
+              inputs.sops-nix.nixosModules.sops
+
+              # DMS 桌面壳
+              inputs.dms.nixosModules.default
+              # DMS Greeter（独立仓库，提供 programs.dms-greeter）
+              inputs.dank-greeter.nixosModules.default
 
               # Home Manager（用户身份 my 注入，见 STANDARDS §0.2）
               inputs.home-manager.nixosModules.home-manager
@@ -184,7 +227,11 @@
                     startAsUserService = true;
                     extraSpecialArgs = { inherit my; };
                     users.${my.username} = {
-                      imports = [ ./home/home.nix ];
+                      imports = [
+                        inputs.nixvim.homeModules.nixvim # 编辑器（Nixvim，见 home/modules/tools/nixvim.nix）
+                        inputs.catppuccin.homeModules.catppuccin # 配色（全局 + 已启用程序端口自动跟随）
+                        ./home/home.nix
+                      ];
                     };
                   };
                   systemd.user.services.home-manager.wantedBy = [ "default.target" ];

@@ -12,3 +12,6 @@ result
 
 # direnv 缓存（use flake 生成，勿提交）
 .direnv/
+
+# 虚拟机磁盘镜像（勿提交）
+*.qcow2

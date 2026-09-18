@@ -5,9 +5,9 @@
 {
   imports = [
     ./modules/core.nix
+    ./modules/theme
     ./modules/env.nix
     ./modules/desktop
     ./modules/tools
-
   ];
 }

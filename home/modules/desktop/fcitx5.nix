@@ -1,7 +1,7 @@
 # fcitx5.nix —— 输入法用户级配置（fcitx5 + rime 雾凇）
 # 系统层（modules/locale.nix）已负责 i18n.inputMethod + QT/XMODIFIERS 等 IM 环境变量
 # 本模块只写用户级配置（~/.config/fcitx5、~/.local/share/fcitx5/rime）
-_:
+{ my, ... }:
 
 {
   xdg = {
@@ -14,27 +14,27 @@ _:
         Backend=Baidu
       '';
 
-      # 2. 外观：Catppuccin 紫色主题 + Noto Sans CJK SC 字体 + 横排候选框
+      # 2. 外观：字体 + 横排候选框 + 主题名
       #（候选框是 UI 组件，用系统默认中文字体；Maple Mono 仅终端使用）
-      # force=true：防止 fcitx5 运行时重写 classicui.conf 覆盖主题（与下方 config 同理）
+      # 🔴 fcitx5 readAsIni 只读首个命中文件（~/.config 优先于 /etc/xdg），
+      #    系统层 catppuccin.fcitx5 写进 /etc/xdg 的主题名会被本文件整体遮蔽，
+      #    故主题名须在用户配置显式给出（addon 仍由系统层 catppuccin.fcitx5 安装）；
+      #    主题名与 my.catppuccin 单一来源同步。
+      # force=true：防止 fcitx5 运行时重写 classicui.conf
       "fcitx5/conf/classicui.conf" = {
         force = true;
         text = ''
           Vertical Candidate List=False
           Font="Noto Sans CJK SC 11"
           MenuFont="Noto Sans CJK SC 10"
-          Theme=catppuccin-mocha-mauve
-          DarkTheme=catppuccin-mocha-mauve
+          Theme=${my.catppuccin.names.fcitx5}
+          DarkTheme=${my.catppuccin.names.fcitx5}
           UseDarkTheme=True
           PerScreenDPI=True
         '';
       };
 
-      # 2b. GTK IM 模块按后端拆分（fcitx wiki 2025-09 + STANDARDS §4）：
-      #  GTK3/4 settings.ini 不再写 gtk-im-module（写了会退回应用内嵌候选框="原皮"）(REF:2026-08-21-fcitx5-gtk)
-      #  GTK2 保留 gtk-im-module=fcitx（仅 X11/XWayland）
-
-      # 4. 默认输入法 Profile：开机默认加载美式键盘 + Rime 雾凇拼音
+      # 3. 默认输入法 Profile：开机默认加载美式键盘 + Rime 雾凇拼音
       "fcitx5/profile".text = ''
         [Groups/0]
         Name=Default
@@ -53,7 +53,7 @@ _:
         0=Default
       '';
 
-      # 5. 输入法全局快捷键（Ctrl+Space 切换；Super+Space 让给启动器 DMS Spotlight）
+      # 4. 输入法全局快捷键（Ctrl+Space 切换；Super+Space 让给启动器 DMS Spotlight）
       "fcitx5/config" = {
         force = true; # 覆盖 fcitx5 生成的现有配置
         text = ''
@@ -146,13 +146,12 @@ _:
       };
     };
     dataFile = {
+      # 5. 雾凇拼音：启用 rime_ice；rime.lua 禁用 llm_translator（脚本缺失导致 rime 报错）
       "fcitx5/rime/default.custom.yaml".text = ''
         patch:
           "schema_list":
             - schema: rime_ice
       '';
-      # 3b. 雾凇自定义（禁用 llm_translator：脚本缺失导致 rime 报错）
-      # 3c. rime.lua（llm_translator 已禁用）
       "fcitx5/rime/rime.lua".text = ''
         -- llm_translator = require("llm_translator")  -- 已禁用（脚本缺失）
       '';

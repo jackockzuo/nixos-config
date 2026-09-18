@@ -31,7 +31,10 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v16
 
       - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v9
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
 
       # 已是最新版本则脚本 exit 0 且不改任何文件（幂等）
       - name: Bump omencore to latest release

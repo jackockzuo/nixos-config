@@ -29,7 +29,7 @@
 
     # DMS Greeter 登录界面（自动接管 greetd default_session.command）
     # 注意：不能显式设置 command！greeter 模块用 lib.mkDefault，显式赋值会覆盖
-    dank-material-shell.greeter = {
+    dms-greeter = {
       enable = true;
       compositor.name = "niri";
       configHome = config.users.users.${my.username}.home;

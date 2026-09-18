@@ -1,60 +1,47 @@
 # ============================================================
 # packages.nix —— 系统级全局二进制 + 系统字体
-# 职责：需要 root/全局 PATH 的二进制（按用途分节）+ fonts.packages
-# 原则：用户级工具/应用放 home-manager，这里只留系统必需
+# 职责：需要 root / tty 兜底 / 常驻服务 / 全局 PATH 的二进制（按用途分节）+ fonts.packages
+# 原则（STANDARDS §3.1）：仅用户会话使用的 GUI/CLI 一律 home-manager；
+#   新增前先问「root 或系统服务需要它在 /run/current-system/sw/bin 吗？」
 # ============================================================
 { pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
-    # ---- 登录 shell（必须在系统包）----
-    fish
-
     # ---- X11/Wayland 兼容层 ----
     xwayland-satellite # niri 26.04 经 xwayland-satellite 提供 X11 应用支持
-    xhost # niri spawn-at-startup 调用
+    xhost # niri spawn-at-startup 调用（允许 root 经用户 xwayland 开窗）
 
-    # ---- 认证/电源/护眼 ----
-    polkit_gnome # 认证代理（niri spawn-at-startup）
-    wlsunset # 护眼（niri 脚本依赖）
-    swayidle # 闲置锁屏（niri 脚本依赖）
+    # ---- 会话/认证组件（greeter 与所有会话统一；先于用户 profile 可用）----
+    polkit_gnome # 认证代理（niri spawn-at-startup，走系统 PATH 保证会话内必有）
     sound-theme-freedesktop # 系统音效主题
 
-    # ---- 容器与虚拟化 ----
-    distrobox
+    # ---- 容器与虚拟化（podman 为系统服务；AppImage 走 binfmt）----
     podman
     fuse-overlayfs
     appimage-run
 
-    # ---- 联网工具 ----
+    # ---- 基线 CLI / 系统排障（root 与 tty 兜底；服务脚本按 /run/current-system/sw/bin 取）----
     wget
     git
     curl
-
-    # ---- 网络诊断 ----
     dnsutils
     traceroute
     openssh
 
-    # ---- 桌面必需二进制（niri spawn 直接依赖）----
-    kitty
-    hyprlock
-    swaynotificationcenter # swaync（niri spawn-at-startup）
-    brightnessctl # 亮度调节（niri 绑定）
-    playerctl # 全局媒体控制
-
-    # ---- 工具脚本依赖 ----
-    libnotify # notify-send
-    python3
-    mediainfo
-
     # ---- 系统工具 ----
     btrfs-progs
-    vim
+    vim # EDITOR 兜底 + root 救援
+    cups-pk-helper
+    tlp
+    tlp-pd
 
-    # ---- 音频调试工具 ----
+    # ---- 音频调试工具（系统层 pipewire 配套）----
     pulseaudio # 提供 pactl 命令行工具
     alsa-utils # 提供 alsamixer/amixer
+
+    # ---- 脚本运行时 ----
+    python3
   ];
 
   # 系统字体

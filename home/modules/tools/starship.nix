@@ -4,7 +4,7 @@
   # 极简双行布局 Starship 配置
   programs.starship = {
     enable = true;
-    # type -q 守卫：容器内 starship 不存在时静默跳过 (REF:2026-08-18-distrobox-nc)
+    # type -q 守卫：容器内 starship 不存在时静默跳过 (REF:2026-08-18-distrobox-container-fish-unknown-command)
     enableFishIntegration = false;
     enableBashIntegration = true;
 
@@ -18,7 +18,7 @@
       add_newline = false;
       command_timeout = 500;
 
-      palette = "catppuccin_mocha";
+      # palette/palettes 由 catppuccin.starship 自动注入（见 home/modules/theme/）
 
       # ── OS 图标 ──
       os = {
@@ -138,7 +138,7 @@
       };
 
       # 以下模块用 detect_files / detect_extensions 指定触发文件（性能优化）
-      # starship 1.26 起模块名 `go` 改名为 `golang` (REF:2026-08-17-starship-golang)
+      # starship 1.26 起模块名 `go` 改名为 `golang`
       golang = {
         symbol = " ";
         style = "fg:sky";
@@ -237,39 +237,10 @@
         error_symbol = "[❯](bold fg:red)";
         vimcmd_symbol = "[❮](bold fg:green)";
       };
-
-      palettes.catppuccin_mocha = {
-        rosewater = "#f5e0dc";
-        flamingo = "#f2cdcd";
-        pink = "#f5c2e7";
-        mauve = "#cba6f7";
-        red = "#f38ba8";
-        maroon = "#eba0ac";
-        peach = "#fab387";
-        yellow = "#f9e2af";
-        green = "#a6e3a1";
-        teal = "#94e2d5";
-        sky = "#89dceb";
-        sapphire = "#74c7ec";
-        blue = "#89b4fa";
-        lavender = "#b4befe";
-        text = "#cdd6f4";
-        subtext1 = "#bac2de";
-        subtext0 = "#a6adc8";
-        overlay2 = "#9399b2";
-        overlay1 = "#7f849c";
-        overlay0 = "#6c7086";
-        surface2 = "#585b70";
-        surface1 = "#45475a";
-        surface0 = "#313244";
-        base = "#1e1e2e";
-        mantle = "#181825";
-        crust = "#11111b";
-      };
     };
   };
 
-  # fish 集成（type -q 守卫，容器兼容）(REF:2026-08-18-distrobox-nc)
+  # fish 集成（type -q 守卫，容器兼容）(REF:2026-08-18-distrobox-container-fish-unknown-command)
   programs.fish.interactiveShellInit = lib.mkAfter ''
     if type -q starship
         if test "$TERM" != dumb

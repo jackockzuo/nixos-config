@@ -51,24 +51,7 @@
 
       set fish_greeting ""
 
-      # 基础配色（catppuccin mocha fallback，matugen 生成覆盖优先）
-      set fish_color_normal #cdd6f4
-      set fish_color_command #89b4fa
-      set fish_color_param #cdd6f4
-      set fish_color_error #f38ba8
-      set fish_color_quote #a6e3a1
-      set fish_color_operator #94e2d5
-      set fish_color_redirection #f9e2af
-      set fish_color_autosuggestion #585b70
-      set fish_color_selection --background=#585b70
-      set fish_color_search_match --background=#585b70
-      set fish_color_cwd #a6e3a1
-      set fish_color_valid_path --underline
-      set fish_color_option #f5c2e7
-
-      if test -f ~/.config/fish/colors.matugen.fish
-          source ~/.config/fish/colors.matugen.fish
-      end
+      # 配色由 catppuccin.fish 注入（shellInit theme choose；已下线 matugen 动态覆盖）
 
       # 宿主机专用（容器内跳过）
       if not set -q is_container[1]
@@ -100,7 +83,7 @@
     # fish 缩写（输入短词后按空格/回车自动展开）
     shellAbbrs = {
       # ── NixOS 高频 ──
-      nr = "sudo snapper -c root create -t single -d nr && sudo snapper -c home create -t single -d nr && sudo nixos-rebuild switch --flake ~/nixos-config#${my.hostname}";
+
       tg = "topgrade"; # 一键更新链（flake update + 检查 + 预构建切换）
 
       # ── git 高频 ──
@@ -123,14 +106,25 @@
 
     # fish 自动加载函数（值 = 函数体，HM 自动包裹 function ... end）
     functions = {
+
+      # nr：唯一重建入口（快照 / + /home → nh 构建/diff/切换）
+      #   nr               日常重建（不更新 inputs）
+      #   nr -u            更新全部 flake inputs 再重建（topgrade 走这条）
+      #   nr -U nixpkgs    只更新指定 input
+      nr = ''
+        set -l flake ${my.homeDirectory}/nixos-config
+        echo "📸 snapper 快照 / + /home ..."
+        sudo snapper -c root create -t single -d "nr before $(date +%Y%m%d-%H%M)"; or return 1
+        sudo snapper -c home create -t single -d "nr before $(date +%Y%m%d-%H%M)"; or return 1
+        nh os switch $argv $flake#${my.hostname}
+      '';
+
+      # 保留回滚位（STANDARDS §8）：nh clean 至少留 15 代 / 14 天内不删，执行前确认。
+      # 禁用 nix-collect-garbage -d（会删光所有代际，丧失回滚能力）。
       clean-system = ''
-        echo "🧹 正在清理 Nix 废弃历史版本..."
-        sudo nix-collect-garbage -d
-
-        echo "🧹 正在清理 NixOS 旧系统代（保留最近 5 代）..."
-        sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
-
-        echo "✨ 系统保洁完成，恢复极致清爽！"
+        echo "🧹 清理 Nix（保留最近 15 代 / 14 天，维持回滚位）..."
+        nh clean all --keep 15 --keep-since 14d --ask
+        echo "✨ 完成"
       '';
 
       # yazi 退出后 cd 回目录（由 yazi.nix 模块 fish 集成生成，不重复定义）

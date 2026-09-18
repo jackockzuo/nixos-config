@@ -1,10 +1,18 @@
 # hm.nix —— omen 主机专属 home 配置（2026-09-03 从共享层迁出，保证通用层可移植）
 # 内容：fish perf-* 函数（依赖 omencore-cli / intel-rapl，仅 OMEN 有意义）
+#       fish proxy 会话变量 fcproxy_port（fcclient 后端端口，仅 OMEN 有意义）
 #       niri 输出段（eDP-1 关 / HDMI-A-1 主屏 —— 桌面形态，其他机器默认自动布局）
 # ============================================================
 _:
 
 {
+  # n 卡双显卡：GTK 应用启动缓慢的修复（GSK 渲染器用 GL；AMD/Intel 无需，故放主机剖面）
+  wayland.windowManager.niri.settings.environment.GSK_RENDERER = "gl";
+
+  # fcclient 后端 socks 端口（hosts/omen/proxy.nix 用 7892；外部 fish proxy 函数从此变量读取）
+  # 2026-09-09 声明式接管（原 fish_variables 通用变量残留）(REF:2026-09-09-fish-abbr-universal-residue)
+  home.sessionVariables.fcproxy_port = "7892";
+
   programs.fish.functions = {
     # 性能诊断/切换（omencore-cli 体系）(REF:2026-08-23-omen-ec)
 

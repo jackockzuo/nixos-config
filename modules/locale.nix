@@ -27,7 +27,6 @@
           ];
         })
         rime-ice
-        catppuccin-fcitx5
         fcitx5-gtk
         qt6Packages.fcitx5-chinese-addons
       ];

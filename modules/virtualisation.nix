@@ -19,7 +19,8 @@ _:
   #手写 systemd.services.podman 会与 podman 自带单元冲突变成 bad-setting）
   virtualisation.podman = {
     enable = true;
-    # 让普通用户无需 root 就能跑容器（distrobox 依赖）
-    dockerSocket.enable = true;
+    # 不开 dockerSocket：它暴露的是 rootful Docker 兼容 socket（/run/podman/podman.sock，
+    #   docker 组≈root）。distrobox 用 rootless podman 即可，无需此面。
+    #   若确需 Docker-API 客户端，改用 rootless 用户 socket（systemd.podman.socket 用户服务）。
   };
 }

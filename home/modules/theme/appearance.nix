@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  my,
+  ...
+}:
 
 let
   # fastfetch logo：store 路径引用（不用相对路径，fastfetch 按 cwd 解析会失败）
@@ -41,14 +46,6 @@ in
       force = true; # 覆盖原作者旧配置
     };
   };
-
-  # 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png
-  # 新 settings.logo.source 直接引用 store 路径，此文件不再被引用(REF:2026-08-28-fastfetch-cleanup)
-  home.activation.cleanStaleFastfetchLogo = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
-    if [ -L "$HOME/.config/fastfetch/nixos-logo.png" ]; then
-      $DRY_RUN_CMD rm "$HOME/.config/fastfetch/nixos-logo.png"
-    fi
-  '';
 
   # fastfetch 定制系统信息面板
   # logo：kitty-direct 原生协议渲染 NixOS 彩色雪花（store 绝对路径）
@@ -179,10 +176,10 @@ in
     enable = true;
     gtk4.theme = null;
     theme = {
-      name = "Catppuccin-Mocha-Standard-Mauve-Dark";
+      name = my.catppuccin.names.gtk; # 派生名单一来源（flake.nix my.catppuccin.names）
       package = pkgs.catppuccin-gtk.override {
-        accents = [ "mauve" ];
-        variant = "mocha";
+        accents = [ my.catppuccin.accent ];
+        variant = my.catppuccin.flavor;
       };
     };
     iconTheme = {
@@ -205,16 +202,35 @@ in
     style.name = "adwaita-dark";
   };
 
-  # 暗/亮主题手动切换（Mod+Shift+L 见 niri-binds.nix）
-  # 切换内容见 theme-switch 头部注释（DMS 模式/GTK/Qt/图标/光标全套跟随）
+  # 暗/亮主题：由 DMS 自带的 Automatic Control 管理（time/location，见 DMS 设置→主题）
+  # 仅 DMS 外壳跟随壁纸取色 + 明暗；其余应用一律固定 Catppuccin（my.catppuccin）
+  home = {
+    activation = {
+      # 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png
+      # 新 settings.logo.source 直接引用 store 路径，此文件不再被引用
+      cleanStaleFastfetchLogo = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+        if [ -L "$HOME/.config/fastfetch/nixos-logo.png" ]; then
+          $DRY_RUN_CMD rm "$HOME/.config/fastfetch/nixos-logo.png"
+        fi
+      '';
 
-  # 鼠标光标（Catppuccin Mocha Mauve）
-  home.pointerCursor = {
-    enable = true;
-    gtk.enable = true;
-    x11.enable = true;
-    name = "catppuccin-mocha-mauve-cursors";
-    package = pkgs.catppuccin-cursors.mochaMauve;
-    size = 24;
+      # 迁移清理：已下线的 matugen 动态配色链路（模板/config/生成物）
+      cleanStaleMatugen = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+        $DRY_RUN_CMD rm -f "$HOME/.config/fish/colors.matugen.fish"
+        for f in "$HOME/.config/matugen/config.toml" "$HOME/.config/matugen/templates/fish-colors.fish.template"; do
+          if [ -L "$f" ]; then
+            $DRY_RUN_CMD rm "$f"
+          fi
+        done
+      '';
+    };
+
+    # 鼠标光标（配色名/包由 catppuccin.cursors 提供，见 home/modules/theme/）
+    pointerCursor = {
+      enable = true;
+      gtk.enable = true;
+      x11.enable = true;
+      size = 24;
+    };
   };
 }
