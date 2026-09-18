@@ -31,11 +31,8 @@
 - `/etc/pam.d/greetd`、`login` 均为标准 NixOS 配置（`pam_unix` + `login` substack）→ PAM 无问题。
 
 ### 2. 解密 sops 秘密，验证哈希内容
-- 利用系统自带 `sops-install-secrets`（构造 manifest 指向可读输出路径）解密 `user-password`：
-  ```
-  <HASH-REDACTED>
-  ```
-- 用 `perl crypt("<口令>", hash) == hash` 验证：**该哈希明文即所设口令**（初始密码）。
+- 利用系统自带 `sops-install-secrets`（构造 manifest 指向可读输出路径）解密 `user-password`，
+  得到密码哈希（🔴 **已脱敏，不再入库**）；当时用 `perl crypt("<口令>", hash) == hash` 验证通过。
 
 ### 3. 真机验证 `su ran` 输入 `ran` → 仍失败
 - 说明 `/etc/shadow` 中 ran 的哈希 ≠ 秘密文件内容（尽管 `/run/secrets-for-users/user-password` 文件存在、大小 73 字节与哈希一致）。

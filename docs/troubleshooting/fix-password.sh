@@ -3,6 +3,7 @@
 # 用法（live ISO 或 nixos-enter 里都行）：
 #   sudo bash /mnt/home/ran/nixos-config/fix-password.sh   (live ISO)
 #   bash /home/ran/nixos-config/fix-password.sh            (nixos-enter 内)
+# 🔴 不在脚本内硬编码口令：运行时交互输入（REF:2026-08-17-niri-login-sops-password）
 set -e
 
 PPL=/nix/store/rk0p1mw6l95s99k4f0p2mk5z2qxv8gcz-perl-5.42.0-env/bin/perl
@@ -12,20 +13,24 @@ BTRFS=/dev/disk/by-uuid/42701c28-c857-4f68-883a-125c1e985b33
 BOOT=/dev/disk/by-uuid/71C7-34C8
 
 do_fix() {
+  local user="${1:-ran}" pw=""
   echo "==> [1/2] 写入密码哈希到 /etc/shadow ..."
   "$PPL" -w "$UGP" "$UGJ" || true
 
-  echo "==> [2/2] 验证密码 ..."
-  HASH=$(grep "^ran:" /etc/shadow | cut -d: -f2)
-  if [ -n "$HASH" ] && "$PPL" -e 'exit(crypt("<口令>", $ARGV[0]) eq $ARGV[0] ? 0 : 1)' "$HASH"; then
+  printf '==> [2/2] 验证 %s 的密码（输入期望口令，不回显）: ' "$user"
+  read -rs pw
+  echo
+  local hash
+  hash=$(grep "^${user}:" /etc/shadow | cut -d: -f2)
+  # 口令经环境变量传给 perl，避免出现在 ps 的 argv 中
+  if [ -n "$hash" ] && PW="$pw" "$PPL" -e 'exit(crypt($ENV{PW}, $ARGV[0]) eq $ARGV[0] ? 0 : 1)' "$hash"; then
     echo ""
-    echo "✅ 密码验证通过！密码 = <REDACTED>"
+    echo "✅ 密码验证通过。"
     echo "   接下来：exit 退出（若在 chroot 里）→ sudo reboot"
-    echo "   重启后 GRUB 会引导新系统（Configuration 53），用 <用户名>/<口令> 登录。"
     return 0
   else
     echo ""
-    echo "❌ 验证失败！请把输出发给 Sisyphus，不要重启。"
+    echo "❌ 验证失败！请勿重启，先检查 sops 密码链（见事故档）。"
     return 1
   fi
 }
