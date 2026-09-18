@@ -17,7 +17,7 @@
 2. **唯一来源**：代理地址、镜像源、allowUnfree、密码哈希、分区——全仓库各只有一个定义点，其余全部引用。实现方式：
    - **全局常量**（username/stateVersion/代理镜像等环境常量）→ `flake.nix` 顶层 `let my = rec { ... }`，经 `specialArgs = { inherit my; }` 注入所有 NixOS/HM 模块。`my` 内分两类：**身份信息**（username/homeDirectory/stateVersion）和**每机常量**（hostname/hostId 由 `hosts` 清单经 `mkMy hostname hostId` 注入，禁止共享层写死机器标识）。
    - **镜像源/GOPROXY 等网络环境项** → 由各自 modules 的常量管理（如 `modules/nix.nix` substituters/registry/GOPROXY），不塞进 `my`。
-   - **配色** → flavor/accent 只在 `my.catppuccin` 定义一次；静态端口由 `modules/theme.nix`（NixOS）与 `home/modules/theme/`（HM，`catppuccin.nix`/`appearance.nix` 两层）统一启用 `catppuccin/nix`，程序配色一律走其模块接口（`catppuccin.<程序>`），禁止在各程序配置里手写 hex/调色板；派生主题名（fcitx5/GTK）只在 `my.catppuccin.names` 定义。**例外**：DMS 外壳允许壁纸取色（DMS 自带 dynamic theming；必须 `runDmsMatugenTemplates=false` 只给自己上色、不写其它应用，其余一律 Catppuccin）；无 catppuccin 端口的资产：GTK 主题包、swaync 自定义毛玻璃 CSS、onefetch、Limine 主机壁纸。
+   - **配色** → flavor/accent 只在 `my.catppuccin` 定义一次；静态端口由 `modules/theme.nix`（NixOS）与 `home/modules/theme/`（HM，`catppuccin.nix`/`appearance.nix` 两层）统一启用 `catppuccin/nix`，程序配色一律走其模块接口（`catppuccin.<程序>`），禁止在各程序配置里手写 hex/调色板；派生主题名（fcitx5/GTK）只在 `my.catppuccin.names` 定义。**例外**：DMS 外壳允许壁纸取色（DMS 自带 dynamic theming；必须 `runDmsMatugenTemplates=false` 只给自己上色、不写其它应用，其余一律 Catppuccin）；无 catppuccin 端口的资产：GTK 主题包、swaync 自定义毛玻璃 CSS、onefetch（Limine 配色已走 `catppuccin.limine`，不再用主机壁纸）。
    - **禁止**：模块内硬编码地址/用户名；用 `lib.mkForce` 覆盖唯一来源值；使用 `builtins.getEnv`（外部变量必须经 Flake 输入，确保构建封闭性 Hermeticity）。
 3. **不碰生成文件**：`hosts/<machine>/hardware-configuration.nix` 不纳入格式化与检查（root 属主、随时被 `nixos-generate-config` 重新生成覆盖）。
 4. **事故说明分层**：模块文件内保留「事故根因 → 防再犯规则」（1-2 句）；完整排查过程、环境、恢复流程移入 `docs/troubleshooting/` 对应文件。模块内不重复完整事故链。

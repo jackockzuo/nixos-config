@@ -18,9 +18,9 @@
     # 故用户层 classicui.conf 显式给出同名主题（见 home/modules/desktop/fcitx5.nix）
     fcitx5.enable = true;
 
-    # 🔴 不接管 Limine：主机 boot.nix 的“随机蓝色壁纸 + 自定义界面配色”优先。
-    #    catppuccin.limine 的 extraConfig 生成在 limine.conf 最前，会被后续
-    #    style.*（term_palette/interface_*）完全覆盖 = 无效果，故显式关闭。
-    limine.enable = false;
+    # Limine 引导界面：采用 Catppuccin 主题（flavor/accent 单一来源）+ 无壁纸。
+    # catppuccin 的 extraConfig 写在 limine.conf 最前，故主机 boot.nix 不得再写
+    # style 颜色（term_palette/interface_*），否则会覆盖主题；壁纸由本模块置空。
+    limine.enable = true;
   };
 }

@@ -14,7 +14,7 @@ home/             平台无关用户层（home-manager）
   modules/desktop GUI 应用 + 桌面会话工具（packages.nix）、niri/kitty/fcitx5/dms…
   modules/tools   通用 CLI（shell-utils）、监控（monitoring）、开发（dev）、yazi/nixvim…
   source/         用户级静态资产（fastfetch/fontconfig/niri scripts/dms themes）
-assets/           系统级静态资产（Limine 主题 / 壁纸）
+assets/           系统级静态资产（约定见 assets/README.md）
 packages/omencore OmenCore CLI 打包（官方 release zip）
 docs/             troubleshooting + 升级清单 + 会话归档
 ```
