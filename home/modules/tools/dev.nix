@@ -1,5 +1,5 @@
-# dev.nix —— 开发工具（git/gh/lazygit/direnv/tealdeer/topgrade/pass/languages）
-# 职责：git 工作流 / GitHub CLI / LSP server 包 / direnv / 密码管理 / 升级工具
+# dev.nix —— 开发工具（git/gh/lazygit/direnv/tealdeer/topgrade/pass/sops/languages）
+# 职责：git 工作流 / GitHub CLI / LSP server 包 / direnv / 秘密与密码管理 / 升级工具
 # 注意：编辑器为 nixvim（tools/nixvim.nix）；vscode 声明式扩展 + nixd 选项补全
 # ============================================================
 {
@@ -206,10 +206,15 @@
       tinymist # typst LSP
 
       shellcheck # vscode shellcheck 扩展依赖
+      tokei # 代码行数统计（按语言分类，CI/仓库体检用）
 
       # ---- 编译加速 ----
       mold # 快速链接器
       sccache # 编译缓存
+
+      # ---- 秘密/密钥管理（sops + age：编辑 secrets/secrets.yaml、轮换 age 密钥，见 STANDARDS §6）----
+      sops
+      age
 
       # ---- 密码管理（pass：gpg 加密；gpg 配置见上方 programs.gpg）----
       pass

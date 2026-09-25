@@ -92,6 +92,9 @@ in
     ripgrep # 搜索
     fd # 查找
     jq # JSON 处理
+    fx # 交互式 JSON 查看器（终端内折叠/浏览/搜索）
+    sd # 文本替换（比 sed 直观的查找替换）
+    curlie # curl 友好前端（方法/头部高亮、JSON 自动格式化）
     tree # 目录树
     moreutils # 额外工具
     pandoc # 文档转换

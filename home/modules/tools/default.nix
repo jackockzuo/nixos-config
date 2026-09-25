@@ -10,6 +10,6 @@
     ./shell-utils.nix # 终端通用工具 + shell 集成（atuin/bat/fzf/zoxide/eza + 通用 CLI）
     ./dev.nix # 开发工具合并（git/gh/lazygit/direnv/tealdeer/topgrade/pass + 编辑器 + LSP）
     ./nixvim.nix # 编辑器（含 fcitx5 状态联动）
-    ./monitoring.nix # 监控合并（btop/cava + duf/dust/lnav/bandwhich）
+    ./monitoring.nix # 监控合并（btop/cava + procs/duf/dust/dua/lnav/bandwhich/gping）
   ];
 }
