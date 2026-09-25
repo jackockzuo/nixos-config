@@ -2,12 +2,18 @@
 # 内容：fish perf-* 函数（依赖 omen-rs / intel-rapl，仅 OMEN 有意义）
 #       fish proxy 会话变量 fcproxy_port（fcclient 后端端口，仅 OMEN 有意义）
 #       niri 输出段（eDP-1 关 / HDMI-A-1 主屏 —— 桌面形态，其他机器默认自动布局）
+#       clash-verge-rev（代理客户端 GUI；§0.5 第三方红线 → 主机剖面）
 # ============================================================
-_:
+{ pkgs, ... }:
 
 {
   # n 卡双显卡：GTK 应用启动缓慢的修复（GSK 渲染器用 GL；AMD/Intel 无需，故放主机剖面）
   wayland.windowManager.niri.settings.environment.GSK_RENDERER = "gl";
+
+  # 代理客户端 GUI：mixed-port 7892（= dae fc_backend 指向的 socks5 口），订阅/节点由 GUI 自管
+  home.packages = with pkgs; [
+    clash-verge-rev
+  ];
 
   # fcclient 后端 socks 端口（hosts/omen/proxy.nix 用 7892；外部 fish proxy 函数从此变量读取）
   # 2026-09-09 声明式接管（原 fish_variables 通用变量残留）(REF:2026-09-09-fish-abbr-universal-residue)

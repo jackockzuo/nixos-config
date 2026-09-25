@@ -1,6 +1,6 @@
 # proxy.nix —— 透明代理（dae，主机专属，2026-09-05 恢复为 hosts/omen 剖面）
 # 为什么在这：内核层接管所有应用（Chrome/CLI 零配置），geoip/geosite 判断国内直连，
-#   无静态名单遗漏；fcclient 作后端（socks5://127.0.0.1:7892）只管非国内流量。
+#   无静态名单遗漏；fcclient 作后端（socks5://169.254.0.1:7892）只管非国内流量。
 # 行为：fcclient 开 → 外网通；fcclient 关 → 国内直连照常、外网不可达（后端 down）。
 # 共享层不引第三方（STANDARDS §0.5）；其他机器不 import 本文件。
 # ============================================================
@@ -40,34 +40,30 @@
       }
 
       dns {
-        # 缓存调优：乐观缓存(默认开)延长陈旧窗口 + 限容量防泄漏
-        optimistic_cache: true
-        optimistic_cache_ttl: 300
+        optimistic_cache: false
         max_cache_size: 4096
 
         upstream {
           alidns: 'udp://223.5.5.5:53'
           googledns: 'tcp://8.8.8.8:53'
         }
+
         routing {
           request {
-            qname(geosite:cn) -> alidns
-            fallback: googledns
+            fallback: alidns
           }
         }
       }
 
       routing {
-        # 本机代理客户端与系统进程直连（防回环/防自拦截）
-        # VPN/隧道工具必须直连（否则隧道流量被自己再代理=套娃）；其他需直连程序在此追加
         pname(fcclient, fcclientCore, sshd, systemd-resolved,
               openvpn, wireguard, wg-quick, tailscaled, tailscale, zerotier-one,
               chronyd, ntpd, syncthing) -> direct
-        # 国内直连
+
         dip(geoip:private) -> direct
         dip(geoip:cn) -> direct
         domain(geosite:cn) -> direct
-        # 其余走 fcclient
+
         fallback: proxy
       }
     '';
