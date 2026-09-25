@@ -25,24 +25,28 @@
     enable = true;
     performance = "performance"; # EC 0xBA=5 解锁 ~130W（55W → 3.4GHz+）
     holdInterval = 30; # hold 看门狗周期（秒，对抗 EC 复位）
-    batteryCare = false; # 电池养护（充电限 80%）
+    batteryCare = true; # 电池养护（充电限 80%）
     logLevel = "info";
     fanCurve = [
       # 温度曲线（最高传感器温度线性插值；空 = BIOS 自动）
       {
         temp = 50;
-        speed = 30;
+        speed = 20;
       }
       {
-        temp = 65;
-        speed = 50;
+        temp = 60;
+        speed = 45;
+      }
+      {
+        temp = 70;
+        speed = 65;
       }
       {
         temp = 80;
-        speed = 80;
+        speed = 85;
       }
       {
-        temp = 90;
+        temp = 85;
         speed = 100;
       }
     ];
