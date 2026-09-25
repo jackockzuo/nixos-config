@@ -153,7 +153,7 @@ in
         "application/x-shellscript" = "nvim.desktop";
         "text/plain" = "nvim.desktop";
         # 目录
-        "inode/directory" = "org.gnome.Nautilus.desktop";
+        "inode/directory" = "org.kde.dolphin.desktop";
       };
     };
   };

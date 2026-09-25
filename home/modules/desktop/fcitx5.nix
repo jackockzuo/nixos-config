@@ -34,7 +34,6 @@
         '';
       };
 
-      # 3. 默认输入法 Profile：开机默认加载美式键盘 + Rime 雾凇拼音
       "fcitx5/profile".text = ''
         [Groups/0]
         Name=Default
@@ -42,10 +41,6 @@
         DefaultIM=rime
 
         [Groups/0/Items/0]
-        Name=keyboard-us
-        Layout=
-
-        [Groups/0/Items/1]
         Name=rime
         Layout=
 
@@ -146,15 +141,27 @@
       };
     };
     dataFile = {
-      # 5. 雾凇拼音：启用 rime_ice；rime.lua 禁用 llm_translator（脚本缺失导致 rime 报错）
+      # 5. 雾凇拼音：启用 rime_ice；定制全部收在 patch 下（rime 只读 patch 键）
       "fcitx5/rime/default.custom.yaml".text = ''
         patch:
           "schema_list":
             - schema: rime_ice
+
+          "engine/processors":
+            - ascii_composer
+            - recognizer
+            - key_binder
+            - speller
+            - punctuator
+            - selector
+            - navigator
+            - express_editor
+            - fluency_editor
+
+          # 用户词典记忆（词频动态调整）
+          "translator/enable_user_dict": true
       '';
-      "fcitx5/rime/rime.lua".text = ''
-        -- llm_translator = require("llm_translator")  -- 已禁用（脚本缺失）
-      '';
+
     };
   };
 }

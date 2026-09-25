@@ -67,9 +67,9 @@ _:
     };
     "Mod+E" = {
       _props = {
-        "hotkey-overlay-title" = "打开文件管理器 (Nautilus)";
+        "hotkey-overlay-title" = "打开文件管理器 (Dolphin)";
       };
-      spawn = [ "nautilus" ];
+      spawn = [ "dolphin" ];
     };
 
     # 🎮 游戏化窗口焦点切换（WASD）
