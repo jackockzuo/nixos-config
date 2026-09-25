@@ -33,7 +33,13 @@
     };
   };
   time.timeZone = "Asia/Shanghai";
-  time.hardwareClockInLocalTime = true;
+  time.hardwareClockInLocalTime = false;
+  # 国内 NTP（国家授时中心 / cn.ntp / 上交）
+  services.timesyncd.servers = [
+    "ntp.ntsc.ac.cn"
+    "cn.ntp.org.cn"
+    "ntp.sjtu.edu.cn"
+  ];
 
   environment.sessionVariables = {
     # IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）

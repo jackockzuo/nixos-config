@@ -33,11 +33,10 @@
 
   nix = {
     settings = {
-      # 二进制缓存：国内镜像（USTC/SJTU/NJU）+ 社区 cachix + CUDA
+      # 二进制缓存：国内镜像（SJTU/NJU）+ 社区 cachix + CUDA
       # cache.nixos.org（本体）与其公钥由 nixpkgs 默认自动追加兜底，故不手写；
-      # TUNA store 实测最慢（0.68s）已移除。
+      # TUNA/USTC 实测慢已移除。
       substituters = [
-        "https://mirrors.ustc.edu.cn/nix-channels/store"
         "https://mirror.sjtu.edu.cn/nix-channels/store"
         "https://mirror.nju.edu.cn/nix-channels/store"
 

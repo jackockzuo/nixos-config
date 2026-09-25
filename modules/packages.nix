@@ -4,7 +4,7 @@
 # 原则（STANDARDS §3.1）：仅用户会话使用的 GUI/CLI 一律 home-manager；
 #   新增前先问「root 或系统服务需要它在 /run/current-system/sw/bin 吗？」
 # ============================================================
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
@@ -39,6 +39,17 @@
     # ---- 音频调试工具（系统层 pipewire 配套）----
     pulseaudio # 提供 pactl 命令行工具
     alsa-utils # 提供 alsamixer/amixer
+
+    # ---- 系统性能 / 压测 / 调优（多需 root：硬件计数器、调频、块设备 I/O）----
+    stress-ng # 全方位压力测试（CPU/内存/I/O/磁盘）
+    config.boot.kernelPackages.cpupower # CPU 调频/Governor；跟随 modules/boot.nix 的 kernelProfile 唯一来源
+    perf # 内核性能分析（硬件计数器/缓存未命中/分支预测）
+    numactl # NUMA 内存/CPU 节点绑定（numactl/numastat）
+    fio # 存储 I/O 压测（IOPS/吞吐/延迟）
+    iotop # 按进程实时 I/O（类 top）
+    nmon # 系统性能全景监控（CPU/内存/网络/磁盘一屏）
+    sysstat # iostat/sar/mpstat/pidstat
+    iperf3 # 网络吞吐/丢包测试
 
     # ---- 脚本运行时 ----
     python3
