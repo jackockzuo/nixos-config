@@ -1,5 +1,5 @@
 # hm.nix —— omen 主机专属 home 配置（2026-09-03 从共享层迁出，保证通用层可移植）
-# 内容：fish perf-* 函数（依赖 omencore-cli / intel-rapl，仅 OMEN 有意义）
+# 内容：fish perf-* 函数（依赖 omen-rs / intel-rapl，仅 OMEN 有意义）
 #       fish proxy 会话变量 fcproxy_port（fcclient 后端端口，仅 OMEN 有意义）
 #       niri 输出段（eDP-1 关 / HDMI-A-1 主屏 —— 桌面形态，其他机器默认自动布局）
 # ============================================================
@@ -14,31 +14,21 @@ _:
   home.sessionVariables.fcproxy_port = "7892";
 
   programs.fish.functions = {
-    # 性能诊断/切换（omencore-cli 体系）(REF:2026-08-23-omen-ec)
+    # 性能诊断/切换（omen-rs 体系）(REF:2026-08-23-omen-ec)
 
-    # perf-status：查看性能状态（只读，无副作用）
+    # perf-status：查看性能状态（只读，经 omend socket 免 root）
     perf-status = ''
       set -l gov (cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)
       set -l epp (cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null)
       set -l pl1 (cat /sys/class/powercap/intel-rapl:0/constraint_0_power_limit_uw 2>/dev/null)
       set -l pl2 (cat /sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw 2>/dev/null)
-      set -l status (omencore-cli status --json 2>/dev/null)
-      set -l pp (echo $status | jq -r '.performance.mode // "unknown"')
-      set -l ec (echo $status | jq -r '.performance.thermal_power_limit // "unknown"')
-      set -l hold (echo $status | jq -r '.performance.hold_enabled // false')
-      echo "── 性能状态 ──"
-      echo "performance mode: $pp (performance=解锁)"
+      echo "── EC 性能状态（omen remote perf）──"
+      omen remote perf
+      echo "── CPU ──"
       echo "governor         : $gov"
       echo "EPP              : $epp"
       echo "── 功耗墙 ──"
       echo "RAPL PL1/PL2     : "(math $pl1 / 1000000)"W / "(math $pl2 / 1000000)"W"
-      echo "thermal_power_limit (EC 0xBA): $ec (5=已解锁)"
-      echo "hold enabled     : $hold"
-      if test "$pp" = "performance"; and test "$ec" = "5"
-          echo "✅ 性能已解锁 (满载应 ~3.4GHz，跑 perf-test 验证)"
-      else
-          echo "❌ 未解锁 → 跑 perf-unlock"
-      end
     '';
 
     # perf-boost：临时拉满（只调 EPP，无啸叫风险；重负载睿频更激进）
@@ -65,15 +55,11 @@ _:
       echo "参考: 已解锁(固件 130W) → ~3400 MHz；未解锁(55W) → ~2000 MHz"
     '';
 
-    # perf-unlock：用 omencore-cli 解锁性能（开机由 omen-power-unlock 自动做）
+    # perf-unlock：用 omen-rs 解锁性能（开机由 omen-unlock.service 自动做）
     perf-unlock = ''
-      echo "🔓 用 OmenCore 官方接口解锁性能..."
-      sudo omencore-cli perf --mode performance --power-limit 5
-      set -l status (omencore-cli status --json 2>/dev/null)
-      set -l pp (echo $status | jq -r '.performance.mode // "unknown"')
-      set -l ec (echo $status | jq -r '.performance.thermal_power_limit // "unknown"')
-      echo "performance mode = $pp (期望 performance)"
-      echo "thermal_power_limit (EC 0xBA) = $ec (期望 5，只读确认)"
+      echo "🔓 用 omen-rs 解锁性能..."
+      sudo omen unlock
+      omen remote perf
       perf-test
     '';
   };

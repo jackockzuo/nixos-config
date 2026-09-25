@@ -1,5 +1,5 @@
 {
-  description = "NixOS 配置（多主机；主机剖面见 hosts/，现仅 omen）";
+  description = "NixOS 配置";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -46,6 +46,11 @@
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # OMEN 性能控制（本机 Rust 实现）
+    omen-rs = {
+      url = "github:jackockzuo/omen-rs";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -124,9 +129,8 @@
               pkgs.nixpkgs-review # 本地批量验证 nixpkgs PR
               pkgs.nixpkgs-hammering # 打包规范 lint
               pkgs.nix-diff # 解释两个 derivation 差异
-              # 秘密管理（编辑 secrets/secrets.yaml / 轮换 age 密钥，见 STANDARDS §6）
-              pkgs.sops # sops secrets/secrets.yaml
-              pkgs.age # age-keygen / age -d
+              # 秘密管理 CLI（sops/age）已提升为全局安装 → home/modules/tools/dev.nix
+              # （STANDARDS §3.1 包唯一性：同包全仓只声明一次）
             ];
           };
 
@@ -147,27 +151,10 @@
               };
             };
           };
-
-          # 按需运行的包
-          packages = {
-            omencore = pkgs.callPackage ./packages/omencore/package.nix { };
-            omencore-update = pkgs.writeShellApplication {
-              name = "omencore-update";
-              runtimeInputs = with pkgs; [
-                nix-update
-                nix
-                git
-                coreutils
-              ];
-              text = builtins.readFile ./packages/omencore/update.sh;
-            };
-          };
         };
 
       flake = {
         overlays.default = final: _prev: {
-          omencore = final.callPackage ./packages/omencore/package.nix { };
-
           # Go 1.25 兼容垫片：nixpkgs 2026-09-15 起把 `buildGo125Module` 变成 throw
           #   （“Go 1.25 is end-of-life”），而 sops-nix 最新 HEAD 仍写死该形参
           #   （pkgs/sops-install-secrets/default.nix）→ sops.package 求值即崩。
@@ -185,6 +172,7 @@
             system = "x86_64-linux";
             specialArgs = {
               my = mkMy hostname hostId;
+              inherit inputs;
             };
             modules = [
               # 通用层（平台无关）
@@ -196,7 +184,7 @@
               # 主机剖面（机器专属：硬件/性能解锁/主机 home）
               (import (./hosts + "/${hostname}"))
 
-              # omencore overlay
+              # 兼容垫片 overlay（buildGo125Module → buildGoModule，sops-nix 用）
               {
                 nixpkgs.overlays = [ inputs.self.overlays.default ];
               }
@@ -241,6 +229,7 @@
               {
                 programs.nix-index-database.comma.enable = true;
               }
+
             ];
           }
         ) hosts;

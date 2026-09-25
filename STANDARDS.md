@@ -167,11 +167,11 @@
 1. `nix fmt`（nixfmt-rfc-style）
 2. `nix flake check`（含 deadnix/statix）
 3. `git diff --check`（2026-08-21：尾随空格曾漏进提交）
-4. **断言测试**：硬件专属模块（如 `hosts/omen/omencore.nix`）应加 `assertions` 防误用。`message` 须包含**解决路径**（如何修复）。示例：
+4. **断言测试**：硬件专属模块（`hosts/<machine>/` 下直接写配置的模块）应加 `assertions` 防误用。`message` 须包含**解决路径**（如何修复）。示例：
    ```nix
    assertions = [{
      assertion = config.networking.hostName == "omen";
-     message = "omencore.nix 仅限 omen 主机！请检查 networking.hostName 或禁用本模块。";
+     message = "本模块仅限 omen 主机！请检查 networking.hostName 或移除本模块。";
    }];
    ```
 - CI = 上面四件事，不引第三方服务。
@@ -210,16 +210,15 @@
 
 ## 🎯 [OMEN] 本机硬件要点（仅 omen 剖面；事故背书见 troubleshooting）
 
-- **功耗墙解锁只信 OmenCore CLI 官方接口**（`hosts/omen/omencore.nix` 的 `omen-power-unlock` 服务开机执行
-  `perf --mode performance --power-limit 5`，内部封装 hp-wmi/EC 并读回验证——2026-08-30 起零裸 hex）：
+- **功耗墙解锁走 omen-rs**（`hosts/omen/default.nix` 的 `services.omen`（flake module）：
+  开机 `omen unlock` + omend hold 看门狗，EC 0xBA 写后读回验证）：
   底层通道仍是 `ec_sys` 写 EC 寄存器 `0xBA=5`（write_support=1 必须）；TLP 的 PL 配置（键名须 `PL1_LIMIT_ON_AC`，
   本机仍写不进）、WMAA 固件假 PASS（内核日志 `WMAA/WHCM aborts`）、RAPL 被 EC 实际供电覆盖——全是死路（2026-08-23 事故）。
-  2026-09-03 起 CLI-only（GUI/桌面项/root wrapper/omen-hardware-perms 已移除——GUI 需向 wheel 开放整片 EC RAM）。
 - **AC 下 CPU 调速器用 `powersave` + EPP `balance_performance`**（`hosts/omen/performance.nix`）：
   `performance` governor 在 intel_pstate 下锁最高频（min=max）→ CPU VRM 电感高频开关 →
   登录桌面后"嗞嗞"线圈啸叫（2026-08-25 实测）；powersave 才是动态调频，重载时 HWP 仍睿频到
   5.2GHz，PL1/PL2 解锁与 scx_lavd 均不受影响，性能无损。
-- 改 omencore/功耗/风扇相关配置 → 对照 `docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md`。
+- 改功耗/风扇相关配置 → 对照 `docs/troubleshooting/2026-08-23-omen-ec-power-limit-2.5ghz-lock.md`。
 
 ## 文档锚点（有疑问先查这里）
 

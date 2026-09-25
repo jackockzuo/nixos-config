@@ -8,14 +8,13 @@
 
 ```
 flake.nix         hosts 清单驱动 nixosConfigurations（现 #omen）；身份 my 注入
-hosts/omen/       机器专属：hardware-config / hardware / omencore(性能解锁) / performance / hm.nix
+hosts/omen/       机器专属：hardware-config / hardware / performance / hm.nix + omen-rs module(性能解锁)
 modules/          平台无关系统层（11 文件 + default.nix 聚合地图；仅 root/服务必需包 + fonts）
 home/             平台无关用户层（home-manager）
   modules/desktop GUI 应用 + 桌面会话工具（packages.nix）、niri/kitty/fcitx5/dms…
   modules/tools   通用 CLI（shell-utils）、监控（monitoring）、开发（dev）、yazi/nixvim…
   source/         用户级静态资产（fastfetch/fontconfig/niri scripts/dms themes）
 assets/           系统级静态资产（约定见 assets/README.md）
-packages/omencore OmenCore CLI 打包（官方 release zip）
 docs/             troubleshooting + 升级清单 + 会话归档
 ```
 
@@ -73,7 +72,7 @@ nix fmt && nix flake check && git diff --check
 ## 验证状态
 
 - ✅ 多主机结构（hosts 清单驱动）+ 共享层零 fcclient/dae/OMEN 痕迹
-- ✅ omencore CLI-only 性能解锁保留（omen-power-unlock tpl=5 / hold）
+- ✅ omen-rs 性能解锁（EC 0xBA=5 + omend hold 看门狗 + 温度曲线风扇，flake module 引入）
 - ✅ thermald 移除（OMEN16 无 DPTF，启动即失败）；BBR+fq 通用化
 - ✅ switch 后服务/包/网络/桌面核查通过
 - ⏸ 新构建待日常使用验证后 tag（合并已入 main，见 git log）
