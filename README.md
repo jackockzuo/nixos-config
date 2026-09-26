@@ -11,9 +11,9 @@ flake.nix         hosts 清单驱动 nixosConfigurations（现 #omen）；身份
 hosts/omen/       机器专属：hardware-config / hardware / performance / hm.nix + omen-rs module(性能解锁)
 modules/          平台无关系统层（11 文件 + default.nix 聚合地图；仅 root/服务必需包 + fonts）
 home/             平台无关用户层（home-manager）
-  modules/desktop GUI 应用 + 桌面会话工具（packages.nix）、niri/kitty/fcitx5/dms…
+  modules/desktop GUI 应用 + 桌面会话工具（packages.nix）、niri/kitty/fcitx5/noctalia…
   modules/tools   通用 CLI（shell-utils）、监控（monitoring）、开发（dev）、yazi/nixvim…
-  source/         用户级静态资产（fastfetch/fontconfig/niri scripts/dms themes）
+  source/         用户级静态资产（fastfetch/fontconfig/niri scripts）
 assets/           系统级静态资产（约定见 assets/README.md）
 docs/             troubleshooting + 升级清单 + 会话归档
 ```

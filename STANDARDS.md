@@ -17,7 +17,7 @@
 2. **唯一来源**：代理地址、镜像源、allowUnfree、密码哈希、分区——全仓库各只有一个定义点，其余全部引用。实现方式：
    - **全局常量**（username/stateVersion/代理镜像等环境常量）→ `flake.nix` 顶层 `let my = rec { ... }`，经 `specialArgs = { inherit my; }` 注入所有 NixOS/HM 模块。`my` 内分两类：**身份信息**（username/homeDirectory/stateVersion）和**每机常量**（hostname/hostId 由 `hosts` 清单经 `mkMy hostname hostId` 注入，禁止共享层写死机器标识）。
    - **镜像源/GOPROXY 等网络环境项** → 由各自 modules 的常量管理（如 `modules/nix.nix` substituters/registry/GOPROXY），不塞进 `my`。
-   - **配色** → flavor/accent 只在 `my.catppuccin` 定义一次；静态端口由 `modules/theme.nix`（NixOS）与 `home/modules/theme/`（HM，`catppuccin.nix`/`appearance.nix` 两层）统一启用 `catppuccin/nix`，程序配色一律走其模块接口（`catppuccin.<程序>`），禁止在各程序配置里手写 hex/调色板；派生主题名（fcitx5/GTK）只在 `my.catppuccin.names` 定义。**例外**：DMS 外壳允许壁纸取色（DMS 自带 dynamic theming；必须 `runDmsMatugenTemplates=false` 只给自己上色、不写其它应用，其余一律 Catppuccin）；无 catppuccin 端口的资产：GTK 主题包、swaync 自定义毛玻璃 CSS、onefetch（Limine 配色已走 `catppuccin.limine`，不再用主机壁纸）。
+   - **配色** → flavor/accent 只在 `my.catppuccin` 定义一次；静态端口由 `modules/theme.nix`（NixOS）与 `home/modules/theme/`（HM，`catppuccin.nix`/`appearance.nix` 两层）统一启用 `catppuccin/nix`，程序配色一律走其模块接口（`catppuccin.<程序>`），禁止在各程序配置里手写 hex/调色板；派生主题名（fcitx5/GTK）只在 `my.catppuccin.names` 定义。**无 catppuccin 端口的资产**（niri 焦点环/fastfetch/GTK 主题包）统一引用 `my.catppuccin.palette`（Mocha hex 色板，同源派生，换 flavor 时手动同步）。桌面壳 Noctalia 走 `programs.noctalia.settings.theme`：`source = "wallpaper"`（壳层动态取色，保留）固定 `mode = "dark"`，但 `templates.builtin_ids = []`——**模板写回一律禁用**（kitty/gtk/niri/qt/starship 由 catppuccin/nix 与 HM 声明式管理，写回会与之打架，与已废除的 DMS 写回 hack 同构）。锁屏 = Noctalia 内置（PAM 认证走系统 `login` 服务，无需额外配置，2026-09-26）。**中文字体**：`lxgw-neoxihei` 为中文 UI 首选（fontconfig 回退链 + satty 标注字体，family = LXGW Neo XiHei），Noto Sans CJK SC 降为缺字兜底。
    - **禁止**：模块内硬编码地址/用户名；用 `lib.mkForce` 覆盖唯一来源值；使用 `builtins.getEnv`（外部变量必须经 Flake 输入，确保构建封闭性 Hermeticity）。
 3. **不碰生成文件**：`hosts/<machine>/hardware-configuration.nix` 不纳入格式化与检查（root 属主、随时被 `nixos-generate-config` 重新生成覆盖）。
 4. **事故说明分层**：模块文件内保留「事故根因 → 防再犯规则」（1-2 句）；完整排查过程、环境、恢复流程移入 `docs/troubleshooting/` 对应文件。模块内不重复完整事故链。
@@ -108,7 +108,7 @@
 ## 4. 输入法环境变量（双作用域是官方写法，不是重复）
 
 - fcitx 官方 wiki《Setup Fcitx 5》：IM 变量（`XMODIFIERS`/`QT_IM_MODULE`/`SDL_IM_MODULE`）应在**登录会话环境**设置；
-  niri wiki《Application-Specific Issues》：niri 的 `environment` 块**不传给 systemd 启动的应用**（如 DMS 及其启动器）。
+  niri wiki《Application-Specific Issues》：niri 的 `environment` 块**不传给 systemd 启动的应用**（如 Noctalia 及其启动器）。
   因此合成器作用域与系统会话作用域**两者都需要，缺一不可**——这正是本仓库保留两处的原因。
 - 落点固定：
   1. **系统会话作用域** → `modules/locale.nix` 的 `environment.sessionVariables`（统一收 XMODIFIERS / QT_IM_MODULE / SDL_IM_MODULE / GLFW_IM_MODULE）。

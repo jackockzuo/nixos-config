@@ -15,7 +15,7 @@ sudo nixos-rebuild switch --flake ~/nixos-config#omen              # ④ 切换�
 
 - [ ] ③ 预构建通过（无新增 warning，STANDARDS §8）
 - [ ] ④ 切换后**重启会话**（niri 配置/HM 激活的变更才生效）
-- [ ] 实测：登录/解锁（hyprlock PAM）、输入法候选框（fcitx5 双通道）、毛玻璃（blur）、
+- [ ] 实测：登录/解锁（Noctalia 内置锁屏，PAM 走系统 login 服务）、输入法候选框（fcitx5 双通道）、毛玻璃（blur）、
       截图音效（screenshot-sound）、护眼（wlsunset 自动开启）
 - [ ] 变更合规：STANDARDS §4 IM 双作用域两处同步（locale.nix + niri.nix）
 
