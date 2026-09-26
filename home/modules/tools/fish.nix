@@ -101,7 +101,7 @@
 
       # ── 终端高频 ──
       ll = "eza -l --icons=auto --git"; # 长格式列表（替代原 la 函数）
-      clip = "wl-copy"; # 剪贴板（配合 cliphist）
+      clip = "wl-copy"; # 剪贴板写入（wl-clipboard；历史由 Noctalia 内置）
     };
 
     # fish 自动加载函数（值 = 函数体，HM 自动包裹 function ... end）

@@ -1,5 +1,6 @@
 # ============================================================
-# misc.nix —— 桌面杂项（通知/portal/视频/截图标注/默认应用）
+# misc.nix —— 桌面杂项（portal/视频/截图标注/默认应用）
+# 2026-09-26 DMS→Noctalia 迁移：SwayNC 通知整块移除（Noctalia 内置通知中心接管）
 # ============================================================
 {
   pkgs,
@@ -8,108 +9,11 @@
 }:
 
 let
-  # 结构化生成器（pkgs.formats）：swaync JSON / xdg-desktop-portal INI
-  jsonFormat = pkgs.formats.json { };
+  # 结构化生成器（pkgs.formats）：xdg-desktop-portal INI
   iniFormat = pkgs.formats.ini { };
 in
 {
   xdg = {
-    configFile = {
-      # SwayNC 通知（真毛玻璃，niri 26.04 原生支持）
-      # config.json 由 pkgs.formats.json 从 attrset 生成
-      "swaync/config.json" = {
-        source = jsonFormat.generate "swaync-config.json" {
-          "$schema" = "/etc/xdg/swaync/configSchema.json";
-          positionX = "right";
-          positionY = "top";
-          layer = "overlay";
-          "control-center-layer" = "top";
-          "layer-shell" = true;
-          "cssPriority" = "user";
-          "background-blur" = true;
-          timeout = 8;
-          "control-center-width" = 480;
-          "control-center-height" = 600;
-          "notification-window-width" = 480;
-          "transition-time" = 200;
-          "notification-grouping" = true;
-          widgets = [
-            "title"
-            "dnd"
-            "notifications"
-          ];
-        };
-        force = true; # 覆盖 swaync 首次运行自动生成的默认配置
-      };
-      "swaync/style.css".text = ''
-        /* Catppuccin Mocha 毛玻璃通知 */
-        /* blur 区域圆角联动自 --border-radius 变量 */
-        :root {
-          --cc-bg: rgba(30, 30, 46, 0.8);
-          --noti-bg: 30, 30, 46;
-          --noti-bg-alpha: 0.75;
-          --noti-border-color: rgba(203, 166, 247, 0.45);
-          --border-radius: 18px;
-          --border: 1.5px solid var(--noti-border-color);
-          --text-color: #cdd6f4;
-          --text-color-disabled: #6c7086;
-          --notification-shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
-
-        .control-center {
-          background: var(--cc-bg);
-          border-radius: var(--border-radius);
-          border: var(--border);
-          box-shadow: var(--notification-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.09);
-        }
-
-        .notification {
-          border-radius: var(--border-radius);
-          border: var(--border);
-          background: rgba(var(--noti-bg), var(--noti-bg-alpha));
-          box-shadow: var(--notification-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-          padding: 14px 16px;
-        }
-
-        .notification:hover {
-          background: rgba(49, 50, 68, 0.55);
-        }
-
-        .notification.critical {
-          border-color: rgba(243, 139, 168, 0.4);
-          background: rgba(60, 30, 40, 0.5);
-        }
-
-        .summary {
-          color: var(--text-color);
-          font-weight: bold;
-        }
-        .body {
-          color: var(--text-color);
-        }
-
-        .widget-title > label {
-          color: var(--text-color);
-          font-weight: bold;
-        }
-        .widget-dnd > switch {
-          color: #cba6f7;
-        }
-
-        /* 留白：通知窗口边缘 + 卡片间距 */
-        .floating-notifications {
-          margin: 12px;
-        }
-        .control-center .notification {
-          margin-bottom: 10px;
-        }
-        .control-center .notification-group-header {
-          margin: 4px 0 8px;
-        }
-      '';
-
-    };
-
     # ---- 用户目录 ----
     # 统一英文名（2026-08-29）：原 ~/下载 与 ~/Documents/Downloads/Pictures 并存导致混乱
     userDirs = {
@@ -203,9 +107,11 @@ in
         "actions-on-right-click" = [ "save-to-clipboard" ];
       };
       font = {
-        family = "Noto Sans CJK SC";
+        # 标注文字用中文 UI 字体（与全局 fontconfig 一致，family 见 modules/packages.nix lxgw-neoxihei）
+        family = "LXGW Neo XiHei";
         style = "Regular";
         fallback = [
+          "LXGW Neo XiHei"
           "Noto Sans CJK SC"
           "Noto Sans CJK JP"
           "Noto Sans CJK TC"

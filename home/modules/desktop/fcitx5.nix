@@ -48,7 +48,7 @@
         0=Default
       '';
 
-      # 4. 输入法全局快捷键（Ctrl+Space 切换；Super+Space 让给启动器 DMS Spotlight）
+      # 4. 输入法全局快捷键（Ctrl+Space 切换；Super+Space 让给启动器 Noctalia Launcher）
       "fcitx5/config" = {
         force = true; # 覆盖 fcitx5 生成的现有配置
         text = ''

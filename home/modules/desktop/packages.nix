@@ -43,9 +43,7 @@
     # ---- 桌面会话 CLI（niri spawn/绑定依赖，走用户会话 PATH）----
     grim # 截图
     slurp # 区域选择
-    wl-clipboard # 剪贴板
-    cliphist # 历史剪贴板
-    swaynotificationcenter # swaync（niri spawn-at-startup）
+    wl-clipboard # 剪贴板（wl-copy/wl-paste；历史由 Noctalia 内置接管，cliphist 已移除）
     brightnessctl # 亮度调节（niri 绑定）
     playerctl # 全局媒体控制
     wlsunset # 护眼（niri 脚本依赖）

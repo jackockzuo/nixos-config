@@ -11,17 +11,16 @@ _:
       "show-hotkey-overlay" = { };
     };
 
-    # 🔌 电源菜单（DMS 原生电源菜单）
+    # 🔌 电源菜单（Noctalia 会话面板）
     "Mod+X" = {
       _props = {
         "hotkey-overlay-title" = "电源菜单 (关机/重启/锁屏/注销)";
       };
       spawn = [
-        "dms"
-        "ipc"
-        "call"
-        "powermenu"
-        "toggle"
+        "noctalia"
+        "msg"
+        "panel-toggle"
+        "session"
       ];
     };
     "Mod+Escape" = {
@@ -29,25 +28,23 @@ _:
         "hotkey-overlay-title" = "电源菜单 (关机/重启/锁屏/注销)";
       };
       spawn = [
-        "dms"
-        "ipc"
-        "call"
-        "powermenu"
-        "toggle"
+        "noctalia"
+        "msg"
+        "panel-toggle"
+        "session"
       ];
     };
 
     # 🚀 启动常用程序
     "Mod+P" = {
       _props = {
-        "hotkey-overlay-title" = "启动器：搜索并打开应用 (DMS Spotlight)";
+        "hotkey-overlay-title" = "启动器：搜索并打开应用 (Noctalia Launcher)";
       };
       spawn = [
-        "dms"
-        "ipc"
-        "call"
-        "spotlight"
-        "toggle"
+        "noctalia"
+        "msg"
+        "panel-toggle"
+        "launcher"
       ];
     };
     "Mod+T" = {
@@ -250,14 +247,13 @@ _:
     };
     "Mod+Shift+V" = {
       _props = {
-        "hotkey-overlay-title" = "剪贴板历史 (DMS Clipboard)";
+        "hotkey-overlay-title" = "剪贴板历史 (Noctalia Clipboard)";
       };
       spawn = [
-        "dms"
-        "ipc"
-        "call"
+        "noctalia"
+        "msg"
+        "panel-toggle"
         "clipboard"
-        "toggle"
       ];
     };
 
