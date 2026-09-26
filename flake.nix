@@ -2,7 +2,12 @@
   description = "NixOS 配置";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # 官方
+    # nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # 南京大学镜像
+    nixpkgs.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git/?ref=nixos-unstable&shallow=1";
+
     catppuccin = {
       url = "github:catppuccin/nix";
       inputs.nixpkgs.follows = "nixpkgs"; # 全仓单一 nixpkgs（STANDARDS §0.2）
@@ -30,13 +35,11 @@
     # 🔴 此处不可 follows nixpkgs（官方文档明示）——跟随本仓 nixpkgs 会改变依赖闭包，
     #    导致 noctalia.cachix.org 缓存全部 miss → 全量源码编译。
     noctalia.url = "github:noctalia-dev/noctalia/cachix";
-
     # Noctalia Greeter 登录界面（独立仓库，提供 services.displayManager.noctalia-greeter）
     noctalia-greeter = {
       url = "github:noctalia-dev/noctalia-greeter";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    fh.url = "https://flakehub.com/f/DeterminateSystems/fh/*.tar.gz";
 
     # 用户级配置（STANDARDS §3：作为 NixOS 模块集成）
     home-manager = {
