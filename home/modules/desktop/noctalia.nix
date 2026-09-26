@@ -105,22 +105,25 @@
   };
 
   # 迁移清理：声明式接管后移除的散落文件（模式参照 niri.nix cleanStaleNiriLinks）
-  home.activation.cleanStaleNoctaliaResidue = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+  # ⚠️ 必须排在 checkLinkTargets 之前：若把清理排在链接检查后，实体残留文件会先触发
+  # checkLinkTargets 冲突（backupFileExtension 拒绝覆盖已存在的 .hm-bak）→ 整个激活中止
+  # → 清理根本没机会跑（2026-09-26 开机实测踩坑：DMS 的 gtk.css 残留卡死全部 HM 激活）。
+  home.activation.cleanStaleNoctaliaResidue = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
     # DMS 运行时残留（2026-09-26 DMS→Noctalia 迁移）
     if [ -d "$HOME/.config/DankMaterialShell" ]; then
       $DRY_RUN_CMD rm -rf "$HOME/.config/DankMaterialShell"
     fi
     # 主题模板写回产物（builtin_ids 已置空，写回链路关闭）
     $DRY_RUN_CMD rm -f "$HOME/.config/kitty/themes/noctalia.conf" "$HOME/.config/niri/noctalia.kdl"
-    # DMS GTK 主题注入残留：dank-colors.css（DMS 取色）+ 两份 gtk.css（MD3 ripple 关键帧 +
-    # 全量 libadwaita @define-color 调色板转储，DMS 的 GTK 集成写入）。均为实体文件（非 HM
-    # symlink），switch 后无人接管会永久滞留。守卫按内容特征删除，避免误删将来手动写的用户 css。
+    # DMS GTK 取色残留：dank-colors.css（DMS 写入）+ gtk-3.0/gtk.css（仅一行 import 它）。
+    # HM 不管理这两条路径，switch 后无人接管会永久滞留。dank-colors 是 DMS 专有文件名，
+    # 指纹唯一；gtk-3.0/gtk.css 借 import 行识别，均不会误伤 catppuccin/HM 产物。
+    # 注意：gtk-4.0/gtk.css 不在此清理——该路径现由 HM 管理（catppuccin gtk4 CSS 注入），
+    # 残留实体文件由 HM backupFileExtension 自动挪为 .hm-bak 后接管；且 catppuccin v2 引擎
+    # 自带 @keyframes ripple + @define-color，内容指纹无法与 DMS 残留区分（勿再加守卫）。
     $DRY_RUN_CMD rm -f "$HOME/.config/gtk-3.0/dank-colors.css"
     if [ -f "$HOME/.config/gtk-3.0/gtk.css" ] && grep -q "dank-colors" "$HOME/.config/gtk-3.0/gtk.css"; then
       $DRY_RUN_CMD rm -f "$HOME/.config/gtk-3.0/gtk.css"
-    fi
-    if [ -f "$HOME/.config/gtk-4.0/gtk.css" ] && grep -q "@keyframes ripple" "$HOME/.config/gtk-4.0/gtk.css" && grep -q "@define-color" "$HOME/.config/gtk-4.0/gtk.css"; then
-      $DRY_RUN_CMD rm -f "$HOME/.config/gtk-4.0/gtk.css"
     fi
     # hyprlock 退役（锁屏切 Noctalia 内置）：HM 不再管理其生成文件，清孤儿链接
     if [ -L "$HOME/.config/hypr/hyprlock.conf" ]; then
