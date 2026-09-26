@@ -63,7 +63,29 @@ in
       enable = true;
       enableFishIntegration = false;
     };
+    zellij = {
+      enable = true;
+      attachExistingSession = true;
+      enableFishIntegration = true;
+      exitShellOnExit = true;
+      extraConfig = ''
+        show_startup_tips false
+      '';
+      # 插件列表
+      plugins = with pkgs.zellijPlugins; [
+        zjstatus # 极致美化的状态栏
+        vim-zellij-navigator # Neovim 与 终端分屏的光标无缝联动
 
+      ];
+
+      # 所有配置（包括主题、布局、UI）全部塞进 settings 里面！
+      settings = {
+        # 交给 catppucin-frappe 统一决定
+        # theme = "catppuccin-frappe";
+        default_layout = "compact";
+        simplified_ui = true;
+      };
+    };
     # 统一 fish 集成守卫块（atuin/fzf/zoxide）
     # 容器内工具不在 PATH → type -q 守卫静默跳过
     # ⚠️ 容器内 fish 3.3.1：必须用 type -q（command -q 需 fish 3.4+）
