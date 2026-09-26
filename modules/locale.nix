@@ -44,7 +44,7 @@
   environment.sessionVariables = {
     # IM 变量单一来源（会话作用域，见 STANDARDS §4 双作用域）
     # Qt6 Wayland 双通道：QT_IM_MODULES="wayland;fcitx" 必须放系统层
-    # niri 的 environment 不传给 systemd 启动的应用（DMS 等）(REF:2026-08-21-fcitx5-gtk)
+    # niri 的 environment 不传给 systemd 启动的应用（桌面壳等）(REF:2026-08-21-fcitx5-gtk)
     QT_IM_MODULES = "wayland;fcitx";
     QT_IM_MODULE = "fcitx";
     XMODIFIERS = "@im=fcitx";

@@ -1,7 +1,7 @@
 # ============================================================
 # theme/default.nix —— 主题领域聚合（定位地图）
 # 两层：静态 catppuccin 端口 / 外观资产（catppuccin 无端口部分）
-# DMS 外壳的壁纸取色由 DMS 自带 dynamic theming 管理（settings.json，不在此）
+# 桌面壳（Noctalia）配色由 programs.noctalia.settings.theme 管理（见 home/modules/desktop/noctalia.nix）
 # 不在这里放机器专属（显示器形态→hosts/<machine>/hm.nix）或程序自身配置
 # ============================================================
 { ... }:
