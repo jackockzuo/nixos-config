@@ -10,7 +10,7 @@ let
   logoPath = toString ../../source/beautify/fastfetch/nixos-logo.png;
 
   # 图标主题合并包：Papirus 为主 + Tela-circle 兜底
-  # 图标主题按 index.theme Inherits 链回退查找（GTK/Qt/Quickshell 同一机制）
+  # 图标主题按 index.theme Inherits 链回退查找（GTK/Qt/Noctalia 同一机制）
   papirusWithTelaFallback = pkgs.runCommand "papirus-icon-theme-with-tela-fallback" { } ''
     mkdir -p $out/share/icons
     for t in Papirus Papirus-Dark Papirus-Light; do
@@ -32,6 +32,12 @@ let
     # hicolor 终极兜底（papirus 自带同名目录）
     ln -s ${pkgs.papirus-icon-theme}/share/icons/hicolor $out/share/icons/hicolor
   '';
+
+  # Catppuccin GTK 主题包（v2 引擎；gtk3 主题名 + gtk4 CSS 注入共用此包）
+  catppuccinGtk = pkgs.catppuccin-gtk.override {
+    accents = [ my.catppuccin.accent ];
+    variant = my.catppuccin.flavor;
+  };
 in
 {
   # ============================================================
@@ -39,11 +45,23 @@ in
   # ============================================================
 
   xdg.configFile = {
-    # fontconfig 字体渲染（全局抗锯齿 + hintslight + 中文回退 Noto Sans CJK SC）
+    # fontconfig 字体渲染（全局抗锯齿 + hintslight + 中文 LXGW Neo XiHei，Noto CJK 兜底）
     # fontconfig 无结构化模块接口，fonts.conf 保留 source 文件声明
     "fontconfig/fonts.conf" = {
       source = ../../source/beautify/fontconfig/fonts.conf;
       force = true; # 覆盖原作者旧配置
+    };
+
+    # GTK4/libadwaita CSS 注入（Catppuccin 官方方法）：libadwaita 拒读 gtk-theme-name，
+    # 唯一样式入口是 ~/.config/gtk-4.0/gtk.css，缺失时 GTK4 应用为原版 Adwaita。
+    # 已知代价：libadwaita 大版本升级可能局部样式错位，删掉这三个链接即回退原状。
+    "gtk-4.0/gtk.css".source =
+      "${catppuccinGtk}/share/themes/${my.catppuccin.names.gtk}/gtk-4.0/gtk.css";
+    "gtk-4.0/gtk-dark.css".source =
+      "${catppuccinGtk}/share/themes/${my.catppuccin.names.gtk}/gtk-4.0/gtk-dark.css";
+    "gtk-4.0/assets" = {
+      source = "${catppuccinGtk}/share/themes/${my.catppuccin.names.gtk}/gtk-4.0/assets";
+      recursive = true; # 目录源必须显式递归
     };
   };
 
@@ -66,103 +84,104 @@ in
       display = {
         separator = " "; # 键与值之间分隔符
         color = {
-          title = "#bfc9c3"; # Title color 主机名的颜色
-          output = "#bfc9c3";
+          title = my.catppuccin.palette.text; # Title color 主机名的颜色
+          output = my.catppuccin.palette.text;
         };
       };
+      # 各分组 keyColor = Mocha 色板引用（my.catppuccin.palette 单一来源）
       modules = [
         "break"
         {
           type = "os";
           key = "OS";
-          keyColor = "#88d6bb";
+          keyColor = my.catppuccin.palette.green;
         }
         {
           type = "kernel";
           key = " ├  KER ";
-          keyColor = "#88d6bb";
+          keyColor = my.catppuccin.palette.green;
         }
         {
           type = "packages";
           key = " ├  PAK ";
           format = "{all}";
-          keyColor = "#88d6bb";
+          keyColor = my.catppuccin.palette.green;
         }
         {
           type = "command";
           key = " ├  AGE ";
           text = "birth_install=$(stat -c %W / 2>/dev/null || stat -f %B /); current=$(date +%s); days_difference=$(( (current - birth_install) / 86400 )); echo $days_difference days";
-          keyColor = "#88d6bb";
+          keyColor = my.catppuccin.palette.green;
         }
         {
           type = "title";
           key = " └  USR ";
-          keyColor = "#88d6bb";
+          keyColor = my.catppuccin.palette.green;
         }
         "break"
         {
           type = "wm";
           key = "WM";
-          keyColor = "#a8cbe2";
+          keyColor = my.catppuccin.palette.sapphire;
         }
         {
           type = "de";
           key = " ├  DES ";
-          keyColor = "#a8cbe2";
+          keyColor = my.catppuccin.palette.sapphire;
         }
         {
           type = "shell";
           key = " ├  SHE ";
-          keyColor = "#a8cbe2";
+          keyColor = my.catppuccin.palette.sapphire;
         }
         {
           type = "terminal";
           key = " ├  TER ";
-          keyColor = "#a8cbe2";
+          keyColor = my.catppuccin.palette.sapphire;
         }
         {
           type = "terminalfont";
           key = " └  TFO ";
-          keyColor = "#a8cbe2";
+          keyColor = my.catppuccin.palette.sapphire;
         }
         "break"
         {
           type = "host";
           key = "PC ";
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "cpu";
           key = " ├  CPU ";
           format = "{1} @ {7}"; # 完整型号 + 睿频（不截断内容）
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "memory";
           key = " ├  MEM ";
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "swap";
           key = " ├  SWP ";
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "gpu";
           key = " ├  GPU ";
           format = "{1} {2}"; # 完整 GPU 型号（不截断）
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "monitor";
           key = " ├  MON ";
           format = "{width}x{height}@{refresh-rate}"; # 分辨率 + 刷新率
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         {
           type = "disk";
           key = " └  DIS ";
-          keyColor = "#cee9dd";
+          keyColor = my.catppuccin.palette.teal;
         }
         "break"
         "colors"
@@ -176,11 +195,8 @@ in
     enable = true;
     gtk4.theme = null;
     theme = {
-      name = my.catppuccin.names.gtk; # 派生名单一来源（flake.nix my.catppuccin.names）
-      package = pkgs.catppuccin-gtk.override {
-        accents = [ my.catppuccin.accent ];
-        variant = my.catppuccin.flavor;
-      };
+      name = my.catppuccin.names.gtk; # 派生名单一来源（flake.nix my.catppuccin.names，须与 v2 包实际目录名一致）
+      package = catppuccinGtk; # 同一包实例：主题目录 + gtk4 CSS 注入来源
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -202,8 +218,8 @@ in
     style.name = "adwaita-dark";
   };
 
-  # 暗/亮主题：由 DMS 自带的 Automatic Control 管理（time/location，见 DMS 设置→主题）
-  # 仅 DMS 外壳跟随壁纸取色 + 明暗；其余应用一律固定 Catppuccin（my.catppuccin）
+  # 明暗主题：固定 dark（Noctalia theme.mode=dark，见 home/modules/desktop/noctalia.nix）
+  # 其余应用一律固定 Catppuccin（my.catppuccin）
   home = {
     activation = {
       # 迁移清理（2026-08-28）：删除旧 xdg.configFile 部署的 nixos-logo.png
@@ -230,7 +246,7 @@ in
       enable = true;
       gtk.enable = true;
       x11.enable = true;
-      size = 24;
+      size = 30; # 全桌面统一光标尺寸（niri cursor.xcursor-size 引用此处，单一来源）
     };
   };
 }

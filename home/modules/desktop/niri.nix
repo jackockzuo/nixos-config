@@ -6,6 +6,7 @@
 {
   config,
   lib,
+  my,
   ...
 }:
 
@@ -33,16 +34,16 @@
         # qt 主题（appearance.nix qt.platformTheme 也设置，这里供 niri spawn 层）
         QT_QPA_PLATFORMTHEME = "gtk3";
         QT_QPA_PLATFORMTHEME_QT6 = "gtk3";
-        # quickshell 图标主题（DMS 外壳跟随）：papirus-icon-theme 已装进用户 profile
+        # 桌面壳图标主题（Noctalia 外壳跟随）：papirus-icon-theme 已装进用户 profile
         QS_ICON_THEME = "Papirus-Dark";
         # 默认文本编辑器
         EDITOR = "vim";
       };
 
-      # 光标（名称引用 HM 选项，单一来源 = catppuccin.cursors，见 home/modules/theme/）
+      # 光标（名称/尺寸均引用 HM 选项，单一来源 = home.pointerCursor，见 home/modules/theme/）
       cursor = {
         "xcursor-theme" = config.home.pointerCursor.name;
-        "xcursor-size" = 30;
+        "xcursor-size" = config.home.pointerCursor.size; # 尺寸单一来源（原硬编码 30 与 HM 24 打架，统一 30）
         "hide-after-inactive-ms" = 15000; # 闲置 15s 自动隐藏
       };
 
@@ -51,8 +52,9 @@
         "debounce-ms" = 750;
         "open-delay-ms" = 150;
         highlight = {
-          "active-color" = "#999999ff";
-          "urgent-color" = "#ff9999ff";
+          # 8 位 hex = 6 位色 + alpha（Mocha 色板引用，my.catppuccin.palette 单一来源）
+          "active-color" = "${my.catppuccin.palette.overlay1}ff";
+          "urgent-color" = "${my.catppuccin.palette.red}ff";
           padding = 30; # 缩略图背景内间距
           "corner-radius" = 12; # 缩略图背景圆角
         };
@@ -115,14 +117,17 @@
 
       # overview（工作区总览）
       overview = {
-        # 关掉工作区阴影：配合 layout 透明背景，共用 DMS 壁纸层
-        "workspace-shadow" = { };
+        # 关掉工作区阴影：配合 layout 透明背景，共用 Noctalia 壁纸层（backdrop）
+        # 修复：原空块渲染为裸 workspace-shadow = 默认开启，注释意图未生效，此处显式 off
+        "workspace-shadow" = {
+          off = { };
+        };
         zoom = 0.5;
       };
 
       # 布局（窗口间距/宽度预设/焦点环/边框/阴影）
       layout = {
-        # 工作区背景透明 → 透出 DMS 壁纸层
+        # 工作区背景透明 → 透出 Noctalia 壁纸层（经 niri-rules.nix 的 layer-rule 进 backdrop）
         "background-color" = "transparent";
         gaps = 12; # 窗口间距（逻辑像素）
         "center-focused-column" = "never";
@@ -144,17 +149,21 @@
         "default-column-width" = {
           proportion = 0.5;
         };
-        # 聚焦窗口焦点环
+        # 聚焦窗口焦点环（配色 = Mocha 色板引用：mauve 聚焦 / surface2 非聚焦 / red 紧急，
+        # 单一来源 my.catppuccin.palette，与 GTK/Noctalia 同源）
         "focus-ring" = {
           width = 3;
+          "active-color" = my.catppuccin.palette.mauve;
+          "inactive-color" = my.catppuccin.palette.surface2;
+          "urgent-color" = my.catppuccin.palette.red;
         };
-        # 窗口边框（关闭，用 focus-ring）
+        # 窗口边框（关闭，用 focus-ring；配色键随 palette 走，将来启用即同源）
         border = {
           off = { };
           width = 4;
-          "active-color" = "#ffc87f";
-          "inactive-color" = "#505050";
-          "urgent-color" = "#9b0000";
+          "active-color" = my.catppuccin.palette.mauve;
+          "inactive-color" = my.catppuccin.palette.surface2;
+          "urgent-color" = my.catppuccin.palette.red;
         };
         # 窗口阴影（毛玻璃方案的立体感来源）
         shadow = {
@@ -175,10 +184,6 @@
       # 启动项（spawn-at-startup，_children 保证逐条独立节点）
       # 🔴 原 /home/ran 硬编码改为 ${config.home.homeDirectory} 声明式引用（STANDARDS §0.2）
       _children = [
-        # 询问管理员权限（polkit-gnome 在系统 PATH）
-        {
-          "spawn-at-startup" = [ "polkit-gnome-authentication-agent-1" ];
-        }
         # 屏幕分享/录屏环境（portal 服务由 xdg-desktop-portal 经 dbus 自动拉起）
         {
           "spawn-sh-at-startup" = [
@@ -189,22 +194,9 @@
         {
           "spawn-sh-at-startup" = [ "systemctl --user set-environment XDG_SESSION_CLASS=user" ];
         }
-        # 通知程序（SwayNC 毛玻璃通知，见 misc.nix）
-        {
-          "spawn-at-startup" = [ "swaync" ];
-        }
         # 输入法
         {
           "spawn-at-startup" = [ "fcitx5" ];
-        }
-        # 剪贴板历史守护（wl-paste --watch 写入 cliphist）
-        {
-          "spawn-at-startup" = [
-            "wl-paste"
-            "--watch"
-            "cliphist"
-            "store"
-          ];
         }
         # wayland <--> x11 剪贴板同步
         {
@@ -219,7 +211,7 @@
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/toggle-wlsunset" ];
         }
-        # 暗/亮明暗由 DMS 自带的 Automatic Control 管理（time/location），无需自写脚本
+        # 明暗主题固定 dark（Noctalia theme.mode=dark + GTK Catppuccin Mocha），无需自动切换脚本
         # 截图音效守护进程
         {
           "spawn-at-startup" = [ "${config.home.homeDirectory}/.config/niri/scripts/screenshot-sound.sh" ];
@@ -262,7 +254,7 @@
 
   # 迁移清理（2026-08-28）：删除旧拆分架构遗留的 store symlink
   # 不清除的后果：niri-binds 脚本递归 grep *.kdl 会重复读到旧键位
-  # theme-switch：已下线的自定义明暗脚本（改用 DMS 自带 Automatic Control），清残留符号链接
+  # theme-switch：已下线的自定义明暗脚本（明暗现为 Noctalia theme 固定 dark），清残留符号链接
   home.activation.cleanStaleNiriLinks = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     for f in animations.kdl binds.kdl blur.kdl hyprlock-colors.conf hyprlock.conf layout.kdl output.kdl rule.kdl theme-switch; do
       if [ -L "$HOME/.config/niri/$f" ]; then
