@@ -47,6 +47,7 @@
         "https://git-hooks.cachix.org" # git-hooks.nix
         "https://pre-commit-hooks.cachix.org" # pre-commit-hooks
         "https://nix-gaming.cachix.org" # nix-gaming（wine/proton/dxvk）
+        "https://noctalia.cachix.org" # Noctalia 桌面壳
 
         "https://cache.nixos-cuda.org" # CUDA/NVIDIA 驱动加速
       ];
@@ -60,6 +61,7 @@
         "git-hooks.cachix.org-1:t3VIYDdXlezkNY1/sRtYKzxMVKTgn+uAR9VWCXHRPeI="
         "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
         "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
+        "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
       ];
 
       trusted-users = [
@@ -118,7 +120,7 @@
   };
 
   # nix-daemon 环境（2026-09-03：http(s)_proxy 随 fcclient/dae 清理移除）
-  # Go 模块国内代理：sops-install-secrets/DMS 现场编译需要
+  # Go 模块国内代理：sops-install-secrets 现场编译需要
   systemd.services.nix-daemon.environment = {
     GOPROXY = "https://goproxy.cn,direct";
   };

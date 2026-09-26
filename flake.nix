@@ -25,15 +25,15 @@
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
-    # DMS 桌面壳
-    dms = {
-      url = "github:AvengeMedia/DankMaterialShell/stable";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Noctalia 桌面壳（v5 原生 Wayland shell，非 Quickshell）
+    # /cachix 分支：官方保证二进制缓存命中的滚动 commit。
+    # 🔴 此处不可 follows nixpkgs（官方文档明示）——跟随本仓 nixpkgs 会改变依赖闭包，
+    #    导致 noctalia.cachix.org 缓存全部 miss → 全量源码编译。
+    noctalia.url = "github:noctalia-dev/noctalia/cachix";
 
-    # DMS Greeter 登录界面（已从 DankMaterialShell 拆分为独立仓库）
-    dank-greeter = {
-      url = "github:AvengeMedia/dank-greeter";
+    # Noctalia Greeter 登录界面（独立仓库，提供 services.displayManager.noctalia-greeter）
+    noctalia-greeter = {
+      url = "github:noctalia-dev/noctalia-greeter";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     fh.url = "https://flakehub.com/f/DeterminateSystems/fh/*.tar.gz";
@@ -59,8 +59,6 @@
   outputs =
     inputs@{ flake-parts, ... }:
     let
-      lib = inputs.nixpkgs.lib;
-
       # 身份单一来源（STANDARDS §0.2）：改这里 → 全仓库自动跟随
       # username/homeDirectory/stateVersion = 用户身份（多机共用）；
       # hostname/hostId = 每机常量，由下方 hosts 清单注入（共享层禁止写死机器标识）
@@ -78,12 +76,25 @@
         catppuccin = rec {
           flavor = "mocha";
           accent = "mauve";
+          # Mocha 色板（无 catppuccin 端口的程序引用：niri 焦点环/fastfetch 等，
+          # 禁止在程序配置里散落 hex——STANDARDS §0.2）。换 flavor 时须手动同步此处 hex。
+          palette = {
+            text = "#cdd6f4"; # mocha text
+            mauve = "#cba6f7"; # mocha mauve = accent
+            red = "#f38ba8"; # mocha red
+            teal = "#94e2d5"; # mocha teal
+            sapphire = "#74c7ec"; # mocha sapphire
+            green = "#a6e3a1"; # mocha green
+            overlay1 = "#8087a2"; # mocha overlay1（中性灰）
+            surface2 = "#585b70"; # mocha surface2
+          };
           # 派生主题名（无 catppuccin/nix 端口处使用：fcitx5 用户配置、GTK 主题包）
           names = {
             fcitx5 = "catppuccin-${flavor}-${accent}";
-            gtk =
-              "Catppuccin-${lib.toSentenceCase flavor}-Standard-${lib.toSentenceCase accent}-"
-              + (if flavor == "latte" then "Light" else "Dark");
+            # catppuccin-gtk v2 引擎（nixpkgs 已升级）目录名：catppuccin-<flavor>-<accent>-standard
+            # 旧 v1 命名（Catppuccin-Mocha-Standard-Mauve-Dark）在 v2 包中不存在，
+            # 沿用会让 gtk-theme-name 解析落空 → GTK3 应用静默回退 Adwaita-dark
+            gtk = "catppuccin-${flavor}-${accent}-standard";
           };
         };
       };
@@ -197,10 +208,10 @@
               # sops-nix 秘密管理（STANDARDS §6）
               inputs.sops-nix.nixosModules.sops
 
-              # DMS 桌面壳
-              inputs.dms.nixosModules.default
-              # DMS Greeter（独立仓库，提供 programs.dms-greeter）
-              inputs.dank-greeter.nixosModules.default
+              # Noctalia 桌面壳
+              inputs.noctalia.nixosModules.default
+              # Noctalia Greeter（独立仓库，提供 services.displayManager.noctalia-greeter）
+              inputs.noctalia-greeter.nixosModules.default
 
               # Home Manager（用户身份 my 注入，见 STANDARDS §0.2）
               inputs.home-manager.nixosModules.home-manager
@@ -218,6 +229,7 @@
                       imports = [
                         inputs.nixvim.homeModules.nixvim # 编辑器（Nixvim，见 home/modules/tools/nixvim.nix）
                         inputs.catppuccin.homeModules.catppuccin # 配色（全局 + 已启用程序端口自动跟随）
+                        inputs.noctalia.homeModules.default # 桌面壳（Noctalia，见 home/modules/desktop/noctalia.nix）
                         ./home/home.nix
                       ];
                     };
