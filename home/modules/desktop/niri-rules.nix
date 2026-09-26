@@ -22,33 +22,43 @@ _:
       # 桌面形态属机器专属，共享层不配置输出 → 其他机器 niri 默认自动布局
 
       # ================ 图层规则（原 rule.kdl）================
-      # 放进 overview 的壁纸程序（DMS 壁纸层，Quickshell namespace = quickshell）
+      # 壁纸层放入 overview backdrop（Stationary Wallpaper 方案，见 Noctalia niri 文档）：
+      # Noctalia 壁纸 namespace = "noctalia-wallpaper"；配合 niri.nix 的
+      # layout.background-color=transparent + overview.workspace-shadow off
       {
         "layer-rule" = {
           _children = [
             {
               match = {
                 _props = {
-                  namespace = "awww-daemonoverview";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
-                  namespace = "swww-daemonoverview";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
-                  namespace = "^quickshell$";
+                  namespace = "^noctalia-wallpaper";
                 };
               };
             }
           ];
           "place-within-backdrop" = true;
+        };
+      }
+
+      # Noctalia 壳层表面毛玻璃（niri 26.04 ext-background-effects；Noctalia 检测到协议后自动
+      # 发布模糊区域，此处规则把 xray 关掉 → 模糊真实窗口内容而非壁纸，观感更实）
+      # namespace 源码实锤：noctalia-panel（启动器/会话菜单/控制中心）、noctalia-notification、
+      # noctalia-osd、noctalia-bar-<profile>、noctalia-dock
+      {
+        "layer-rule" = {
+          _children = [
+            {
+              match = {
+                _props = {
+                  namespace = "^noctalia-(bar-.+|panel|attached-panel|notification|osd|dock)$";
+                };
+              };
+            }
+          ];
+          "background-effect" = {
+            blur = true;
+            xray = false;
+          };
         };
       }
 
@@ -83,42 +93,9 @@ _:
           "open-floating" = true;
         };
       }
-      # shorinclip / cliphist-tui 剪贴板 TUI
-      {
-        "window-rule" = {
-          _children = [
-            {
-              match = {
-                _props = {
-                  "app-id" = "shorinclip";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
-                  "app-id" = "cliphist-tui";
-                };
-              };
-            }
-          ];
-          "default-column-width" = {
-            fixed = 625;
-          };
-          "default-window-height" = {
-            fixed = 700;
-          };
-          "open-floating" = true;
-          "default-floating-position" = {
-            _props = {
-              x = 0;
-              y = 18;
-              "relative-to" = "top";
-            };
-          };
-        };
-      }
       # 常见浮动软件清单（app-id 正则同时匹配 host/Flatpak 两套 id）
+      # 清单 = 用户实际安装的应用（部分非本仓声明，如 Flatpak/私有脚本），
+      # 增删按需；仅在程序确定退役（DMS→Noctalia 迁移）时才删条目
       {
         "window-rule" = {
           _children = [
@@ -205,13 +182,6 @@ _:
             {
               match = {
                 _props = {
-                  "app-id" = "com.github.hluk.copyq";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
                   "app-id" = "be.alexandervanhee.gradia";
                 };
               };
@@ -244,20 +214,6 @@ _:
               match = {
                 _props = {
                   "app-id" = "org.gnome.FileRoller";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
-                  "app-id" = "waypaper";
-                };
-              };
-            }
-            {
-              match = {
-                _props = {
-                  "app-id" = "clipse-gui";
                 };
               };
             }
@@ -366,23 +322,6 @@ _:
           "open-focused" = false;
         };
       }
-      # waybar 命令中心模块
-      {
-        "window-rule" = {
-          match = {
-            _props = {
-              "app-id" = "command-center";
-            };
-          };
-          "default-column-width" = {
-            fixed = 1000;
-          };
-          "default-window-height" = {
-            fixed = 600;
-          };
-          "open-floating" = true;
-        };
-      }
       # 快速终端和笔记
       {
         "window-rule" = {
@@ -436,23 +375,6 @@ _:
           };
           "default-window-height" = {
             fixed = 800;
-          };
-          "open-floating" = true;
-        };
-      }
-      # clipse
-      {
-        "window-rule" = {
-          match = {
-            _props = {
-              "app-id" = "clipse";
-            };
-          };
-          "default-column-width" = {
-            fixed = 625;
-          };
-          "default-window-height" = {
-            fixed = 700;
           };
           "open-floating" = true;
         };
