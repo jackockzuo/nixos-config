@@ -2,6 +2,7 @@
 # 内容：fish perf-* 函数（依赖 omen-rs / intel-rapl，仅 OMEN 有意义）
 #       fish proxy 会话变量 fcproxy_port（fcclient 后端端口，仅 OMEN 有意义）
 #       niri 输出段（eDP-1 关 / HDMI-A-1 主屏 —— 桌面形态，其他机器默认自动布局）
+#       noctalia 锁屏组件布局（绑定 HDMI-A-1/1080p，2026-09-26 自 GUI 覆盖层提升迁入）
 #       clash-verge-rev（代理客户端 GUI；§0.5 第三方红线 → 主机剖面）
 # ============================================================
 { pkgs, ... }:
@@ -68,6 +69,130 @@
       omen remote perf
       perf-test
     '';
+  };
+
+  # Noctalia 锁屏组件布局（2026-09-26 自 GUI 覆盖层提升）
+  # 绑定 HDMI-A-1 / 1920x1080 → 机器形态，故按 §0.5 放主机剖面（共享层禁机器痕迹）。
+  # 设计：login box + 音频可视化 + 数字时钟 + RAM/CPU graph + 网络收发 graph。
+  # ⚠️ 换显示器/分辨率后：GUI 锁屏编辑器重排 → 把新布局摘回此处（widget_order +
+  #    各 widget 的 cx/cy/placement_*，参考 noctalia.nix 顶部提升工作流）。
+  programs.noctalia.settings.lockscreen_widgets = {
+    enabled = true;
+    schema_version = 2;
+    widget_order = [
+      "lockscreen-login-box@HDMI-A-1"
+      "lockscreen-widget-0000000000000001"
+      "lockscreen-widget-0000000000000003"
+      "lockscreen-widget-0000000000000004"
+      "lockscreen-widget-0000000000000005"
+    ];
+
+    grid = {
+      cell_size = 16;
+      major_interval = 4;
+      visible = true;
+    };
+
+    widget = {
+      "lockscreen-login-box@HDMI-A-1" = {
+        box_height = 196.0;
+        box_width = 810.0;
+        cx = 960.0;
+        cy = 898.0;
+        output = "HDMI-A-1";
+        placement_height = 1080.0;
+        placement_width = 1920.0;
+        rotation = 0.0;
+        type = "login_box";
+        settings = {
+          background_color = "surface_variant";
+          background_opacity = 0.88;
+          background_radius = 12.0;
+          center_password_text = false;
+          input_opacity = 1.0;
+          input_radius = 6.0;
+          layout = "regular";
+          show_caps_lock = true;
+          show_keyboard_layout = true;
+          show_login_button = true;
+          show_media = true;
+          show_session_buttons = true;
+          show_unlock_hint = true;
+          show_weather = true;
+        };
+      };
+
+      "lockscreen-widget-0000000000000001" = {
+        box_height = 352.0;
+        box_width = 368.0;
+        cx = 688.0;
+        cy = 412.0;
+        output = "HDMI-A-1";
+        placement_height = 1080.0;
+        placement_width = 1920.0;
+        rotation = 0.0;
+        type = "fancy_audio_visualizer";
+        settings = {
+          background = false;
+        };
+      };
+
+      "lockscreen-widget-0000000000000003" = {
+        box_height = 224.0;
+        box_width = 416.0;
+        cx = 944.0;
+        cy = 412.0;
+        output = "HDMI-A-1";
+        placement_height = 1080.0;
+        placement_width = 1920.0;
+        rotation = 0.0;
+        type = "clock";
+        settings = {
+          background_opacity = 0.0;
+          clock_style = "digital";
+        };
+      };
+
+      "lockscreen-widget-0000000000000004" = {
+        box_height = 160.0;
+        box_width = 352.0;
+        cx = 752.0;
+        cy = 636.0;
+        output = "HDMI-A-1";
+        placement_height = 1080.0;
+        placement_width = 1920.0;
+        rotation = 0.0;
+        type = "sysmon";
+        settings = {
+          background_color = "outline";
+          background_opacity = 0.0;
+          display = "graph";
+          stat = "ram_pct";
+          stat2 = "cpu_usage";
+        };
+      };
+
+      "lockscreen-widget-0000000000000005" = {
+        box_height = 160.0;
+        box_width = 352.0;
+        cx = 1184.0;
+        cy = 652.0;
+        output = "HDMI-A-1";
+        placement_height = 1080.0;
+        placement_width = 1920.0;
+        rotation = 0.0;
+        type = "sysmon";
+        settings = {
+          background_color = "outline";
+          background_opacity = 0.0;
+          color = "on_primary";
+          color2 = "on_secondary";
+          display = "graph";
+          stat = "net_tx";
+          stat2 = "net_rx";
+        };
+      };
+    };
   };
 
   # 桌面形态输出段（原 home/modules/desktop/niri-rules.nix，2026-09-03 迁出）
