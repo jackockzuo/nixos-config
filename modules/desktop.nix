@@ -34,6 +34,28 @@
   # pkexec 弹系统密码框以 root 运行，不加此项报 "must be setuid root"。平台通用能力。
   security.polkit.enablePkexecWrapper = true;
 
+  # greeter 外观同步免密：壳的壁纸/主题自动同步（shell.greeter_sync auto_sync）经 polkit 动作
+  # org.noctalia.greeter.sync-appearance 以 root 写 /var/lib/noctalia-greeter/。该动作默认
+  # auth_admin，而调用方无 logind 会话、会话内亦无 polkit agent——授权两条路全死，同步静默失败
+  # （journal: "Error creating textual authentication agent"）。
+  # 陷阱：policy 文件名是 org.noctalia.greeter.apply-appearance.policy，但其内部注册的
+  # 动作 ID 是 org.noctalia.greeter.sync-appearance（文件名 ≠ 动作 ID）。写错 ID 时
+  # pkexec 回退到 org.freedesktop.policykit.exec（auth_admin），规则永不命中——
+  # 用 pkcheck --action-id <真实ID> 可自查是否已注册。
+  # 注意：不可加 subject.local/active 条件——无会话调用方这两项恒 false，规则将永不匹配。
+  # 动作仅能执行 store 内固定 helper（--sync），对 wheel 用户免密即上游预期做法。
+  # 未用模块的 services.displayManager.noctalia-greeter.passwordless-sync-users：其规则
+  # 额外要求 action.lookup("program")/lookup("user") 注解，而 .policy 只声明
+  # org.freedesktop.policykit.exec.path/argv1，pkexec 路径不提供前两者。
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id == "org.noctalia.greeter.sync-appearance"
+          && subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
+
   # greeter 系统用户（greetd 标准做法）
   users.groups.greeter = { };
   users.users.greeter = {
