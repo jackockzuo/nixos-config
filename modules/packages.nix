@@ -13,7 +13,7 @@
     xhost # niri spawn-at-startup 调用（允许 root 经用户 xwayland 开窗）
 
     # ---- 会话/认证组件（greeter 与所有会话统一；先于用户 profile 可用）----
-    polkit_gnome # 认证代理（niri spawn-at-startup，走系统 PATH 保证会话内必有）
+    # 认证代理：Noctalia shell 内置 polkit agent（2026-09-26 DMS→Noctalia 迁移，polkit-gnome 移除）
     sound-theme-freedesktop # 系统音效主题
 
     # ---- 容器与虚拟化（podman 为系统服务；AppImage 走 binfmt）----
@@ -59,9 +59,11 @@
   fonts.packages = with pkgs; [
     maple-mono.NF-CN # 终端 kitty 使用
     nerd-fonts.jetbrains-mono # 浏览器/等宽代码块
-    noto-fonts-cjk-sans # 中文默认
+    lxgw-neoxihei # 中文 UI 字体（family: LXGW Neo XiHei；fontconfig 回退链首选，见 home/source/beautify/fontconfig/fonts.conf）
+    noto-fonts-cjk-sans # 中文回退（LXGW 缺字时兜底）
     noto-fonts
-    inter # DMS UI 字体
-    fira-code # DMS 等宽字体
+    noto-fonts-color-emoji # 彩色 emoji（缺失时通知/浏览器 emoji 呈 tofu；26.11 起由 noto-fonts-emoji 改名而来）
+    inter # Noctalia UI 字体
+    fira-code # 等宽字体
   ];
 }
