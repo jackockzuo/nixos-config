@@ -28,11 +28,5 @@
 
     # Qt 走 gtk3 平台主题（appearance.nix），非 Kvantum，关闭其断言与主题注入
     kvantum.enable = false;
-
-    # Hyprlock 只取配色变量（$mauve/$base/$text...），锁屏布局由 hyprlock.nix 自定义
-    hyprlock = {
-      enable = true;
-      useDefaultConfig = false;
-    };
   };
 }

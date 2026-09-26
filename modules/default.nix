@@ -10,7 +10,7 @@
     ./boot.nix # 引导与内核（Limine 双系统/内核参数）
     ./network.nix # 网络（NetworkManager/BBR；hostname/hostId 由 hosts 注入 my）
     ./users.nix # 用户与权限（ran/root/groups/shell）
-    ./desktop.nix # 桌面会话（greetd + DMS + niri + portal）
+    ./desktop.nix # 桌面会话（greetd + Noctalia + niri + portal）
     ./services.nix # 系统服务（pipewire/snapper/udisks/keyring/thermald）
     ./locale.nix # 语言/时区/输入法（fcitx5 + IM 变量单一来源）
     ./nix.nix # Nix daemon（镜像源/GC/缓存 + nix-ld/nix-index）

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# 5分钟锁屏，10分钟熄屏，20分钟休眠
-# hyprlock 配置由 programs.hyprlock 生成（~/.config/hypr/hyprlock.conf），
-# 无 -c 时 hyprlock 自动读取标准路径
+# 10分钟锁屏，15分钟熄屏，30分钟休眠
+# 锁屏 = Noctalia 内置锁屏（IPC 触发，PAM 认证走系统 login 服务），
+# 睡眠前由 Noctalia 的 lock_before_suspend（logind PrepareForSleep）兜底上锁
 exec swayidle -w \
-timeout 600  'hyprlock &' \
+timeout 600  'noctalia msg session lock' \
 timeout 900  'niri msg action power-off-monitors' \
 resume       'niri msg action power-on-monitors' \
 timeout 1800 'systemctl suspend'
